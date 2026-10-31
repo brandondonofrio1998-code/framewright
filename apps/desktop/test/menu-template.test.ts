@@ -88,14 +88,17 @@ describe('menu template', () => {
     expect(send).toHaveBeenCalledWith({ type: 'view.resetLayout' });
   });
 
-  it('opens the perspective view and leaves the walkthrough for later', () => {
+  it('opens the orbit view, the walkthrough, and the camera list', () => {
     const { template, send } = build('win32');
     const items = submenu(top(template, '3D'));
     click(find(items, 'Perspective View'));
-    expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d' });
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d', mode: 'orbit' });
     click(find(items, 'Orbit Camera'));
-    expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d' });
-    expect(find(items, 'Walkthrough Camera')?.enabled).toBe(false);
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d', mode: 'orbit' });
+    click(find(items, 'Walkthrough Camera'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d', mode: 'walk' });
+    click(find(items, 'Save Camera…'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.cameras' });
   });
 
   it('keeps unbuilt features visible but disabled', () => {

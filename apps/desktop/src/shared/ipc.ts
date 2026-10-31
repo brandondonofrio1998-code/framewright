@@ -97,7 +97,8 @@ export type MenuCommand =
   | { type: 'view.fit' }
   | { type: 'view.zoomIn' }
   | { type: 'view.zoomOut' }
-  | { type: 'view.show3d' };
+  | { type: 'view.show3d'; mode: 'orbit' | 'walk' }
+  | { type: 'view.cameras' };
 
 export const TOOL_IDS = ['select', 'walls', 'break', 'doors', 'windows', 'objects', 'dimensions'] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
@@ -116,7 +117,7 @@ const SIMPLE_COMMANDS = new Set([
   'view.fit',
   'view.zoomIn',
   'view.zoomOut',
-  'view.show3d',
+  'view.cameras',
 ]);
 
 export function isMenuCommand(value: unknown): value is MenuCommand {
@@ -124,6 +125,10 @@ export function isMenuCommand(value: unknown): value is MenuCommand {
   const { type, handle, tool } = value as { type?: unknown; handle?: unknown; tool?: unknown };
   if (type === 'file.openHandle') return typeof handle === 'string';
   if (type === 'tool.activate') return (TOOL_IDS as readonly unknown[]).includes(tool);
+  if (type === 'view.show3d') {
+    const mode = (value as { mode?: unknown }).mode;
+    return mode === 'orbit' || mode === 'walk';
+  }
   return typeof type === 'string' && SIMPLE_COMMANDS.has(type);
 }
 

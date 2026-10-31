@@ -313,6 +313,7 @@ test('shows the room in the 3D view', async ({ electronApp, window, consoleError
   const view = window.getByTestId('view-3d');
   await expect(view).toBeVisible();
   await expect.poll(async () => Number(await view.getAttribute('data-mesh-count'))).toBeGreaterThan(4);
+  await expect.poll(async () => Number(await view.getAttribute('data-textured'))).toBeGreaterThan(4);
   const canvas = view.locator('canvas');
   await expect.poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(400);
   const sample = await canvas.evaluate((canvas: HTMLCanvasElement) => {
@@ -335,6 +336,58 @@ test('shows the room in the 3D view', async ({ electronApp, window, consoleError
   expect(sample.colored, JSON.stringify(sample)).toBeGreaterThan(800);
   expect(consoleErrors).toEqual([]);
   await window.screenshot({ path: test.info().outputPath('perspective.png') });
+});
+
+function parseEye(value: string | null): { x: number; y: number; z: number } {
+  const [x, y, z] = (value ?? '').split(',').map(Number);
+  return { x: x ?? NaN, y: y ?? NaN, z: z ?? NaN };
+}
+
+test('walks the room and restores a saved camera', async ({ electronApp, window, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-default-tab-content', { hasText: '3D' }).click();
+  const view = window.getByTestId('view-3d');
+  await expect.poll(async () => Number(await view.getAttribute('data-textured'))).toBeGreaterThan(4);
+  await window.getByRole('button', { name: 'Walk', exact: true }).click();
+  await expect(view).toHaveAttribute('data-mode', 'walk');
+  await expect.poll(async () => view.getAttribute('data-eye')).toMatch(/,66\.0$/);
+
+  const before = parseEye(await view.getAttribute('data-eye'));
+  await window.keyboard.down('w');
+  await expect
+    .poll(async () => {
+      const eye = parseEye(await view.getAttribute('data-eye'));
+      return Math.hypot(eye.x - before.x, eye.y - before.y);
+    })
+    .toBeGreaterThan(6);
+  await window.keyboard.up('w');
+  const saved = parseEye(await view.getAttribute('data-eye'));
+
+  await window.getByRole('button', { name: 'Camera Views' }).click();
+  await window.getByLabel('Camera name').fill('Front door');
+  await window.getByRole('button', { name: 'Save camera' }).click();
+  await expect(window.getByRole('button', { name: 'Front door', exact: true })).toBeVisible();
+
+  await window.keyboard.down('w');
+  await expect
+    .poll(async () => {
+      const eye = parseEye(await view.getAttribute('data-eye'));
+      return Math.hypot(eye.x - saved.x, eye.y - saved.y);
+    })
+    .toBeGreaterThan(6);
+  await window.keyboard.up('w');
+  await window.getByRole('button', { name: 'Front door', exact: true }).click();
+  await expect
+    .poll(async () => {
+      const eye = parseEye(await view.getAttribute('data-eye'));
+      return Math.hypot(eye.x - saved.x, eye.y - saved.y);
+    })
+    .toBeLessThan(1.5);
+
+  await undoRedo(electronApp, 'Undo');
+  await expect(window.getByRole('button', { name: 'Front door', exact: true })).toHaveCount(0);
+  expect(consoleErrors).toEqual([]);
+  await window.screenshot({ path: test.info().outputPath('walk.png') });
 });
 
 test('status bar shows the cursor position and snap toggles', async ({ window }) => {

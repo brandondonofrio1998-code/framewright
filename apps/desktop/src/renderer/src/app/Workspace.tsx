@@ -11,6 +11,7 @@ import { LibraryPanel } from '../panels/LibraryPanel';
 import { PropertiesPanel } from '../panels/PropertiesPanel';
 import { PlanView } from '../plan/PlanView';
 import { View3D } from '../view3d/View3D';
+import { openCameras, setViewMode, useView3d } from '../view3d/view-state';
 
 const theme: DockviewTheme = {
   ...themeLight,
@@ -77,12 +78,24 @@ export function Workspace() {
     buildDefaultLayout(event.api);
   }, []);
 
+  useEffect(() => {
+    return useView3d.subscribe((state, prev) => {
+      if (state.camerasOpen && !prev.camerasOpen && apiRef.current) showPerspective(apiRef.current);
+    });
+  }, []);
+
   useEffect(
     () =>
       window.fw.menu.onCommand((command) => {
         if (!apiRef.current) return;
         if (command.type === 'view.resetLayout') buildDefaultLayout(apiRef.current);
-        else if (command.type === 'view.show3d') showPerspective(apiRef.current);
+        else if (command.type === 'view.show3d') {
+          setViewMode(command.mode);
+          showPerspective(apiRef.current);
+        } else if (command.type === 'view.cameras') {
+          openCameras();
+          showPerspective(apiRef.current);
+        }
       }),
     [],
   );

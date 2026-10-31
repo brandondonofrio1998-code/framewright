@@ -151,9 +151,10 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
   const threeD: MenuItemConstructorOptions = {
     label: '&3D',
     submenu: [
-      { label: 'Perspective View', click: () => ctx.send({ type: 'view.show3d' }) },
-      { label: 'Orbit Camera', click: () => ctx.send({ type: 'view.show3d' }) },
-      pending('Walkthrough Camera'),
+      { label: 'Perspective View', click: () => ctx.send({ type: 'view.show3d', mode: 'orbit' }) },
+      { label: 'Orbit Camera', click: () => ctx.send({ type: 'view.show3d', mode: 'orbit' }) },
+      { label: 'Walkthrough Camera', click: () => ctx.send({ type: 'view.show3d', mode: 'walk' }) },
+      { label: 'Save Camera…', click: () => ctx.send({ type: 'view.cameras' }) },
     ],
   };
 

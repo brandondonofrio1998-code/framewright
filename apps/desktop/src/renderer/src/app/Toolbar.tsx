@@ -14,9 +14,11 @@ import {
 } from 'lucide-react';
 import type { ToolId } from '../../../shared/ipc';
 import { setTool, TOOL_LABELS, useEditor } from '../editor/store';
+import { toggleCameras, useView3d } from '../view3d/view-state';
 
 type ToolButton =
   | { id: ToolId; icon: LucideIcon }
+  | { id: 'camera'; label: string; icon: LucideIcon }
   | { id: string; label: string; icon: LucideIcon; availableIn: string };
 
 const TOOL_GROUPS: ToolButton[][] = [
@@ -36,11 +38,12 @@ const TOOL_GROUPS: ToolButton[][] = [
     { id: 'dimensions', icon: RulerDimensionLine },
     { id: 'text', label: 'Text', icon: Type, availableIn: 'M7' },
   ],
-  [{ id: 'camera', label: 'Camera Views', icon: Video, availableIn: 'M3' }],
+  [{ id: 'camera', label: 'Camera Views', icon: Video }],
 ];
 
 export function Toolbar() {
   const active = useEditor((s) => s.tool);
+  const camerasOpen = useView3d((s) => s.camerasOpen);
   return (
     <div className="toolbar" role="toolbar" aria-label="Tools">
       {TOOL_GROUPS.map((group, index) => (
@@ -50,6 +53,13 @@ export function Toolbar() {
             if ('availableIn' in button) {
               return (
                 <button key={button.id} type="button" className="tool-button" aria-label={button.label} title={`${button.label} (available in ${button.availableIn})`} disabled>
+                  <Icon size={18} strokeWidth={1.75} aria-hidden />
+                </button>
+              );
+            }
+            if (button.id === 'camera') {
+              return (
+                <button key={button.id} type="button" className="tool-button" aria-label={button.label} aria-pressed={camerasOpen} title={button.label} onClick={() => toggleCameras()}>
                   <Icon size={18} strokeWidth={1.75} aria-hidden />
                 </button>
               );
