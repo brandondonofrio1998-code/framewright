@@ -90,14 +90,38 @@ export type MenuCommand =
   | { type: 'file.saveAndClose' }
   | { type: 'edit.undo' }
   | { type: 'edit.redo' }
-  | { type: 'view.resetLayout' };
+  | { type: 'edit.delete' }
+  | { type: 'edit.selectAll' }
+  | { type: 'tool.activate'; tool: ToolId }
+  | { type: 'view.resetLayout' }
+  | { type: 'view.fit' }
+  | { type: 'view.zoomIn' }
+  | { type: 'view.zoomOut' };
 
-const SIMPLE_COMMANDS = new Set(['file.new', 'file.open', 'file.save', 'file.saveAs', 'file.saveAndClose', 'edit.undo', 'edit.redo', 'view.resetLayout']);
+export const TOOL_IDS = ['select', 'walls', 'break', 'dimensions'] as const;
+export type ToolId = (typeof TOOL_IDS)[number];
+
+const SIMPLE_COMMANDS = new Set([
+  'file.new',
+  'file.open',
+  'file.save',
+  'file.saveAs',
+  'file.saveAndClose',
+  'edit.undo',
+  'edit.redo',
+  'edit.delete',
+  'edit.selectAll',
+  'view.resetLayout',
+  'view.fit',
+  'view.zoomIn',
+  'view.zoomOut',
+]);
 
 export function isMenuCommand(value: unknown): value is MenuCommand {
   if (typeof value !== 'object' || value === null) return false;
-  const { type, handle } = value as { type?: unknown; handle?: unknown };
+  const { type, handle, tool } = value as { type?: unknown; handle?: unknown; tool?: unknown };
   if (type === 'file.openHandle') return typeof handle === 'string';
+  if (type === 'tool.activate') return (TOOL_IDS as readonly unknown[]).includes(tool);
   return typeof type === 'string' && SIMPLE_COMMANDS.has(type);
 }
 

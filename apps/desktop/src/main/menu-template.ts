@@ -1,5 +1,5 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import type { FileRef, MenuCommand, Platform } from '../shared/ipc';
+import type { FileRef, MenuCommand, Platform, ToolId } from '../shared/ipc';
 
 export interface MenuState {
   undoLabel: string | null;
@@ -101,24 +101,33 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       { role: 'cut' },
       { role: 'copy' },
       { role: 'paste' },
-      { role: 'delete' },
+      // Shown but not registered, so the key still edits text fields; the renderer handles it.
+      { label: 'Delete', accelerator: 'Delete', registerAccelerator: false, click: () => ctx.send({ type: 'edit.delete' }) },
       sep,
-      { role: 'selectAll' },
+      { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => ctx.send({ type: 'edit.selectAll' }) },
       ...(mac ? [] : [sep, pending('Preferences…', 'Ctrl+,')]),
     ],
   };
 
+  const tool = (label: string, id: ToolId): MenuItemConstructorOptions => ({
+    label,
+    click: () => ctx.send({ type: 'tool.activate', tool: id }),
+  });
+
   const build: MenuItemConstructorOptions = {
     label: '&Build',
     submenu: [
-      pending('Walls'),
+      tool('Select Objects', 'select'),
+      sep,
+      tool('Walls', 'walls'),
+      tool('Break Wall', 'break'),
       pending('Doors'),
       pending('Windows'),
       pending('Cabinets'),
       pending('Stairs'),
       pending('Roof'),
       sep,
-      pending('Dimensions'),
+      tool('Dimensions', 'dimensions'),
       pending('Text'),
     ],
   };
@@ -126,6 +135,10 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
   const view: MenuItemConstructorOptions = {
     label: '&View',
     submenu: [
+      { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: () => ctx.send({ type: 'view.zoomIn' }) },
+      { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', click: () => ctx.send({ type: 'view.zoomOut' }) },
+      { label: 'Fill Window', accelerator: 'F', registerAccelerator: false, click: () => ctx.send({ type: 'view.fit' }) },
+      sep,
       { label: 'Reset Layout', click: () => ctx.send({ type: 'view.resetLayout' }) },
       sep,
       { role: 'togglefullscreen' },

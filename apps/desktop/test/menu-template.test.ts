@@ -90,9 +90,34 @@ describe('menu template', () => {
 
   it('keeps unbuilt features visible but disabled', () => {
     const { template } = build('win32');
-    for (const name of ['Walls', 'Doors', 'Roof']) {
+    for (const name of ['Doors', 'Roof', 'Text']) {
       expect(find(submenu(top(template, 'Build')), name)?.enabled).toBe(false);
     }
+  });
+
+  it('Build activates plan tools', () => {
+    const { template, send } = build('win32');
+    const items = submenu(top(template, 'Build'));
+    for (const [name, tool] of [
+      ['Select Objects', 'select'],
+      ['Walls', 'walls'],
+      ['Break Wall', 'break'],
+      ['Dimensions', 'dimensions'],
+    ] as const) {
+      click(find(items, name));
+      expect(send).toHaveBeenLastCalledWith({ type: 'tool.activate', tool });
+    }
+  });
+
+  it('Delete and Fill Window show their keys without stealing them from text fields', () => {
+    const { template, send } = build('win32');
+    const del = find(submenu(top(template, 'Edit')), 'Delete');
+    expect(del).toMatchObject({ accelerator: 'Delete', registerAccelerator: false });
+    click(del);
+    expect(send).toHaveBeenLastCalledWith({ type: 'edit.delete' });
+    expect(find(submenu(top(template, 'View')), 'Fill Window')).toMatchObject({ accelerator: 'F', registerAccelerator: false });
+    click(find(submenu(top(template, 'View')), 'Zoom In'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.zoomIn' });
   });
 
   it('only exposes reload/devtools when dev tools are enabled', () => {
