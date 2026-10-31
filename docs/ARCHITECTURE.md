@@ -464,7 +464,7 @@ M1 is too big for one pass, so I propose splitting it:
 - **M1b, document core.** Data model, units parse/format, the command and history system, file open/save/save as, migrations, autosave and recovery, recent files, and levels.
 - **M1c, plan editor.** Canvas plan view, wall tool with typed lengths, joins, split, move, the snap engine, dimensions, the status bar, and Playwright flows.
 
-M2–M7 follow as specified and will be split the same way when they come up (M5 almost certainly into roofs, framing, foundations, and stairs).
+M2 is split into **M2a** (doors and windows hosted in walls), **M2b** (starter catalog: cabinets, appliances, fixtures, and the Library panel), and **M2c** (room detection with area labels; it also replaces the window exterior-side guess with real exterior detection). M3–M7 follow as specified and will be split the same way when they come up (M5 almost certainly into roofs, framing, foundations, and stairs).
 
 ## 13. Known risks
 - **Hip roofs with mixed pitches** need a weighted straight skeleton. No permissively licensed TS implementation is mature enough, so we will write our own with heavy tests. This is the riskiest geometry in the project and will get its own sub-milestone in M5.
