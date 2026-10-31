@@ -7,6 +7,7 @@ import {
   type DockviewTheme,
   type IDockviewPanelProps,
 } from 'dockview-react';
+import { LevelsPanel } from '../panels/LevelsPanel';
 
 const theme: DockviewTheme = {
   ...themeLight,
@@ -28,7 +29,7 @@ function PlaceholderPanel({ params }: IDockviewPanelProps<PlaceholderParams>) {
   );
 }
 
-const components = { placeholder: PlaceholderPanel };
+const components = { placeholder: PlaceholderPanel, levels: LevelsPanel };
 
 function buildDefaultLayout(api: DockviewApi): void {
   api.clear();
@@ -53,14 +54,21 @@ function buildDefaultLayout(api: DockviewApi): void {
     position: { referencePanel: plan, direction: 'left' },
     initialWidth: 260,
   });
+  const levels = api.addPanel({
+    id: 'levels',
+    title: 'Levels',
+    component: 'levels',
+    position: { referencePanel: plan, direction: 'right' },
+    initialWidth: 300,
+  });
   api.addPanel<PlaceholderParams>({
     id: 'properties',
     title: 'Properties',
     component: 'placeholder',
     params: { title: 'Properties', arrives: 'M1c' },
-    position: { referencePanel: plan, direction: 'right' },
-    initialWidth: 280,
+    position: { referencePanel: levels, direction: 'within' },
   });
+  levels.api.setActive();
   plan.api.setActive();
 }
 
@@ -75,7 +83,7 @@ export function Workspace() {
   useEffect(
     () =>
       window.fw.menu.onCommand((command) => {
-        if (command === 'view.resetLayout' && apiRef.current) buildDefaultLayout(apiRef.current);
+        if (command.type === 'view.resetLayout' && apiRef.current) buildDefaultLayout(apiRef.current);
       }),
     [],
   );
