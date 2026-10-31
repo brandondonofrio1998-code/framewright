@@ -132,8 +132,12 @@ export class History<R extends CommandRegistry> {
     return true;
   }
 
-  markSaved(): void {
-    this.savedDepth = this.undoStack.length;
+  /**
+   * Marks the current state as saved. Pass the document that was written: if it changed
+   * while the save was in flight, the plan correctly stays dirty.
+   */
+  markSaved(written: PlanDocument = this.current): void {
+    if (written === this.current) this.savedDepth = this.undoStack.length;
   }
 
   /** Replaces the document (new/open/recover) and clears history. */

@@ -119,6 +119,15 @@ describe('History', () => {
       expect(history.doc.levels[baseLevelId]?.name).toBe('A');
     });
 
+    it('stays dirty if the document changed while a save was in flight', () => {
+      const { history, baseLevelId } = testHistory();
+      history.dispatch('level.update', { id: baseLevelId, changes: { name: 'A' } });
+      const written = history.doc;
+      history.dispatch('level.update', { id: baseLevelId, changes: { ceilingHeight: 100 } });
+      history.markSaved(written);
+      expect(history.dirty).toBe(true);
+    });
+
     it('reset can mark a recovered document dirty', () => {
       const { history } = testHistory();
       history.reset(history.doc, { dirty: true });
