@@ -5,7 +5,7 @@ test('opens the workspace with toolbar, docked panels and status bar', async ({ 
   for (const label of ['Select', 'Walls', 'Doors', 'Windows', 'Cabinets', 'Stairs', 'Roof', 'Dimensions', 'Text']) {
     await expect(window.getByRole('button', { name: label, exact: true })).toBeVisible();
   }
-  for (const tab of ['Plan', '3D', 'Library', 'Properties']) {
+  for (const tab of ['Plan', '3D', 'Library', 'Levels', 'Properties']) {
     await expect(window.locator('.dv-tab', { hasText: tab })).toHaveCount(1);
   }
   await expect(window.getByTestId('status-tool')).toBeVisible();
@@ -20,7 +20,7 @@ test('renderer is sandboxed and only sees the preload API', async ({ window }) =
     apiKeys: Object.keys((globalThis as unknown as Window).fw).sort(),
     origin: location.origin,
   }));
-  expect(exposure).toEqual({ require: 'undefined', process: 'undefined', apiKeys: ['app', 'menu'], origin: 'app://framewright' });
+  expect(exposure).toEqual({ require: 'undefined', process: 'undefined', apiKeys: ['app', 'autosave', 'file', 'menu'], origin: 'app://framewright' });
 });
 
 test('menu bar follows platform conventions', async ({ electronApp, window }) => {

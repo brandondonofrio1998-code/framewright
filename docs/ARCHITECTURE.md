@@ -447,8 +447,8 @@ Every milestone closes with `npm run verify` (typecheck, lint, unit, offline sca
 
 ## 11. Autosave, recovery, recent files, user libraries
 
-- **Autosave.** Runs 60 s after the first unsaved change (configurable) and on window blur. It writes atomically to `userData/autosave/<docId>.json` along with the original file path and a timestamp.
-- **Crash detection.** `userData/session.lock` holds the process id and the start time. On launch, if a stale lock exists and there are autosave files, a recovery dialog lists them so the user can restore, discard, or keep for later. A clean exit removes the lock and the matching autosaves.
+- **Autosave.** While the plan has unsaved changes, it is written every 60 s (only if it changed since the last autosave) and whenever the window loses focus. Writes are atomic, to `userData/autosave/<docId>.json`, along with the title, the original file path, and a timestamp.
+- **Crash detection.** An autosave file exists only while its plan has unsaved changes: saving, choosing Don't Save, or closing a clean window deletes it. Any autosave still present at launch therefore belongs to a session that ended without resolving its changes (a crash, power loss, or forced kill). The single-instance lock guarantees no other live window owns it. A recovery dialog lists the files so the user can restore, discard, or decide later. No separate lock file is needed.
 - **Recent files.** `userData/recent.json` keeps the last 12 files, de-duplicated, with missing files pruned when the list is shown. The list also feeds OS recent-document integration.
 - **User library.** `userData/library/{materials,catalog}/…`. Tools ▸ Import Library Folder copies a folder in after validation. The expected layout is `materials/*.json` + textures and `catalog/*.json` + optional thumbnails. Everything goes through zod schemas, and an import report lists anything rejected. Libraries are indexed by main and served over `userlib://`.
 

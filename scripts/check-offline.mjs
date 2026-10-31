@@ -18,6 +18,9 @@ const URL_PATTERN = /\b(?:https?|wss?|ftp):\/\/[^\s'"`<>()\\]*/gi;
  */
 export const ALLOWLIST = [
   { pattern: /^https:\/\/react\.dev\/errors\/$/, where: 'build', reason: 'Text inside React production error messages ("visit … for the full message"); never requested' },
+  { pattern: /^https?:\/\/json-schema\.org\/(draft-0[47]\/schema#|draft\/2020-12\/schema)$/, where: 'build', reason: 'JSON Schema `$schema` identifiers emitted by zod’s schema exporter; identifiers, never requested' },
+  { pattern: /^http:\/\/\[\$\{e\}\]$/, where: 'build', reason: 'zod’s IPv6 validator parses `http://[addr]` with `new URL()` to check syntax; never requested' },
+  { pattern: /^https:\/\/bit\.ly\/3cXEKWf$/, where: 'build', reason: 'Text inside an Immer error message; never requested' },
   { pattern: /^http:\/\/www\.w3\.org\/(2000\/svg|1999\/xlink|1999\/xhtml|1998\/Math\/MathML|XML\/1998\/namespace|2000\/xmlns\/?)$/, where: 'any', reason: 'XML namespace identifiers used by the DOM, never requested' },
 ];
 
