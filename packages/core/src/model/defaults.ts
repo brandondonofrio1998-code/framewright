@@ -71,6 +71,7 @@ export function createDocument({ newId, now, appVersion, title = 'Untitled' }: C
     levelOrder: [level1.id],
     wallTypes: { [exterior.id]: exterior, [interior.id]: interior },
     materials: Object.fromEntries([drywall, studs, osb, siding].map((m) => [m.id, m])),
+    catalogDefs: {},
     elements: {},
   };
 }

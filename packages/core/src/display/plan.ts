@@ -1,6 +1,8 @@
 import { distance } from '../geometry/vec2';
-import type { Dimension, DimensionEnd, Id, Opening, PlanDocument, Vec2, WallLayer } from '../model/schema';
+import { objectPrims } from '../catalog/symbols';
+import type { Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
+import { formatArea, roomFace, roomsOnLevel } from '../rooms/rooms';
 import { formatLength } from '../units/length';
 import { computeWallGeometry, type WallGeometry } from '../walls/joins';
 import { dimensionPrims, type DisplayItem, type FillId, type Prim } from './display-list';
@@ -21,6 +23,15 @@ export function resolveDimensionEnd(doc: PlanDocument, end: DimensionEnd): Vec2 
     if (node?.kind === 'wallNode') return node.p;
   }
   return end.p;
+}
+
+const ROOM_TEXT = 8;
+
+function roomLabel(room: Room, area: number): Prim[] {
+  return [
+    { t: 'text', p: { x: room.seed.x, y: room.seed.y + ROOM_TEXT * 0.3 }, s: room.name, size: ROOM_TEXT, rot: 0, align: 'center' },
+    { t: 'text', p: room.seed, s: formatArea(area), size: ROOM_TEXT * 0.75, rot: 0, align: 'center' },
+  ];
 }
 
 export function dimensionsOnLevel(doc: PlanDocument, levelId: Id): Dimension[] {
@@ -63,6 +74,17 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     const geom = geometry.get(wallId);
     if (!geom) continue;
     for (const o of openings) items.push({ elementId: o.id, layer: 'openings', prims: openingPrims(geom, o) });
+  }
+
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'object' || el.levelId !== levelId) continue;
+    const prims = objectPrims(doc, el);
+    if (prims.length > 0) items.push({ elementId: el.id, layer: 'objects', prims });
+  }
+  for (const room of roomsOnLevel(doc, levelId)) {
+    const face = roomFace(doc, room);
+    if (!face) continue;
+    items.push({ elementId: room.id, layer: 'rooms', prims: roomLabel(room, face.area) });
   }
 
   const format = doc.settings.lengthFormat;

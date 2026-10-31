@@ -4,8 +4,11 @@ import { CURRENT_SCHEMA_VERSION, DocumentSchema, PLAN_FORMAT_ID, type PlanDocume
 /** Upgrades a raw document from version `n` to `n + 1`. Must be pure and handle any valid version-n file. */
 export type Migration = (doc: Record<string, unknown>) => Record<string, unknown>;
 
-/** Keyed by the version a migration upgrades *from*. Add one entry per schema bump, with a frozen fixture test. */
-export const MIGRATIONS: ReadonlyMap<number, Migration> = new Map();
+/**
+ * Keyed by the version a migration upgrades *from*. Add one entry per schema bump, with a frozen fixture test.
+ * v1 → v2 adds `catalogDefs` (embedded catalog items; empty in plans that predate the catalog).
+ */
+export const MIGRATIONS: ReadonlyMap<number, Migration> = new Map([[1, (doc) => ({ ...doc, catalogDefs: doc.catalogDefs ?? {} })]]);
 
 export type LoadErrorCode = 'not-json' | 'not-framewright' | 'too-new' | 'unsupported-version' | 'invalid';
 

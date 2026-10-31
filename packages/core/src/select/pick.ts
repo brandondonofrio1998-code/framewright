@@ -1,13 +1,15 @@
+import { objectFootprint } from '../catalog/symbols';
 import { dimensionLine } from '../display/display-list';
 import { openingOutline } from '../display/openings';
 import { dimensionsOnLevel, resolveDimensionEnd } from '../display/plan';
 import { cross, distance, pointInPolygon, projectOnSegment, sub, type Bounds } from '../geometry/vec2';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
+import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room';
   id: Id;
 }
 
@@ -20,7 +22,7 @@ function distanceToPolygon(p: Vec2, polygon: Vec2[]): number {
 
 /**
  * The element under `p` within `tolerance` model units. Dimensions win (they draw on top), then doors and
- * windows (they sit inside walls), then walls.
+ * windows (they sit inside walls), then objects, then walls, then rooms.
  */
 export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, WallGeometry>, p: Vec2, tolerance: number): Picked | null {
   const best: { picked: Picked | null; d: number } = { picked: null, d: Infinity };
@@ -37,9 +39,19 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
     if (geom) consider({ kind: o.kind, id: o.id }, distanceToPolygon(p, openingOutline(geom, o)));
   }
   if (best.picked) return best.picked;
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'object' || el.levelId !== levelId) continue;
+    consider({ kind: 'object', id: el.id }, distanceToPolygon(p, objectFootprint(doc, el)));
+  }
+  if (best.picked) return best.picked;
   for (const geom of geometry.values()) {
     const d = pointInPolygon(p, geom.footprint) ? 0 : Math.max(0, projectOnSegment(p, geom.a, geom.b).distance - geom.thickness / 2);
     consider({ kind: 'wall', id: geom.wallId }, d);
+  }
+  if (best.picked) return best.picked;
+  for (const room of roomsOnLevel(doc, levelId)) {
+    const face = roomFace(doc, room);
+    if (face && pointInPolygon(p, face.polygon)) consider({ kind: 'room', id: room.id }, 0);
   }
   return best.picked;
 }
@@ -72,6 +84,13 @@ const inside = (p: Vec2, box: Bounds) => p.x >= box.minX && p.x <= box.maxX && p
 export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, WallGeometry>, box: Bounds): Id[] {
   const ids: Id[] = [];
   for (const geom of geometry.values()) if (geom.footprint.every((p) => inside(p, box))) ids.push(geom.wallId);
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind === 'object' && el.levelId === levelId && objectFootprint(doc, el).every((p) => inside(p, box))) ids.push(el.id);
+  }
+  for (const room of roomsOnLevel(doc, levelId)) {
+    const face = roomFace(doc, room);
+    if (face && face.polygon.every((p) => inside(p, box))) ids.push(room.id);
+  }
   for (const o of openingsOnLevel(doc, levelId)) {
     const geom = geometry.get(o.wallId);
     if (geom && openingOutline(geom, o).every((p) => inside(p, box))) ids.push(o.id);

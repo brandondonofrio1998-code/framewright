@@ -22,6 +22,7 @@ export function checkInvariants(doc: PlanDocument): string[] {
   for (const [key, level] of Object.entries(doc.levels)) if (key !== level.id) problems.push(`level key ${key} != id ${level.id}`);
   for (const [key, type] of Object.entries(doc.wallTypes)) if (key !== type.id) problems.push(`wall type key ${key} != id ${type.id}`);
   for (const [key, mat] of Object.entries(doc.materials)) if (key !== mat.id) problems.push(`material key ${key} != id ${mat.id}`);
+  for (const [key, def] of Object.entries(doc.catalogDefs)) if (key !== def.id) problems.push(`catalog def key ${key} != id ${def.id}`);
   for (const [key, el] of Object.entries(doc.elements)) if (key !== el.id) problems.push(`element key ${key} != id ${el.id}`);
 
   if (doc.levelOrder.length === 0) problems.push('document has no levels');
@@ -79,6 +80,13 @@ export function checkInvariants(doc: PlanDocument): string[] {
         problems.push(`${el.kind} ${el.id} extends past its wall`);
       }
     }
+    if (el.kind === 'object') {
+      if (!doc.catalogDefs[el.defId]) problems.push(`object ${el.id} references a missing catalog item`);
+      if (el.hostWallId !== undefined) {
+        const wall = doc.elements[el.hostWallId];
+        if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) problems.push(`object ${el.id} references a missing wall`);
+      }
+    }
   }
   return problems;
 }
@@ -95,7 +103,7 @@ export interface RepairResult {
 export function repairInvariants(input: PlanDocument): RepairResult {
   const repairs: string[] = [];
   const doc = produce(input, (d) => {
-    for (const table of [d.levels, d.wallTypes, d.materials, d.elements] as Record<string, { id: string }>[]) {
+    for (const table of [d.levels, d.wallTypes, d.materials, d.catalogDefs, d.elements] as Record<string, { id: string }>[]) {
       for (const [key, value] of Object.entries(table)) {
         if (key !== value.id) {
           delete table[key];
@@ -184,6 +192,23 @@ export function repairInvariants(input: PlanDocument): RepairResult {
       if (Math.abs(t - el.t) > LENGTH_EPS) {
         el.t = t;
         repairs.push(`Moved ${el.kind} ${el.id} back within its wall`);
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'object') continue;
+      if (!d.catalogDefs[el.defId]) {
+        delete d.elements[el.id];
+        repairs.push(`Removed object ${el.id} with a missing catalog item`);
+        continue;
+      }
+      if (el.hostWallId !== undefined) {
+        const wall = d.elements[el.hostWallId];
+        if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) {
+          delete el.hostWallId;
+          delete el.hostT;
+          delete el.side;
+          repairs.push(`Detached object ${el.id} from a missing wall`);
+        }
       }
     }
   });

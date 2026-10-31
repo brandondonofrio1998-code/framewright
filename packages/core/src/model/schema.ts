@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const PLAN_FORMAT_ID = 'framewright-plan';
 export const PLAN_FILE_EXTENSION = 'fwplan';
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export const IdSchema = z.string().min(1).max(64);
 export type Id = z.infer<typeof IdSchema>;
@@ -142,7 +142,79 @@ export type WindowOpening = z.infer<typeof WindowSchema>;
 
 export type Opening = Door | WindowOpening;
 
-export const ElementSchema = z.discriminatedUnion('kind', [WallNodeSchema, WallSchema, DimensionSchema, DoorSchema, WindowSchema]);
+export const ROOM_TYPES = ['unspecified', 'living', 'kitchen', 'dining', 'bedroom', 'bathroom', 'hall', 'closet', 'garage', 'utility', 'other'] as const;
+export type RoomType = (typeof ROOM_TYPES)[number];
+
+export const RoomSchema = z.object({
+  ...elementBase,
+  kind: z.literal('room'),
+  name: z.string().trim().min(1).max(100),
+  roomType: z.enum(ROOM_TYPES),
+  /** A point inside the room, used to keep the same room when walls move. */
+  seed: Vec2Schema,
+  /** null → the level's ceiling height. */
+  ceilingHeight: PositiveLength.nullable(),
+});
+export type Room = z.infer<typeof RoomSchema>;
+
+export const GENERATORS = [
+  'cabinet.base',
+  'cabinet.wall',
+  'cabinet.tall',
+  'appliance.range',
+  'appliance.fridge',
+  'appliance.dishwasher',
+  'fixture.toilet',
+  'fixture.sink',
+  'fixture.tub',
+] as const;
+export type GeneratorId = (typeof GENERATORS)[number];
+
+export const ParamValueSchema = z.union([z.number(), z.string(), z.boolean()]);
+export type ParamValue = z.infer<typeof ParamValueSchema>;
+
+export const CatalogParamSchema = z.object({
+  key: z.string().min(1).max(40),
+  label: z.string().min(1).max(40),
+  min: z.number(),
+  max: z.number(),
+});
+export type CatalogParam = z.infer<typeof CatalogParamSchema>;
+
+/** A catalog definition embedded in the plan. `params` are the defaults the item was placed with. */
+export const CatalogDefSchema = z.object({
+  id: IdSchema,
+  sourceId: z.string().min(1).max(64),
+  name: z.string().min(1).max(100),
+  category: z.array(z.string().min(1).max(40)).min(1).max(3),
+  generator: z.enum(GENERATORS),
+  params: z.record(z.string(), ParamValueSchema),
+  paramSchema: z.array(CatalogParamSchema).max(8),
+  /** Placed with its back against a wall. */
+  hostsToWall: z.boolean(),
+});
+export type CatalogDef = z.infer<typeof CatalogDefSchema>;
+
+export const CatalogObjectSchema = z.object({
+  ...elementBase,
+  kind: z.literal('object'),
+  defId: IdSchema,
+  /** Center of the object in plan. */
+  p: Vec2Schema,
+  /** Height of the object's base above the level. */
+  z: NonNegativeLength,
+  /** Radians counter-clockwise from +x. Local +y points at the object's back. */
+  rotation: z.number(),
+  /** Overrides of the definition's params. */
+  params: z.record(z.string(), ParamValueSchema),
+  hostWallId: IdSchema.optional(),
+  /** Distance along the wall from node a to the object's center. */
+  hostT: z.number().optional(),
+  side: z.enum(['left', 'right']).optional(),
+});
+export type CatalogObject = z.infer<typeof CatalogObjectSchema>;
+
+export const ElementSchema = z.discriminatedUnion('kind', [WallNodeSchema, WallSchema, DimensionSchema, DoorSchema, WindowSchema, RoomSchema, CatalogObjectSchema]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];
 
@@ -161,6 +233,8 @@ export const DocumentSchema = z.object({
   levelOrder: z.array(IdSchema).min(1),
   wallTypes: z.record(IdSchema, WallTypeSchema),
   materials: z.record(IdSchema, MaterialSchema),
+  /** Catalog definitions used by objects in this plan. */
+  catalogDefs: z.record(IdSchema, CatalogDefSchema),
   elements: z.record(IdSchema, ElementSchema),
 });
 export type PlanDocument = z.infer<typeof DocumentSchema>;

@@ -41,6 +41,9 @@ describe('frozen fixtures', () => {
   it('v1/two-levels.fwplan loads cleanly', () => {
     const r = mustLoad(fixture('v1/two-levels.fwplan'));
     expect(r.repairs).toEqual([]);
+    expect(r.migratedFrom).toBe(1);
+    expect(r.doc.schemaVersion).toBe(2);
+    expect(r.doc.catalogDefs).toEqual({});
     expect(r.doc.levelOrder).toEqual(['lvl-1', 'lvl-2']);
     expect(r.doc.elements['w-1']).toMatchObject({ kind: 'wall', a: 'n-1', b: 'n-2', height: null });
     expect(checkInvariants(r.doc)).toEqual([]);
