@@ -1,0 +1,41 @@
+{
+  "format": "framewright-plan",
+  "schemaVersion": 1,
+  "meta": {
+    "id": "3f0c2a4e-1b7d-4c55-9a51-0d6f3e2b9c01",
+    "title": "Fixture: two levels, one wall",
+    "created": "2026-10-31T12:00:00.000Z",
+    "modified": "2026-10-31T12:30:00.000Z",
+    "appVersion": "0.1.0"
+  },
+  "settings": {
+    "lengthFormat": { "system": "imperial", "style": "ft-in", "denominator": 16 },
+    "gridSpacing": 12
+  },
+  "levels": {
+    "lvl-1": { "id": "lvl-1", "name": "Level 1", "elevation": 0, "ceilingHeight": 97.125, "floorDepth": 12.625, "ceilingFinish": 0.5 },
+    "lvl-2": { "id": "lvl-2", "name": "Level 2", "elevation": 109.75, "ceilingHeight": 97.125, "floorDepth": 12.625, "ceilingFinish": 0.5 }
+  },
+  "levelOrder": ["lvl-1", "lvl-2"],
+  "wallTypes": {
+    "wt-int": {
+      "id": "wt-int",
+      "name": "Interior 2x4",
+      "layers": [
+        { "materialId": "mat-gyp", "thickness": 0.5, "fn": "finish" },
+        { "materialId": "mat-spf", "thickness": 3.5, "fn": "structure" },
+        { "materialId": "mat-gyp", "thickness": 0.5, "fn": "finish" }
+      ],
+      "coreIndex": [1, 1]
+    }
+  },
+  "materials": {
+    "mat-gyp": { "id": "mat-gyp", "name": "Gypsum board 1/2\"", "category": "drywall", "color": "#ECEAE6" },
+    "mat-spf": { "id": "mat-spf", "name": "SPF framing lumber", "category": "framing", "color": "#D9B98A" }
+  },
+  "elements": {
+    "n-1": { "id": "n-1", "levelId": "lvl-1", "kind": "wallNode", "p": { "x": 0, "y": 0 } },
+    "n-2": { "id": "n-2", "levelId": "lvl-1", "kind": "wallNode", "p": { "x": 144, "y": 0 } },
+    "w-1": { "id": "w-1", "levelId": "lvl-1", "kind": "wall", "a": "n-1", "b": "n-2", "typeId": "wt-int", "height": null, "baseOffset": 0 }
+  }
+}

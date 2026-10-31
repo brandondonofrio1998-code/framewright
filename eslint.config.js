@@ -18,7 +18,7 @@ export default tseslint.config(
     rules: { 'no-empty-pattern': 'off' },
   },
   {
-    files: ['packages/core/**/*.ts'],
+    files: ['packages/core/src/**/*.ts'],
     languageOptions: { globals: {} },
     rules: {
       'no-restricted-imports': [
