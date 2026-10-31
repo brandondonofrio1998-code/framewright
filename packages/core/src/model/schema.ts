@@ -95,7 +95,21 @@ export const WallSchema = z.object({
 });
 export type Wall = z.infer<typeof WallSchema>;
 
-export const ElementSchema = z.discriminatedUnion('kind', [WallNodeSchema, WallSchema]);
+/** A dimension end follows its wall node while that node exists; `p` is its last known position. */
+export const DimensionEndSchema = z.object({ p: Vec2Schema, nodeId: IdSchema.optional() });
+export type DimensionEnd = z.infer<typeof DimensionEndSchema>;
+
+export const DimensionSchema = z.object({
+  ...elementBase,
+  kind: z.literal('dimension'),
+  a: DimensionEndSchema,
+  b: DimensionEndSchema,
+  /** Distance of the dimension line from the measured points, positive to the left of a → b. */
+  offset: Length,
+});
+export type Dimension = z.infer<typeof DimensionSchema>;
+
+export const ElementSchema = z.discriminatedUnion('kind', [WallNodeSchema, WallSchema, DimensionSchema]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];
 

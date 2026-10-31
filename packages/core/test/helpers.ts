@@ -1,4 +1,4 @@
-import { createDocument, documentCommands, History, type PlanDocument } from '../src';
+import { createDocument, History, planCommands, type PlanDocument } from '../src';
 
 export function idCounter(prefix = 'id'): () => string {
   let n = 0;
@@ -14,6 +14,6 @@ export function testDocument(newId = idCounter()): PlanDocument {
 export function testHistory(options: { now?: () => number } = {}) {
   const newId = idCounter();
   const doc = testDocument(newId);
-  const history = new History(doc, documentCommands, { newId }, options);
+  const history = new History(doc, planCommands, { newId }, options);
   return { history, newId, baseLevelId: doc.levelOrder[0] as string };
 }

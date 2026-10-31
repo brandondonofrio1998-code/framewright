@@ -55,6 +55,13 @@ export function checkInvariants(doc: PlanDocument): string[] {
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind === 'wallNode' && !usedNodes.has(el.id)) problems.push(`wall node ${el.id} is not used by any wall`);
+    if (el.kind === 'dimension') {
+      for (const end of [el.a, el.b]) {
+        if (end.nodeId === undefined) continue;
+        const node = doc.elements[end.nodeId];
+        if (node?.kind !== 'wallNode' || node.levelId !== el.levelId) problems.push(`dimension ${el.id} references a missing node`);
+      }
+    }
   }
   return problems;
 }
@@ -134,6 +141,17 @@ export function repairInvariants(input: PlanDocument): RepairResult {
       if (el.kind === 'wallNode' && !used.has(el.id)) {
         delete d.elements[el.id];
         repairs.push(`Removed unused wall node ${el.id}`);
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'dimension') continue;
+      for (const end of [el.a, el.b]) {
+        if (end.nodeId === undefined) continue;
+        const node = d.elements[end.nodeId];
+        if (node?.kind !== 'wallNode' || node.levelId !== el.levelId) {
+          delete end.nodeId;
+          repairs.push(`Detached dimension ${el.id} from a missing wall node`);
+        }
       }
     }
   });
