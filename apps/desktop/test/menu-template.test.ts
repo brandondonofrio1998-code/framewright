@@ -88,6 +88,16 @@ describe('menu template', () => {
     expect(send).toHaveBeenCalledWith({ type: 'view.resetLayout' });
   });
 
+  it('opens the perspective view and leaves the walkthrough for later', () => {
+    const { template, send } = build('win32');
+    const items = submenu(top(template, '3D'));
+    click(find(items, 'Perspective View'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d' });
+    click(find(items, 'Orbit Camera'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d' });
+    expect(find(items, 'Walkthrough Camera')?.enabled).toBe(false);
+  });
+
   it('keeps unbuilt features visible but disabled', () => {
     const { template } = build('win32');
     for (const name of ['Stairs', 'Roof', 'Text']) {

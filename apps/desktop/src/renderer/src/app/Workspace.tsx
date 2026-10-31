@@ -5,12 +5,12 @@ import {
   type DockviewApi,
   type DockviewReadyEvent,
   type DockviewTheme,
-  type IDockviewPanelProps,
 } from 'dockview-react';
 import { LevelsPanel } from '../panels/LevelsPanel';
 import { LibraryPanel } from '../panels/LibraryPanel';
 import { PropertiesPanel } from '../panels/PropertiesPanel';
 import { PlanView } from '../plan/PlanView';
+import { View3D } from '../view3d/View3D';
 
 const theme: DockviewTheme = {
   ...themeLight,
@@ -18,30 +18,31 @@ const theme: DockviewTheme = {
   className: `${themeLight.className} fw-dock-theme`,
 };
 
-interface PlaceholderParams {
-  title: string;
-  arrives: string;
-}
+const components = { levels: LevelsPanel, plan: PlanView, properties: PropertiesPanel, library: LibraryPanel, view3d: View3D };
 
-function PlaceholderPanel({ params }: IDockviewPanelProps<PlaceholderParams>) {
-  return (
-    <div className="panel-placeholder">
-      <p className="panel-placeholder-title">{params.title}</p>
-      <p className="panel-placeholder-note">Arrives in {params.arrives}.</p>
-    </div>
-  );
+function showPerspective(api: DockviewApi): void {
+  const existing = api.getPanel('perspective');
+  if (existing) {
+    existing.api.setActive();
+    return;
+  }
+  const plan = api.getPanel('plan');
+  const panel = api.addPanel({
+    id: 'perspective',
+    title: '3D',
+    component: 'view3d',
+    ...(plan ? { position: { referencePanel: plan, direction: 'within' as const } } : {}),
+  });
+  panel.api.setActive();
 }
-
-const components = { placeholder: PlaceholderPanel, levels: LevelsPanel, plan: PlanView, properties: PropertiesPanel, library: LibraryPanel };
 
 function buildDefaultLayout(api: DockviewApi): void {
   api.clear();
   const plan = api.addPanel({ id: 'plan', title: 'Plan', component: 'plan' });
-  api.addPanel<PlaceholderParams>({
+  api.addPanel({
     id: 'perspective',
     title: '3D',
-    component: 'placeholder',
-    params: { title: '3D perspective', arrives: 'M3' },
+    component: 'view3d',
     position: { referencePanel: plan, direction: 'within' },
   });
   api.addPanel({
@@ -79,7 +80,9 @@ export function Workspace() {
   useEffect(
     () =>
       window.fw.menu.onCommand((command) => {
-        if (command.type === 'view.resetLayout' && apiRef.current) buildDefaultLayout(apiRef.current);
+        if (!apiRef.current) return;
+        if (command.type === 'view.resetLayout') buildDefaultLayout(apiRef.current);
+        else if (command.type === 'view.show3d') showPerspective(apiRef.current);
       }),
     [],
   );

@@ -96,7 +96,8 @@ export type MenuCommand =
   | { type: 'view.resetLayout' }
   | { type: 'view.fit' }
   | { type: 'view.zoomIn' }
-  | { type: 'view.zoomOut' };
+  | { type: 'view.zoomOut' }
+  | { type: 'view.show3d' };
 
 export const TOOL_IDS = ['select', 'walls', 'break', 'doors', 'windows', 'objects', 'dimensions'] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
@@ -115,6 +116,7 @@ const SIMPLE_COMMANDS = new Set([
   'view.fit',
   'view.zoomIn',
   'view.zoomOut',
+  'view.show3d',
 ]);
 
 export function isMenuCommand(value: unknown): value is MenuCommand {

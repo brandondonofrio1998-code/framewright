@@ -22,6 +22,11 @@ export const ALLOWLIST = [
   { pattern: /^http:\/\/\[\$\{e\}\]$/, where: 'build', reason: 'zod’s IPv6 validator parses `http://[addr]` with `new URL()` to check syntax; never requested' },
   { pattern: /^https:\/\/bit\.ly\/3cXEKWf$/, where: 'build', reason: 'Text inside an Immer error message; never requested' },
   { pattern: /^http:\/\/www\.w3\.org\/(2000\/svg|1999\/xlink|1999\/xhtml|1998\/Math\/MathML|XML\/1998\/namespace|2000\/xmlns\/?)$/, where: 'any', reason: 'XML namespace identifiers used by the DOM, never requested' },
+  { pattern: /^https:\/\/github\.com\/(drcmda|joshuaellis|codyjasonbennett|krispya)$/, where: 'build', reason: 'Author URLs copied from react-three-fiber package metadata; never requested' },
+  { pattern: /^https:\/\/github\.com\/pmndrs\/react-three-fiber(\/issues|#readme|\.git)$/, where: 'build', reason: 'react-three-fiber package.json links (bugs, homepage, repository); never requested' },
+  { pattern: /^https:\/\/opencollective\.com\/react-three-fiber$/, where: 'build', reason: 'react-three-fiber funding link from package metadata; never requested' },
+  { pattern: /^https:\/\/docs\.pmnd\.rs\/react-three-fiber\/api\/objects#using-3rd-party-objects-declaratively$/, where: 'build', reason: 'Comment inside react-three-fiber pointing at its docs; never requested' },
+  { pattern: /^https:\/\/github\.com\/react-spring\/react-use-measure\/#resize-observer-polyfills$/, where: 'build', reason: 'Comment inside @react-spring/use-measure (pulled in by react-three-fiber); never requested' },
 ];
 
 function* walk(dir) {

@@ -307,6 +307,36 @@ test('places a cabinet from the library and names the room', async ({ electronAp
   await window.screenshot({ path: test.info().outputPath('furnished.png') });
 });
 
+test('shows the room in the 3D view', async ({ electronApp, window, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-default-tab-content', { hasText: '3D' }).click();
+  const view = window.getByTestId('view-3d');
+  await expect(view).toBeVisible();
+  await expect.poll(async () => Number(await view.getAttribute('data-mesh-count'))).toBeGreaterThan(4);
+  const canvas = view.locator('canvas');
+  await expect.poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(400);
+  const sample = await canvas.evaluate((canvas: HTMLCanvasElement) => {
+    const gl = canvas.getContext('webgl2');
+    if (!gl || canvas.width < 2) return { w: canvas.width, h: canvas.height, colored: -1, center: [] as number[] };
+    const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    const mid = ((canvas.height >> 1) * canvas.width + (canvas.width >> 1)) * 4;
+    let colored = 0;
+    for (let i = 0; i < pixels.length; i += 16) {
+      const r = pixels[i] ?? 0;
+      const g = pixels[i + 1] ?? 0;
+      const b = pixels[i + 2] ?? 0;
+      if (r + g + b === 0) continue;
+      if (Math.abs(r - 228) <= 14 && Math.abs(g - 231) <= 14 && Math.abs(b - 236) <= 14) continue;
+      colored++;
+    }
+    return { w: canvas.width, h: canvas.height, colored, center: [pixels[mid], pixels[mid + 1], pixels[mid + 2]] };
+  });
+  expect(sample.colored, JSON.stringify(sample)).toBeGreaterThan(800);
+  expect(consoleErrors).toEqual([]);
+  await window.screenshot({ path: test.info().outputPath('perspective.png') });
+});
+
 test('status bar shows the cursor position and snap toggles', async ({ window }) => {
   const s = await screenOf(window, { x: 36, y: 24 });
   await window.mouse.move(s.x, s.y);
