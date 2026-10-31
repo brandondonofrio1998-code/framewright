@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run check-offline
+      - name: e2e (unpackaged)
+        run: npm run e2e
+
+      - name: Package (unpacked directory only)
+        run: npm run package -w @framewright/desktop -- --dir
+      - name: e2e (packaged app)
+        shell: bash
+        run: |
+          exe=$(ls -d apps/desktop/release/*/win-unpacked/Framewright.exe apps/desktop/release/*/mac-universal/Framewright.app/Contents/MacOS/Framewright 2>/dev/null | head -n 1)
+          test -n "$exe" || { echo "packaged executable not found"; exit 1; }
+          echo "Testing $exe"
+          FW_E2E_EXECUTABLE="$PWD/$exe" npm run e2e
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            apps/desktop/test-results
+            apps/desktop/playwright-report
+          if-no-files-found: ignore

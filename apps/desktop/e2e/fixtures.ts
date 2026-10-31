@@ -14,7 +14,11 @@ export const test = base.extend<AppFixtures>({
     const userData = mkdtempSync(join(tmpdir(), 'framewright-e2e-'));
     const env = { ...process.env, FW_TEST: '1', FW_USER_DATA: userData } as Record<string, string>;
     delete env.ELECTRON_RENDERER_URL;
-    const app = await electron.launch({ args: [resolve(__dirname, '../out/main/index.js')], env });
+    // FW_E2E_EXECUTABLE points at a packaged app (e.g. release/x/win-unpacked/Framewright.exe) to test the real build.
+    const packaged = process.env.FW_E2E_EXECUTABLE;
+    const app = await electron.launch(
+      packaged ? { executablePath: packaged, args: [], env } : { args: [resolve(__dirname, '../out/main/index.js')], env },
+    );
     await use(app);
     await app.close();
     rmSync(userData, { recursive: true, force: true });

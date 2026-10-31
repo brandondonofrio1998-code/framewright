@@ -10,6 +10,7 @@ test('opens the workspace with toolbar, docked panels and status bar', async ({ 
   }
   await expect(window.getByTestId('status-tool')).toBeVisible();
   expect(consoleErrors).toEqual([]);
+  await window.screenshot({ path: test.info().outputPath('workspace.png') });
 });
 
 test('renderer is sandboxed and only sees the preload API', async ({ window }) => {
