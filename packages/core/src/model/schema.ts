@@ -48,13 +48,33 @@ export type Level = z.infer<typeof LevelSchema>;
 
 export const MaterialCategorySchema = z.enum(['framing', 'sheathing', 'drywall', 'siding', 'insulation', 'generic']);
 
+/** Bundled texture sets. The image files live in the desktop app; the plan only names the set. */
+export const TEXTURE_IDS = ['smooth-wall', 'softwood', 'wood-planks', 'oak-floor'] as const;
+export type TextureId = (typeof TEXTURE_IDS)[number];
+
+export const MaterialTextureSchema = z.object({
+  id: z.enum(TEXTURE_IDS),
+  /** Inches across one repeat, width then height. The maps are applied at this real-world size. */
+  tile: z.tuple([z.number().positive(), z.number().positive()]),
+});
+export type MaterialTexture = z.infer<typeof MaterialTextureSchema>;
+
 export const MaterialSchema = z.object({
   id: IdSchema,
   name: z.string().min(1).max(100),
   category: MaterialCategorySchema,
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  /** Absent for materials that have no bundled map (sheathing, for now). */
+  texture: MaterialTextureSchema.optional(),
 });
 export type MaterialDef = z.infer<typeof MaterialSchema>;
+
+export const Vec3Schema = z.object({
+  x: z.number().finite(),
+  y: z.number().finite(),
+  z: z.number().finite(),
+});
+export type Vec3 = z.infer<typeof Vec3Schema>;
 
 export const WallLayerSchema = z.object({
   materialId: IdSchema,
@@ -214,7 +234,31 @@ export const CatalogObjectSchema = z.object({
 });
 export type CatalogObject = z.infer<typeof CatalogObjectSchema>;
 
-export const ElementSchema = z.discriminatedUnion('kind', [WallNodeSchema, WallSchema, DimensionSchema, DoorSchema, WindowSchema, RoomSchema, CatalogObjectSchema]);
+export const CAMERA_MODES = ['orbit', 'walk'] as const;
+export type CameraMode = (typeof CAMERA_MODES)[number];
+
+/** A saved 3D view. It is not drawn in plan. */
+export const CameraSchema = z.object({
+  ...elementBase,
+  kind: z.literal('camera'),
+  name: z.string().trim().min(1).max(100),
+  mode: z.enum(CAMERA_MODES),
+  eye: Vec3Schema,
+  /** A point the camera looks at. Distinct from `eye`. */
+  target: Vec3Schema,
+});
+export type SavedCamera = z.infer<typeof CameraSchema>;
+
+export const ElementSchema = z.discriminatedUnion('kind', [
+  WallNodeSchema,
+  WallSchema,
+  DimensionSchema,
+  DoorSchema,
+  WindowSchema,
+  RoomSchema,
+  CatalogObjectSchema,
+  CameraSchema,
+]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];
 

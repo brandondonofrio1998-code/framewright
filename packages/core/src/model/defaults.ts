@@ -1,5 +1,6 @@
-import { CURRENT_SCHEMA_VERSION, PLAN_FORMAT_ID, type Level, type MaterialDef, type PlanDocument, type WallType } from './schema';
+import { TEXTURE_SCANS, tileInches } from '../materials/textures';
 import { DEFAULT_LENGTH_FORMAT } from '../units/length';
+import { CURRENT_SCHEMA_VERSION, PLAN_FORMAT_ID, type Level, type MaterialDef, type PlanDocument, type TextureId, type WallType } from './schema';
 
 export type IdGenerator = () => string;
 
@@ -28,16 +29,15 @@ export function newLevel(newId: IdGenerator, name: string, elevation: number): L
 }
 
 export function createDocument({ newId, now, appVersion, title = 'Untitled' }: CreateDocumentOptions): PlanDocument {
-  const material = (name: string, category: MaterialDef['category'], color: string): MaterialDef => ({
-    id: newId(),
-    name,
-    category,
-    color,
-  });
-  const drywall = material('Gypsum board 1/2"', 'drywall', '#ECEAE6');
-  const studs = material('SPF framing lumber', 'framing', '#D9B98A');
+  const material = (name: string, category: MaterialDef['category'], color: string, textureId?: TextureId): MaterialDef => {
+    const base = { id: newId(), name, category, color };
+    if (!textureId) return base;
+    return { ...base, texture: { id: textureId, tile: tileInches(TEXTURE_SCANS[textureId].cm) } };
+  };
+  const drywall = material('Gypsum board 1/2"', 'drywall', '#ECEAE6', 'smooth-wall');
+  const studs = material('SPF framing lumber', 'framing', '#D9B98A', 'softwood');
   const osb = material('OSB sheathing 7/16"', 'sheathing', '#C9A66B');
-  const siding = material('Lap siding', 'siding', '#B8BDB5');
+  const siding = material('Lap siding', 'siding', '#B8BDB5', 'wood-planks');
 
   const exterior: WallType = {
     id: newId(),

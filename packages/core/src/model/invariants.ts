@@ -1,4 +1,5 @@
 import { produce } from 'immer';
+import { lookLength, MIN_LOOK } from '../view/walk';
 import { ELEVATION_EPS, restackLevels, stackedElevation } from './levels';
 import type { Id, PlanDocument, Wall, WallNode } from './schema';
 
@@ -87,6 +88,7 @@ export function checkInvariants(doc: PlanDocument): string[] {
         if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) problems.push(`object ${el.id} references a missing wall`);
       }
     }
+    if (el.kind === 'camera' && lookLength(el.eye, el.target) < MIN_LOOK) problems.push(`camera ${el.id} has no look direction`);
   }
   return problems;
 }
@@ -209,6 +211,13 @@ export function repairInvariants(input: PlanDocument): RepairResult {
           delete el.side;
           repairs.push(`Detached object ${el.id} from a missing wall`);
         }
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'camera') continue;
+      if (lookLength(el.eye, el.target) < MIN_LOOK) {
+        delete d.elements[el.id];
+        repairs.push(`Removed camera ${el.id} with no look direction`);
       }
     }
   });
