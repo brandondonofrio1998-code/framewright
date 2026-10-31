@@ -323,7 +323,7 @@ interface CatalogInstance extends ElementBase {
 Wall footprints by layer, joins, rooms (polygons and areas), meshes, framing members, roof solids, foundation solids, takeoff quantities, and display lists. Framing is fully derived from walls and settings. Manual framing edits can come later as stored overrides.
 
 ### 6.9 File format and migrations
-- The file is UTF-8 JSON. The extension is not final yet (see Open Question 1). The format is our own and is documented in `docs/FILE_FORMAT.md`.
+- The file is UTF-8 JSON with the extension `.fwplan` (see §14.1 for how `.plan` is handled). The format is our own and is documented in `docs/FILE_FORMAT.md`.
 - **Loading:** parse, read `schemaVersion`, run migrations one version at a time (`migrations[v]: (doc) => doc`, each pure and tested with a frozen fixture), validate with zod, then run `repairInvariants` (drop orphan nodes, clamp openings) and report anything it fixed.
 - If `schemaVersion` is newer than the app supports, the file is refused with a clear message. It is never silently downgraded.
 - **Saving** is atomic: write `name.tmp`, fsync, then rename. The previous file is kept as `name.bak` (configurable).
@@ -469,8 +469,9 @@ M2–M7 follow as specified and will be split the same way when they come up (M5
 - **Hidden-line performance** on full houses may need edge culling by bounding box and caching for each element.
 - **Bundle size:** textures should stay around 40 MB at 1K resolution. If that grows, they can move to Git LFS.
 
-## 14. Open questions (need your decision)
-1. **File extension.** Chief Architect already uses `.plan` for its own files. Using it would clash with Chief's file associations on machines that have both, and it invites confusion with a trademark-adjacent format. I recommend **`.fwplan`**, keeping the JSON structure exactly as specified.
-2. **Licenses outside MIT/Apache/BSD/CC0/CC-BY:** Lucide is **ISC** (functionally the same as MIT), and Clipper2 is **BSL-1.0** (Boost, permissive). Both are permissive. Do you approve them? The doc avoids OFL fonts by using system fonts.
-3. **Stair code basis:** IRC 2021 R311.7 by default (max riser 7¾", min tread 10", min width 36", headroom 6'8"), configurable per project. OK?
-4. **GitHub repo visibility:** public (it's MIT open source) or private for now?
+## 14. Decisions
+1. **File extension** (proposed, awaiting confirmation): Save writes `.fwplan`, and the installers register only `.fwplan`. Open also accepts `.plan`, but only files whose JSON has `format: 'framewright-plan'`. Any other `.plan` file, including Chief Architect's, is refused with a clear message. We never register a `.plan` file association, so Chief's files stay with Chief.
+2. **Licenses:** ISC (Lucide) and BSL-1.0 (Clipper2) are approved in addition to MIT/Apache/BSD/CC0/CC-BY. We use system fonts, so no OFL fonts are needed.
+3. **Stair code basis:** IRC 2021 R311.7 by default (max riser 7¾", min tread 10", min width 36", headroom 6'8"), configurable per project.
+4. **Repo:** public on GitHub.
+5. **M1** is split into M1a, M1b, and M1c, with a stop for review after each.
