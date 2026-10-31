@@ -1,0 +1,34 @@
+{
+  "name": "@framewright/desktop",
+  "productName": "Framewright",
+  "version": "0.1.0",
+  "description": "Offline residential design",
+  "author": "Framewright contributors",
+  "license": "MIT",
+  "private": true,
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json && tsc -p tsconfig.e2e.json",
+    "e2e": "playwright test",
+    "package": "electron-vite build && electron-builder --publish never",
+    "package:win": "electron-vite build && electron-builder --win --publish never",
+    "package:mac": "electron-vite build && electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "@framewright/core": "*",
+    "@playwright/test": "^1.64.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "dockview-react": "^8.8.3",
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "lucide-react": "^1.66.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "vite": "^8.3.5"
+  }
+}

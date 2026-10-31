@@ -1,0 +1,37 @@
+{
+  "name": "framewright-monorepo",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @framewright/desktop",
+    "build": "npm run build -w @framewright/desktop",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check-offline": "node scripts/check-offline.mjs",
+    "e2e": "npm run e2e -w @framewright/desktop",
+    "package": "npm run package -w @framewright/desktop",
+    "verify": "npm run typecheck && npm run lint && npm run build && npm test && npm run check-offline && npm run e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
+  },
+  "allowScripts": {
+    "electron@45.2.1": true
+  }
+}

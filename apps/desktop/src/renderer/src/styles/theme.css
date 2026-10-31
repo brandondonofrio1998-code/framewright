@@ -1,0 +1,152 @@
+:root {
+  --fw-ink: #1f2328;
+  --fw-ink-muted: #5f6670;
+  --fw-chrome: #f4f3f1;
+  --fw-chrome-raised: #fbfaf9;
+  --fw-chrome-sunken: #e9e7e4;
+  --fw-border: #d6d3cf;
+  --fw-canvas: #ffffff;
+  --fw-accent: #0e7c86;
+  --fw-accent-soft: #d5ecee;
+
+  --fw-font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fw-font-size: 13px;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--fw-font-ui);
+  font-size: var(--fw-font-size);
+  color: var(--fw-ink);
+  background: var(--fw-chrome);
+  overflow: hidden;
+  user-select: none;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--fw-chrome-raised);
+  border-bottom: 1px solid var(--fw-border);
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 2px;
+  padding-right: 6px;
+  margin-right: 2px;
+  border-right: 1px solid var(--fw-border);
+}
+
+.toolbar-group:last-child {
+  border-right: none;
+}
+
+.tool-button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--fw-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.tool-button:hover:not(:disabled) {
+  background: var(--fw-chrome-sunken);
+}
+
+.tool-button[aria-pressed='true'] {
+  color: var(--fw-accent);
+  background: var(--fw-accent-soft);
+  border-color: var(--fw-accent);
+}
+
+.tool-button:disabled {
+  color: var(--fw-ink-muted);
+  opacity: 0.45;
+}
+
+/* Workspace */
+.workspace {
+  position: relative;
+  min-height: 0;
+}
+
+.fw-dock-theme {
+  --dv-background-color: var(--fw-chrome);
+  --dv-group-view-background-color: var(--fw-canvas);
+  --dv-tabs-and-actions-container-background-color: var(--fw-chrome-sunken);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--fw-canvas);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--fw-chrome-raised);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--fw-chrome-sunken);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--fw-chrome-sunken);
+  --dv-activegroup-visiblepanel-tab-color: var(--fw-ink);
+  --dv-activegroup-hiddenpanel-tab-color: var(--fw-ink-muted);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--fw-ink);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--fw-ink-muted);
+  --dv-separator-border: var(--fw-border);
+  --dv-paneview-header-border-color: var(--fw-border);
+  --dv-active-sash-color: var(--fw-accent);
+  --dv-drag-over-background-color: rgba(14, 124, 134, 0.15);
+  --dv-tab-divider-color: var(--fw-border);
+  font-family: var(--fw-font-ui);
+}
+
+.panel-placeholder {
+  display: grid;
+  place-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--fw-ink-muted);
+}
+
+.panel-placeholder-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--fw-ink);
+}
+
+.panel-placeholder-note {
+  margin: 0;
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--fw-ink-muted);
+  background: var(--fw-chrome-raised);
+  border-top: 1px solid var(--fw-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.status-spacer {
+  flex: 1;
+}
