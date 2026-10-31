@@ -116,7 +116,7 @@ test('Save As, reopen from Open Recent, and prompt before discarding changes', a
   expect(json.format).toBe('framewright-plan');
   expect(json.levelOrder).toHaveLength(2);
   await expect.poll(() => windowTitle(electronApp)).toBe('House — Framewright');
-  await expect.poll(() => menuItem(electronApp, ['File', 'Open Recent', '1 House'])).toMatchObject({ enabled: true });
+  await expect.poll(() => menuItem(electronApp, ['File', 'Open Recent', 'House'])).toMatchObject({ enabled: true });
 
   await window.getByRole('button', { name: 'Add Level Above' }).click();
   await expect(levelCards(window)).toHaveCount(3);
@@ -154,7 +154,13 @@ test('recovers autosaved work after a crash', async ({ userData }) => {
   await expect(levelCards(window)).toHaveCount(3);
 
   const autosaveDir = join(userData, 'autosave');
-  await expect.poll(() => (existsSync(autosaveDir) ? readdirSync(autosaveDir).length : 0)).toBe(1);
+  const autosavedLevels = () => {
+    const files = existsSync(autosaveDir) ? readdirSync(autosaveDir).filter((f) => f.endsWith('.json')) : [];
+    if (files.length !== 1) return null;
+    const envelope = JSON.parse(readFileSync(join(autosaveDir, files[0]!), 'utf8')) as { text: string };
+    return (JSON.parse(envelope.text) as { levelOrder: string[] }).levelOrder.length;
+  };
+  await expect.poll(autosavedLevels).toBe(3);
   const proc = first.process();
   crash(first);
   await expect.poll(() => proc.exitCode !== null || proc.signalCode !== null).toBe(true);

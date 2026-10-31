@@ -69,7 +69,10 @@ export async function blockedRequests(app: ElectronApplication): Promise<string[
   });
 }
 
-/** Click an application menu item by its label path, e.g. ['File', 'Save As…']. */
+/**
+ * Click an application menu item by its label path, e.g. ['File', 'Save As…'].
+ * Labels are matched without Windows mnemonics (`&`) and recent-file numbering (`1 `).
+ */
 export async function clickMenu(app: ElectronApplication, path: string[]): Promise<void> {
   await app.evaluate(({ Menu, BrowserWindow }, labels) => {
     const strip = (label: string) => label.replace(/&(&?)/g, '$1').replace(/^\d /, '');
@@ -87,10 +90,11 @@ export async function clickMenu(app: ElectronApplication, path: string[]): Promi
 
 export async function menuItem(app: ElectronApplication, path: string[]): Promise<{ label: string; enabled: boolean } | null> {
   return app.evaluate(({ Menu }, labels) => {
+    const strip = (label: string) => label.replace(/&(&?)/g, '$1').replace(/^\d /, '');
     let items = Menu.getApplicationMenu()?.items ?? [];
     let target: Electron.MenuItem | undefined;
     for (const label of labels) {
-      target = items.find((item) => item.label.replace(/&/g, '').startsWith(label));
+      target = items.find((item) => strip(item.label).startsWith(label));
       if (!target) return null;
       items = target.submenu?.items ?? [];
     }
