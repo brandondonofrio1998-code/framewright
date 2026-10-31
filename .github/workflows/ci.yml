@@ -38,8 +38,14 @@ jobs:
       - name: e2e (packaged app)
         shell: bash
         run: |
-          exe=$(ls -d apps/desktop/release/*/win-unpacked/Framewright.exe apps/desktop/release/*/mac-universal/Framewright.app/Contents/MacOS/Framewright 2>/dev/null | head -n 1)
-          test -n "$exe" || { echo "packaged executable not found"; exit 1; }
+          shopt -s nullglob
+          candidates=(apps/desktop/release/*/win-unpacked/Framewright.exe apps/desktop/release/*/mac*/Framewright.app/Contents/MacOS/Framewright)
+          if [ ${#candidates[@]} -eq 0 ]; then
+            echo "packaged executable not found; release contents:"
+            ls -R apps/desktop/release | head -n 50
+            exit 1
+          fi
+          exe="${candidates[0]}"
           echo "Testing $exe"
           FW_E2E_EXECUTABLE="$PWD/$exe" npm run e2e
 
