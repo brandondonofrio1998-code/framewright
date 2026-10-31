@@ -1,28 +1,47 @@
 import { dimensionLine } from '../display/display-list';
+import { openingOutline } from '../display/openings';
 import { dimensionsOnLevel, resolveDimensionEnd } from '../display/plan';
 import { pointInPolygon, projectOnSegment, type Bounds } from '../geometry/vec2';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
+import { openingsOnLevel } from '../openings/openings';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension';
+  kind: 'wall' | 'dimension' | 'door' | 'window';
   id: Id;
 }
 
-/** The element under `p` (dimensions win over walls, since they draw on top), within `tolerance` model units. */
+function distanceToPolygon(p: Vec2, polygon: Vec2[]): number {
+  if (pointInPolygon(p, polygon)) return 0;
+  let best = Infinity;
+  for (let i = 0; i < polygon.length; i++) best = Math.min(best, projectOnSegment(p, polygon[i]!, polygon[(i + 1) % polygon.length]!).distance);
+  return best;
+}
+
+/**
+ * The element under `p` within `tolerance` model units. Dimensions win (they draw on top), then doors and
+ * windows (they sit inside walls), then walls.
+ */
 export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, WallGeometry>, p: Vec2, tolerance: number): Picked | null {
-  let best: { picked: Picked; d: number } | null = null;
+  const best: { picked: Picked | null; d: number } = { picked: null, d: Infinity };
+  const consider = (picked: Picked, d: number) => {
+    if (d <= tolerance && d < best.d) Object.assign(best, { picked, d });
+  };
   for (const dim of dimensionsOnLevel(doc, levelId)) {
     const [a, b] = dimensionLine(resolveDimensionEnd(doc, dim.a), resolveDimensionEnd(doc, dim.b), dim.offset);
-    const d = projectOnSegment(p, a, b).distance;
-    if (d <= tolerance && (!best || d < best.d)) best = { picked: { kind: 'dimension', id: dim.id }, d };
+    consider({ kind: 'dimension', id: dim.id }, projectOnSegment(p, a, b).distance);
   }
-  if (best) return best.picked;
+  if (best.picked) return best.picked;
+  for (const o of openingsOnLevel(doc, levelId)) {
+    const geom = geometry.get(o.wallId);
+    if (geom) consider({ kind: o.kind, id: o.id }, distanceToPolygon(p, openingOutline(geom, o)));
+  }
+  if (best.picked) return best.picked;
   for (const geom of geometry.values()) {
     const d = pointInPolygon(p, geom.footprint) ? 0 : Math.max(0, projectOnSegment(p, geom.a, geom.b).distance - geom.thickness / 2);
-    if (d <= tolerance && (!best || d < best.d)) best = { picked: { kind: 'wall', id: geom.wallId }, d };
+    consider({ kind: 'wall', id: geom.wallId }, d);
   }
-  return best?.picked ?? null;
+  return best.picked;
 }
 
 const inside = (p: Vec2, box: Bounds) => p.x >= box.minX && p.x <= box.maxX && p.y >= box.minY && p.y <= box.maxY;
@@ -31,6 +50,10 @@ const inside = (p: Vec2, box: Bounds) => p.x >= box.minX && p.x <= box.maxX && p
 export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, WallGeometry>, box: Bounds): Id[] {
   const ids: Id[] = [];
   for (const geom of geometry.values()) if (geom.footprint.every((p) => inside(p, box))) ids.push(geom.wallId);
+  for (const o of openingsOnLevel(doc, levelId)) {
+    const geom = geometry.get(o.wallId);
+    if (geom && openingOutline(geom, o).every((p) => inside(p, box))) ids.push(o.id);
+  }
   for (const dim of dimensionsOnLevel(doc, levelId)) {
     const ends = [resolveDimensionEnd(doc, dim.a), resolveDimensionEnd(doc, dim.b)];
     if ([...ends, ...dimensionLine(ends[0]!, ends[1]!, dim.offset)].every((p) => inside(p, box))) ids.push(dim.id);

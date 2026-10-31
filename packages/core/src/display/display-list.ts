@@ -1,15 +1,17 @@
 import { add, angleOf, distance, midpoint, normalize, perp, scale, sub } from '../geometry/vec2';
 import type { Id, Vec2 } from '../model/schema';
 
-export type PenId = 'wall.face' | 'wall.layer' | 'dimension' | 'reference';
+export type PenId = 'wall.face' | 'wall.layer' | 'dimension' | 'reference' | 'opening' | 'opening.swing' | 'opening.hidden';
 export type FillId = 'wall.structure' | 'wall.sheathing' | 'wall.insulation' | 'wall.finish' | 'wall.air';
-export type DrawLayer = 'reference' | 'walls' | 'dimensions';
+export type DrawLayer = 'reference' | 'walls' | 'openings' | 'dimensions';
 export type TextAlign = 'left' | 'center' | 'right';
 
 export type Prim =
   | { t: 'line'; a: Vec2; b: Vec2; pen: PenId }
   | { t: 'polyline'; pts: Vec2[]; closed: boolean; pen: PenId }
   | { t: 'poly'; rings: Vec2[][]; fill: FillId; pen?: PenId }
+  /** Circular arc from angle `start` sweeping `sweep` radians (positive = counter-clockwise, Y up). */
+  | { t: 'arc'; c: Vec2; r: number; start: number; sweep: number; pen: PenId }
   /** `p` is on the text's bottom edge, so text drawn larger than `size` still clears what it labels. */
   | { t: 'text'; p: Vec2; s: string; size: number; rot: number; align: TextAlign };
 

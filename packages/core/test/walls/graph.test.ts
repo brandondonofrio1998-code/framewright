@@ -205,6 +205,7 @@ describe('wall graph commands', () => {
       fc.record({ kind: fc.constant('move' as const), pick: fc.nat(), dx: grid, dy: grid }),
       fc.record({ kind: fc.constant('node' as const), pick: fc.nat(), to: pt }),
       fc.record({ kind: fc.constant('delete' as const), pick: fc.nat() }),
+      fc.record({ kind: fc.constant('door' as const), pick: fc.nat(), at: fc.double({ min: 0, max: 1, noNaN: true }) }),
     );
     fc.assert(
       fc.property(fc.array(action, { maxLength: 25 }), (actions) => {
@@ -221,6 +222,12 @@ describe('wall graph commands', () => {
             s.history.dispatch('wallNode.move', { nodeId: nodes[act.pick % nodes.length]!.id, to: act.to });
           } else if (act.kind === 'delete' && walls.length > 0) {
             s.history.dispatch('elements.delete', { ids: [walls[act.pick % walls.length]!.id] });
+          } else if (act.kind === 'door' && walls.length > 0) {
+            const wall = walls[act.pick % walls.length]!;
+            const [a, b] = wallEnds(s.history.doc, wall);
+            const t = Math.hypot(b.x - a.x, b.y - a.y) * act.at;
+            // Rejected placements (too short, overlapping) are fine; they must just leave the doc valid.
+            s.history.dispatch('opening.place', { kind: 'door', wallId: wall.id, t, width: 24, height: 80, side: 'left', hinge: 'start', style: 'hinged' });
           }
           expect(checkInvariants(s.history.doc)).toEqual([]);
         }

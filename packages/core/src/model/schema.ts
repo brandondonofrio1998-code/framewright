@@ -109,7 +109,40 @@ export const DimensionSchema = z.object({
 });
 export type Dimension = z.infer<typeof DimensionSchema>;
 
-export const ElementSchema = z.discriminatedUnion('kind', [WallNodeSchema, WallSchema, DimensionSchema]);
+export const DOOR_STYLES = ['hinged', 'double', 'pocket', 'sliding', 'bifold', 'opening'] as const;
+export const WINDOW_STYLES = ['double-hung', 'casement', 'slider', 'awning', 'fixed'] as const;
+export type DoorStyle = (typeof DOOR_STYLES)[number];
+export type WindowStyle = (typeof WINDOW_STYLES)[number];
+
+const openingBase = {
+  ...elementBase,
+  wallId: IdSchema,
+  /** Distance along the wall from node a to the opening's center. */
+  t: Length,
+  width: PositiveLength,
+  height: PositiveLength,
+  /** Swing side for doors, exterior side for windows, relative to the wall's a → b direction. */
+  side: z.enum(['left', 'right']),
+  /** Which jamb carries the hinge: the one nearer node a ('start') or node b ('end'). */
+  hinge: z.enum(['start', 'end']),
+};
+
+export const DoorSchema = z.object({ ...openingBase, kind: z.literal('door'), style: z.enum(DOOR_STYLES) });
+export type Door = z.infer<typeof DoorSchema>;
+
+export const WindowSchema = z.object({
+  ...openingBase,
+  kind: z.literal('window'),
+  /** Height of the bottom of the window above the wall's base. */
+  sill: NonNegativeLength,
+  style: z.enum(WINDOW_STYLES),
+});
+/** Named to avoid clashing with the DOM's `Window` in renderer code. */
+export type WindowOpening = z.infer<typeof WindowSchema>;
+
+export type Opening = Door | WindowOpening;
+
+export const ElementSchema = z.discriminatedUnion('kind', [WallNodeSchema, WallSchema, DimensionSchema, DoorSchema, WindowSchema]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];
 

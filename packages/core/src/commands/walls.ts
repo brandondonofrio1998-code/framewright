@@ -1,7 +1,14 @@
-import { add, distance, normalize, POINT_EPS, scale, sub } from '../geometry/vec2';
+import { add, distance, normalize, POINT_EPS, projectOnSegment, scale, sub } from '../geometry/vec2';
 import type { Dimension, DimensionEnd, Id, PlanDocument, Vec2, Wall } from '../model/schema';
+import { openingSpan, openingsOnWall, reconcileOpenings, snapshotOpenings, type OpeningAnchor } from '../openings/openings';
 import { attachNode, getNode, getWall, insertWall, splitWall, tidyGraph, wallEnds } from '../walls/graph';
 import { CommandError, defineCommand } from './history';
+
+/** Every command that changes the wall graph ends here, so nodes, dimensions and openings stay consistent. */
+function finishWallEdit(doc: PlanDocument, before: Map<Id, OpeningAnchor>): void {
+  tidyGraph(doc);
+  reconcileOpenings(doc, before);
+}
 
 const MAX_COORD = 1_000_000;
 const MAX_LENGTH = 100_000;
@@ -35,6 +42,7 @@ export const drawWalls = defineCommand<{ levelId: Id; typeId: Id; points: Vec2[]
     checkLevel(doc, levelId);
     checkWallType(doc, typeId);
     if (points.length < 2) throw new CommandError('A wall needs a start and an end.');
+    const before = snapshotOpenings(doc);
     const pts = points.map(checkPoint);
     if (closed) pts.push(pts[0]!);
     const created: Id[] = [];
@@ -42,7 +50,7 @@ export const drawWalls = defineCommand<{ levelId: Id; typeId: Id; points: Vec2[]
       if (distance(pts[i]!, pts[i + 1]!) <= POINT_EPS) throw new CommandError('A wall needs a length.');
       created.push(...insertWall(doc, levelId, pts[i]!, pts[i + 1]!, { typeId, height: null, baseOffset: 0 }, ctx));
     }
-    tidyGraph(doc);
+    finishWallEdit(doc, before);
     return created;
   },
 });
@@ -52,6 +60,7 @@ export const moveWalls = defineCommand<{ wallIds: Id[]; delta: Vec2 }>({
   run: (doc, { wallIds, delta }, ctx) => {
     const d = checkPoint(delta);
     if (Math.hypot(d.x, d.y) <= POINT_EPS) return;
+    const before = snapshotOpenings(doc);
     const nodeIds = new Set<Id>();
     for (const id of wallIds) {
       const wall = getWall(doc, id);
@@ -62,17 +71,18 @@ export const moveWalls = defineCommand<{ wallIds: Id[]; delta: Vec2 }>({
       node.p = checkPoint(add(node.p, d));
     }
     for (const id of nodeIds) if (doc.elements[id]) attachNode(doc, id, ctx);
-    tidyGraph(doc);
+    finishWallEdit(doc, before);
   },
 });
 
 export const moveWallNode = defineCommand<{ nodeId: Id; to: Vec2 }>({
   label: () => 'Move Wall End',
   run: (doc, { nodeId, to }, ctx) => {
+    const before = snapshotOpenings(doc);
     const node = getNode(doc, nodeId);
     node.p = checkPoint(to);
     attachNode(doc, nodeId, ctx);
-    tidyGraph(doc);
+    finishWallEdit(doc, before);
   },
 });
 
@@ -80,23 +90,31 @@ export const setWallLength = defineCommand<{ wallId: Id; length: number; keep?: 
   label: () => 'Change Wall Length',
   run: (doc, { wallId, length, keep = 'a' }, ctx) => {
     if (!Number.isFinite(length) || length <= POINT_EPS || length > MAX_LENGTH) throw new CommandError('Wall length must be greater than zero.');
+    const before = snapshotOpenings(doc);
     const wall = getWall(doc, wallId);
     const [a, b] = wallEnds(doc, wall);
     const [fixed, movingId] = keep === 'a' ? [a, wall.b] : [b, wall.a];
     const direction = normalize(keep === 'a' ? sub(b, a) : sub(a, b));
     getNode(doc, movingId).p = checkPoint(add(fixed, scale(direction, length)));
     attachNode(doc, movingId, ctx);
-    tidyGraph(doc);
+    finishWallEdit(doc, before);
   },
 });
 
 export const splitWallAt = defineCommand<{ wallId: Id; at: Vec2 }, Id>({
   label: () => 'Split Wall',
   run: (doc, { wallId, at }, ctx) => {
-    const { a, b } = getWall(doc, wallId);
+    const wall = getWall(doc, wallId);
+    const { a, b } = wall;
+    const [pa, pb] = wallEnds(doc, wall);
+    const s = distance(pa, projectOnSegment(checkPoint(at), pa, pb).point);
+    if (openingsOnWall(doc, wallId).some((o) => s > openingSpan(o)[0] && s < openingSpan(o)[1])) {
+      throw new CommandError('A wall cannot be broken through a door or window.');
+    }
+    const before = snapshotOpenings(doc);
     const node = splitWall(doc, wallId, checkPoint(at), ctx);
     if (node === a || node === b) throw new CommandError('Split the wall somewhere between its ends.');
-    tidyGraph(doc);
+    finishWallEdit(doc, before);
     return node;
   },
 });
@@ -159,11 +177,12 @@ export const updateDimension = defineCommand<{ id: Id; offset: number }>({
 export const deleteElements = defineCommand<{ ids: Id[] }>({
   label: (p) => plural(p.ids.length, 'Delete', 'Delete Items'),
   run: (doc, { ids }) => {
+    const before = snapshotOpenings(doc);
     for (const id of ids) {
       const el = doc.elements[id];
       if (el && el.kind !== 'wallNode') delete doc.elements[id];
     }
-    tidyGraph(doc);
+    finishWallEdit(doc, before);
   },
 });
 

@@ -1,8 +1,10 @@
 import { distance } from '../geometry/vec2';
-import type { Dimension, DimensionEnd, Id, PlanDocument, Vec2, WallLayer } from '../model/schema';
+import type { Dimension, DimensionEnd, Id, Opening, PlanDocument, Vec2, WallLayer } from '../model/schema';
+import { openingsOnLevel } from '../openings/openings';
 import { formatLength } from '../units/length';
 import { computeWallGeometry, type WallGeometry } from '../walls/joins';
 import { dimensionPrims, type DisplayItem, type FillId, type Prim } from './display-list';
+import { cutWallPrims, openingPrims } from './openings';
 
 const FILL_BY_FUNCTION: Record<WallLayer['fn'], FillId> = {
   structure: 'wall.structure',
@@ -25,7 +27,8 @@ export function dimensionsOnLevel(doc: PlanDocument, levelId: Id): Dimension[] {
   return Object.values(doc.elements).filter((el): el is Dimension => el.kind === 'dimension' && el.levelId === levelId);
 }
 
-export function wallDisplayItem(geom: WallGeometry): DisplayItem {
+export function wallDisplayItem(geom: WallGeometry, openings: Opening[] = []): DisplayItem {
+  if (openings.length > 0) return { elementId: geom.wallId, layer: 'walls', prims: cutWallPrims(geom, openings, (fn) => FILL_BY_FUNCTION[fn]) };
   const prims: Prim[] = geom.layers.map((layer) => ({ t: 'poly', rings: [layer.polygon], fill: FILL_BY_FUNCTION[layer.fn] }));
   for (const [a, b] of geom.layerLines) prims.push({ t: 'line', a, b, pen: 'wall.layer' });
   for (const [a, b] of [geom.leftFace, geom.rightFace, ...geom.caps]) prims.push({ t: 'line', a, b, pen: 'wall.face' });
@@ -53,7 +56,14 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
   }
 
   const geometry = options.geometry ?? computeWallGeometry(doc, levelId);
-  for (const geom of geometry.values()) items.push(wallDisplayItem(geom));
+  const byWall = new Map<Id, Opening[]>();
+  for (const o of openingsOnLevel(doc, levelId)) byWall.set(o.wallId, [...(byWall.get(o.wallId) ?? []), o]);
+  for (const geom of geometry.values()) items.push(wallDisplayItem(geom, byWall.get(geom.wallId)));
+  for (const [wallId, openings] of byWall) {
+    const geom = geometry.get(wallId);
+    if (!geom) continue;
+    for (const o of openings) items.push({ elementId: o.id, layer: 'openings', prims: openingPrims(geom, o) });
+  }
 
   const format = doc.settings.lengthFormat;
   for (const dim of dimensionsOnLevel(doc, levelId)) {

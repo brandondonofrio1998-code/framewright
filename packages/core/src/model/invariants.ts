@@ -8,6 +8,12 @@ function wallLength(a: WallNode, b: WallNode): number {
   return Math.hypot(b.p.x - a.p.x, b.p.y - a.p.y);
 }
 
+function hostLength(doc: PlanDocument, wall: Wall): number {
+  const a = doc.elements[wall.a];
+  const b = doc.elements[wall.b];
+  return a?.kind === 'wallNode' && b?.kind === 'wallNode' ? wallLength(a, b) : 0;
+}
+
 /** Returns human-readable descriptions of every broken invariant (empty = valid). */
 export function checkInvariants(doc: PlanDocument): string[] {
   const problems: string[] = [];
@@ -60,6 +66,17 @@ export function checkInvariants(doc: PlanDocument): string[] {
         if (end.nodeId === undefined) continue;
         const node = doc.elements[end.nodeId];
         if (node?.kind !== 'wallNode' || node.levelId !== el.levelId) problems.push(`dimension ${el.id} references a missing node`);
+      }
+    }
+    if (el.kind === 'door' || el.kind === 'window') {
+      const wall = doc.elements[el.wallId];
+      if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) {
+        problems.push(`${el.kind} ${el.id} references a missing wall`);
+        continue;
+      }
+      const length = hostLength(doc, wall);
+      if (el.t - el.width / 2 < -LENGTH_EPS * 10 || el.t + el.width / 2 > length + LENGTH_EPS * 10) {
+        problems.push(`${el.kind} ${el.id} extends past its wall`);
       }
     }
   }
@@ -152,6 +169,21 @@ export function repairInvariants(input: PlanDocument): RepairResult {
           delete end.nodeId;
           repairs.push(`Detached dimension ${el.id} from a missing wall node`);
         }
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'door' && el.kind !== 'window') continue;
+      const wall = d.elements[el.wallId];
+      const length = wall?.kind === 'wall' && wall.levelId === el.levelId ? hostLength(d, wall) : 0;
+      if (el.width > length + LENGTH_EPS) {
+        delete d.elements[el.id];
+        repairs.push(`Removed ${el.kind} ${el.id} that no longer fits a wall`);
+        continue;
+      }
+      const t = Math.min(Math.max(el.t, el.width / 2), length - el.width / 2);
+      if (Math.abs(t - el.t) > LENGTH_EPS) {
+        el.t = t;
+        repairs.push(`Moved ${el.kind} ${el.id} back within its wall`);
       }
     }
   });
