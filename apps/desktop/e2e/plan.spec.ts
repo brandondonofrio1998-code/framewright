@@ -275,6 +275,38 @@ test('edits, flips, slides and deletes a door; doors ride along when their wall 
   expect(ofKind(await savePlan(electronApp, userData, 'door-deleted'), 'door')).toHaveLength(0);
 });
 
+test('places a cabinet from the library and names the room', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Base Cabinet 24', exact: true }).click();
+  await expect(window.getByRole('button', { name: 'Base Cabinet 24', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await clickAt(window, { x: 0, y: ROOM.y0 + 6 });
+  const width = window.getByLabel('Object width', { exact: true });
+  await width.fill('30');
+  await width.press('Enter');
+
+  await window.getByRole('button', { name: 'Select Objects' }).click();
+  await clickAt(window, { x: 0, y: 0 });
+  const name = window.getByLabel('Room name');
+  await expect(name).toHaveValue('Room 1');
+  await expect(window.getByText('221.2 sq ft')).toBeVisible();
+  await name.fill('Kitchen');
+  await name.press('Enter');
+  await window.getByLabel('Room type').selectOption('kitchen');
+
+  // The cabinet sits on the bottom wall; moving that wall carries it along.
+  await clickAt(window, { x: 80, y: ROOM.y0 });
+  await dragFrom(window, { x: 80, y: ROOM.y0 }, { x: 80, y: ROOM.y0 + 24 });
+
+  const plan = await savePlan(electronApp, userData, 'furnished');
+  const [object] = ofKind(plan, 'object') as unknown as { hostT: number; side: string; p: Vec2 }[];
+  const [room] = ofKind(plan, 'room') as unknown as { name: string; roomType: string }[];
+  expect(object).toMatchObject({ hostT: 120, side: 'left', params: { width: 30 } });
+  expect(object!.p.y).toBeCloseTo(ROOM.y0 + 24 + 7.1875 / 2 + 12, 1);
+  expect(room).toMatchObject({ name: 'Kitchen', roomType: 'kitchen' });
+  expect(consoleErrors).toEqual([]);
+  await window.screenshot({ path: test.info().outputPath('furnished.png') });
+});
+
 test('status bar shows the cursor position and snap toggles', async ({ window }) => {
   const s = await screenOf(window, { x: 36, y: 24 });
   await window.mouse.move(s.x, s.y);
