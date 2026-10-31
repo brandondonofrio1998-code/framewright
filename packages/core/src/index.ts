@@ -17,6 +17,8 @@ export * from './catalog/placement';
 export * from './catalog/host';
 export * from './commands/catalog';
 export * from './geometry/vec2';
+export * from './geometry/polygon';
+export * from './mesh/meshes';
 export * from './walls/graph';
 export * from './walls/joins';
 export * from './display/display-list';
