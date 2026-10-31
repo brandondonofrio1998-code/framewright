@@ -1,7 +1,7 @@
 import {
   clampOpeningT,
+  exteriorSideOfWall,
   formatLength,
-  guessExteriorSide,
   nearestWall,
   openingFitError,
   openingsOnWall,
@@ -38,7 +38,7 @@ export function openingSpotAt(ctx: ToolContext, cursor: Vec2, width: number, ign
   let t = Math.abs(hit.t - hit.length / 2) <= ctx.view.model(CENTER_SNAP_PX) ? hit.length / 2 : Math.round(hit.t);
   t = clampOpeningT(hit.length, width, t);
   const cursorSide = hit.left ? 'left' : 'right';
-  const side = exterior ? (guessExteriorSide(doc, wall) ?? cursorSide) : cursorSide;
+  const side = exterior ? (exteriorSideOfWall(doc, wall.id) ?? cursorSide) : cursorSide;
   return { wallId: hit.wallId, t, side, error: openingFitError(doc, wall, t, width, ignoreId) };
 }
 

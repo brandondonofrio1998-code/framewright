@@ -123,7 +123,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       tool('Break Wall', 'break'),
       tool('Doors', 'doors'),
       tool('Windows', 'windows'),
-      pending('Cabinets'),
+      tool('Objects', 'objects'),
       pending('Stairs'),
       pending('Roof'),
       sep,

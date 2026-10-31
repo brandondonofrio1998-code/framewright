@@ -28,7 +28,7 @@ const TOOL_GROUPS: ToolButton[][] = [
     { id: 'windows', icon: AppWindow },
   ],
   [
-    { id: 'cabinets', label: 'Cabinets', icon: Archive, availableIn: 'M2' },
+    { id: 'objects', icon: Archive },
     { id: 'stairs', label: 'Stairs', icon: DoorStairwell, availableIn: 'M5' },
     { id: 'roof', label: 'Roof', icon: House, availableIn: 'M5' },
   ],

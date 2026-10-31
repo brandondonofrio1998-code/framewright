@@ -15,6 +15,9 @@ const PENS: Record<PenId, PenStyle> = {
   opening: { width: 1.25, color: '#1f2328' },
   'opening.swing': { width: 0.75, color: '#5f6670' },
   'opening.hidden': { width: 0.75, color: '#5f6670', dash: [4, 3] },
+  object: { width: 1.25, color: '#1f2328' },
+  'object.detail': { width: 0.75, color: '#5f6670' },
+  'object.hidden': { width: 1, color: '#5f6670', dash: [5, 3] },
 };
 
 const FILLS: Record<FillId, string> = {

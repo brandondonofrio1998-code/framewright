@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   boundsOf,
   buildPlanDisplayList,
+  roomFace,
   buildSnapScene,
   computeWallGeometry,
   dimensionPrims,
@@ -19,6 +20,7 @@ import { deleteSelection } from '../editor/actions';
 import { notify, setSelection, setTool, useEditor } from '../editor/store';
 import { createBreakTool } from '../tools/break-tool';
 import { createDimensionTool } from '../tools/dimension-tool';
+import { createObjectTool } from '../tools/object-tool';
 import { createOpeningTool } from '../tools/opening-tool';
 import { createSelectTool } from '../tools/select-tool';
 import type { PlanPointer, SnapRequest, Tool, ToolContext } from '../tools/types';
@@ -54,6 +56,7 @@ const createTools = (): Record<ToolId, Tool> => ({
   break: createBreakTool(),
   doors: createOpeningTool('door'),
   windows: createOpeningTool('window'),
+  objects: createObjectTool(),
   dimensions: createDimensionTool(),
 });
 
@@ -96,6 +99,11 @@ export function PlanView() {
     for (const id of selection) {
       const g = geometry.get(id);
       if (g) drawOutline(ctx2d, view, g.footprint);
+      const el = shown.elements[id];
+      if (el?.kind === 'room') {
+        const face = roomFace(shown, el);
+        if (face) drawOutline(ctx2d, view, face.polygon);
+      }
     }
 
     const overlay = tool.overlay?.(toolCtx) ?? {};

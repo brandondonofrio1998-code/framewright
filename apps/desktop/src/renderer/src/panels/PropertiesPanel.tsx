@@ -3,18 +3,26 @@ import {
   angleOf,
   defaultWallHeight,
   distance,
+  formatArea,
   formatLength,
   isOpening,
+  objectSize,
+  ROOM_TYPES,
   resolveDimensionEnd,
+  roomFace,
+  starterById,
   sub,
   wallThickness,
+  type CatalogObject,
   type Id,
   type PlanDocument,
+  type Room,
+  type RoomType,
   type Wall,
 } from '@framewright/core';
 import { dispatch, useDocument } from '../document/store';
 import { activeWallTypeId, notify, useEditor } from '../editor/store';
-import { LengthInput } from '../ui/LengthInput';
+import { LengthInput, TextInput } from '../ui/LengthInput';
 import { OpeningProperties, OpeningToolDefaults } from './OpeningProperties';
 
 const errorOf = (result: { ok: boolean; error?: string }) => (result.ok ? null : (result.error ?? 'Rejected'));
@@ -31,6 +39,117 @@ function WallTypeSelect({ value, onChange, label }: { value: Id; onChange(id: Id
         </option>
       ))}
     </select>
+  );
+}
+
+const ROOM_TYPE_LABELS: Record<RoomType, string> = {
+  unspecified: 'Unspecified',
+  living: 'Living',
+  kitchen: 'Kitchen',
+  dining: 'Dining',
+  bedroom: 'Bedroom',
+  bathroom: 'Bathroom',
+  hall: 'Hall',
+  closet: 'Closet',
+  garage: 'Garage',
+  utility: 'Utility',
+  other: 'Other',
+};
+
+function RoomProperties({ doc, room }: { doc: PlanDocument; room: Room }) {
+  const format = doc.settings.lengthFormat;
+  const face = roomFace(doc, room);
+  const level = doc.levels[room.levelId];
+  const auto = room.ceilingHeight === null;
+  const height = room.ceilingHeight ?? level?.ceilingHeight ?? 96;
+  return (
+    <>
+      <h3 className="panel-heading">Room</h3>
+      <dl className="level-fields">
+        <dt>Name</dt>
+        <dd>
+          <TextInput label="Room name" value={room.name} onCommit={(name) => errorOf(dispatch('room.update', { id: room.id, name }))} />
+        </dd>
+        <dt>Type</dt>
+        <dd>
+          <select className="field-input" aria-label="Room type" value={room.roomType} onChange={(e) => notify(errorOf(dispatch('room.update', { id: room.id, roomType: e.target.value as RoomType })))}>
+            {ROOM_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {ROOM_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </dd>
+        <dt>Area</dt>
+        <dd>
+          <span className="field-readonly">{face ? formatArea(face.area) : '—'}</span>
+        </dd>
+        <dt>Ceiling</dt>
+        <dd className="field-stack">
+          <LengthInput label="Ceiling height" value={height} format={format} disabled={auto} onCommit={(v) => errorOf(dispatch('room.update', { id: room.id, ceilingHeight: v }))} />
+          <label className="field-check">
+            <input type="checkbox" checked={auto} onChange={(e) => notify(errorOf(dispatch('room.update', { id: room.id, ceilingHeight: e.target.checked ? null : height })))} />
+            From level
+          </label>
+        </dd>
+      </dl>
+    </>
+  );
+}
+
+function ObjectProperties({ doc, object }: { doc: PlanDocument; object: CatalogObject }) {
+  const format = doc.settings.lengthFormat;
+  const def = doc.catalogDefs[object.defId];
+  const size = objectSize(doc, object);
+  const setParam = (key: 'width' | 'depth' | 'height', value: number) => errorOf(dispatch('object.update', { id: object.id, params: { [key]: value } }));
+  return (
+    <>
+      <h3 className="panel-heading">{def?.name ?? 'Object'}</h3>
+      <dl className="level-fields">
+        <dt>Width</dt>
+        <dd>
+          <LengthInput label="Object width" value={size.width} format={format} onCommit={(v) => setParam('width', v)} />
+        </dd>
+        <dt>Depth</dt>
+        <dd>
+          <LengthInput label="Object depth" value={size.depth} format={format} onCommit={(v) => setParam('depth', v)} />
+        </dd>
+        <dt>Height</dt>
+        <dd>
+          <LengthInput label="Object height" value={size.height} format={format} onCommit={(v) => setParam('height', v)} />
+        </dd>
+        <dt>Elevation</dt>
+        <dd>
+          <LengthInput label="Object elevation" value={object.z} format={format} onCommit={(z) => errorOf(dispatch('object.update', { id: object.id, z }))} />
+        </dd>
+      </dl>
+      <div className="panel-actions">
+        {object.hostWallId && object.side && (
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => {
+              if (!object.hostWallId || object.hostT === undefined || !object.side) return;
+              notify(
+                errorOf(
+                  dispatch('object.move', {
+                    id: object.id,
+                    p: object.p,
+                    rotation: object.rotation,
+                    hostWallId: object.hostWallId,
+                    hostT: object.hostT,
+                    side: object.side === 'left' ? 'right' : 'left',
+                  }),
+                ),
+              );
+            }}
+          >
+            Flip Side
+          </button>
+        )}
+        <DeleteButton ids={[object.id]} />
+      </div>
+    </>
   );
 }
 
@@ -109,6 +228,7 @@ export function PropertiesPanel() {
   const doc = useDocument((s) => s.doc);
   const selection = useEditor((s) => s.selection);
   const tool = useEditor((s) => s.tool);
+  const armedCatalogId = useEditor((s) => s.armedCatalogId);
   useEditor((s) => s.wallTypeId);
   const format = doc.settings.lengthFormat;
   const elements = selection.map((id) => doc.elements[id]).filter((el) => el !== undefined);
@@ -118,7 +238,15 @@ export function PropertiesPanel() {
     const typeId = activeWallTypeId();
     return (
       <div className="panel properties-panel">
-        {tool === 'doors' || tool === 'windows' ? (
+        {tool === 'objects' ? (
+          <>
+            <h3 className="panel-heading">Objects</h3>
+            <p className="panel-hint">
+              {armedCatalogId ? `Placing ${starterById(armedCatalogId)?.name ?? 'an item'}. Click the side of a wall it should sit on.` : 'Pick an item in the Library, then click a wall.'} Esc returns to
+              Select Objects.
+            </p>
+          </>
+        ) : tool === 'doors' || tool === 'windows' ? (
           <OpeningToolDefaults kind={tool === 'doors' ? 'door' : 'window'} doc={doc} />
         ) : tool === 'walls' && typeId ? (
           <>
@@ -147,6 +275,20 @@ export function PropertiesPanel() {
   }
 
   const only = elements[0];
+  if (elements.length === 1 && only?.kind === 'room') {
+    return (
+      <div className="panel properties-panel">
+        <RoomProperties doc={doc} room={only} />
+      </div>
+    );
+  }
+  if (elements.length === 1 && only?.kind === 'object') {
+    return (
+      <div className="panel properties-panel">
+        <ObjectProperties doc={doc} object={only} />
+      </div>
+    );
+  }
   if (elements.length === 1 && isOpening(only)) {
     return (
       <div className="panel properties-panel">

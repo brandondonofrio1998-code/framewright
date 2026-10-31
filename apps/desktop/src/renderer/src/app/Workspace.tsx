@@ -8,6 +8,7 @@ import {
   type IDockviewPanelProps,
 } from 'dockview-react';
 import { LevelsPanel } from '../panels/LevelsPanel';
+import { LibraryPanel } from '../panels/LibraryPanel';
 import { PropertiesPanel } from '../panels/PropertiesPanel';
 import { PlanView } from '../plan/PlanView';
 
@@ -31,7 +32,7 @@ function PlaceholderPanel({ params }: IDockviewPanelProps<PlaceholderParams>) {
   );
 }
 
-const components = { placeholder: PlaceholderPanel, levels: LevelsPanel, plan: PlanView, properties: PropertiesPanel };
+const components = { placeholder: PlaceholderPanel, levels: LevelsPanel, plan: PlanView, properties: PropertiesPanel, library: LibraryPanel };
 
 function buildDefaultLayout(api: DockviewApi): void {
   api.clear();
@@ -43,11 +44,10 @@ function buildDefaultLayout(api: DockviewApi): void {
     params: { title: '3D perspective', arrives: 'M3' },
     position: { referencePanel: plan, direction: 'within' },
   });
-  api.addPanel<PlaceholderParams>({
+  api.addPanel({
     id: 'library',
     title: 'Library',
-    component: 'placeholder',
-    params: { title: 'Catalog library', arrives: 'M2' },
+    component: 'library',
     position: { referencePanel: plan, direction: 'left' },
     initialWidth: 260,
   });

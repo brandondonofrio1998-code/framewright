@@ -1,6 +1,8 @@
 import { produce } from 'immer';
 import {
   add,
+  objectSize,
+  placeOnWall,
   clampOpeningT,
   distance,
   dot,
@@ -20,6 +22,7 @@ import {
   type Vec2,
 } from '@framewright/core';
 import { dispatch } from '../document/store';
+import { objectSpotAt, type ObjectSpot } from './object-placement';
 import { openingClearances, openingSpotAt, type OpeningSpot } from './opening-placement';
 import type { Overlay, PlanPointer, Tool, ToolContext } from './types';
 
@@ -29,8 +32,10 @@ const HANDLE_TOLERANCE_PX = 7;
 
 type Drag =
   | { kind: 'none' }
-  | { kind: 'pressing'; start: PlanPointer; target: 'walls' | 'dimension' | 'opening'; id: Id }
+  | { kind: 'pressing'; start: PlanPointer; target: 'walls' | 'dimension' | 'opening' | 'object' | 'room'; id: Id }
   | { kind: 'opening'; id: Id; grab: number; spot: OpeningSpot | null }
+  | { kind: 'object'; id: Id; mode: 'wall'; grab: number; rotation: number; cursor: Vec2; spot: ObjectSpot | null }
+  | { kind: 'object'; id: Id; mode: 'free'; rotation: number; origin: Vec2; from: Vec2; at: Vec2 }
   | { kind: 'walls'; start: Vec2; wallIds: Id[]; delta: Vec2; snap: SnapResult | null }
   | { kind: 'node'; nodeId: Id; anchor: Vec2 | undefined; to: Vec2; snap: SnapResult | null }
   | { kind: 'dimension'; id: Id; offset: number }
@@ -88,7 +93,7 @@ export function createSelectTool(): Tool {
       } else if (!selection.includes(hit.id)) {
         ctx.setSelection([hit.id]);
       }
-      const target = hit.kind === 'wall' ? 'walls' : hit.kind === 'dimension' ? 'dimension' : 'opening';
+      const target = hit.kind === 'wall' ? 'walls' : hit.kind === 'dimension' ? 'dimension' : hit.kind === 'object' ? 'object' : hit.kind === 'room' ? 'room' : 'opening';
       drag = { kind: 'pressing', start: e, target, id: hit.id };
       ctx.redraw();
     },
@@ -97,7 +102,19 @@ export function createSelectTool(): Tool {
       switch (drag.kind) {
         case 'pressing': {
           if (distance(drag.start.screen, e.screen) < DRAG_THRESHOLD_PX) return;
-          if (drag.target === 'walls') {
+          if (drag.target === 'room') return;
+          if (drag.target === 'object') {
+            const object = doc.elements[drag.id];
+            if (object?.kind !== 'object') return;
+            if (object.hostWallId !== undefined) {
+              const { width } = objectSize(doc, object);
+              const grabbed = objectSpotAt(ctx, drag.start.model, width);
+              const grab = grabbed && grabbed.wallId === object.hostWallId && object.hostT !== undefined ? object.hostT - grabbed.t : 0;
+              drag = { kind: 'object', id: object.id, mode: 'wall', grab, rotation: object.rotation, cursor: e.model, spot: null };
+            } else {
+              drag = { kind: 'object', id: object.id, mode: 'free', rotation: object.rotation, origin: object.p, from: drag.start.model, at: object.p };
+            }
+          } else if (drag.target === 'walls') {
             const wallIds = selectedWalls(ctx).map((w) => w.id);
             if (wallIds.length === 0) return;
             drag = { kind: 'walls', start: drag.start.model, wallIds, delta: { x: 0, y: 0 }, snap: null };
@@ -162,6 +179,20 @@ export function createSelectTool(): Tool {
           ctx.notify(spot?.error ?? null);
           break;
         }
+        case 'object': {
+          const object = doc.elements[drag.id];
+          if (object?.kind !== 'object') return;
+          if (drag.mode === 'free') {
+            drag.at = add(drag.origin, sub(e.model, drag.from));
+            break;
+          }
+          drag.cursor = e.model;
+          const { width } = objectSize(doc, object);
+          const spot = objectSpotAt(ctx, e.model, width);
+          if (spot) spot.t += drag.grab;
+          drag.spot = spot;
+          break;
+        }
         case 'box':
           drag.end = e.model;
           break;
@@ -187,6 +218,15 @@ export function createSelectTool(): Tool {
           if (current.spot && !current.spot.error) {
             const { wallId, t, side } = current.spot;
             commit(dispatch('opening.move', { id: current.id, wallId, t, side }), ctx);
+          }
+          break;
+        case 'object':
+          if (current.mode === 'wall' && current.spot) {
+            commit(dispatch('object.move', { id: current.id, p: current.cursor, rotation: current.rotation, hostWallId: current.spot.wallId, hostT: current.spot.t, side: current.spot.side }), ctx);
+          } else if (current.mode === 'wall') {
+            commit(dispatch('object.move', { id: current.id, p: current.cursor, rotation: current.rotation, hostWallId: null }), ctx);
+          } else {
+            commit(dispatch('object.move', { id: current.id, p: current.at, rotation: current.rotation, hostWallId: null }), ctx);
           }
           break;
         case 'box': {
@@ -242,6 +282,25 @@ export function createSelectTool(): Tool {
         return produce(doc, (draft) => {
           const dim = draft.elements[d.id];
           if (dim?.kind === 'dimension') dim.offset = d.offset;
+        });
+      }
+      if (d.kind === 'object') {
+        return produce(doc, (draft) => {
+          const object = draft.elements[d.id];
+          if (object?.kind !== 'object') return;
+          if (d.mode === 'wall' && d.spot) {
+            const wall = draft.elements[d.spot.wallId];
+            if (wall?.kind !== 'wall') return;
+            const { width, depth } = objectSize(draft, object);
+            const placed = placeOnWall(draft, wall, d.spot.t, d.spot.side, width, depth);
+            if (!placed) return;
+            Object.assign(object, { p: placed.p, rotation: placed.rotation, hostWallId: wall.id, hostT: placed.t, side: placed.side });
+          } else {
+            object.p = d.mode === 'free' ? d.at : d.cursor;
+            delete object.hostWallId;
+            delete object.hostT;
+            delete object.side;
+          }
         });
       }
       if (d.kind === 'opening' && d.spot && !d.spot.error) {

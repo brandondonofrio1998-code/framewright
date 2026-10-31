@@ -10,6 +10,8 @@ export interface EditorState {
   /** What the Doors and Windows tools place next. */
   doorDefaults: DoorDefaults;
   windowDefaults: WindowDefaults;
+  /** Catalog item the Objects tool places, by its source id. */
+  armedCatalogId: string | null;
   selection: Id[];
   snaps: SnapSettings;
   /** Cursor position in model inches, while over the plan. */
@@ -24,6 +26,7 @@ export const useEditor = create<EditorState>(() => ({
   wallTypeId: null,
   doorDefaults: DEFAULT_DOOR,
   windowDefaults: DEFAULT_WINDOW,
+  armedCatalogId: null,
   selection: [],
   snaps: { objects: true, angles: true, grid: true },
   cursor: null,
@@ -37,6 +40,7 @@ export const TOOL_LABELS: Record<ToolId, string> = {
   break: 'Break Wall',
   doors: 'Doors',
   windows: 'Windows',
+  objects: 'Objects',
   dimensions: 'Dimensions',
 };
 
