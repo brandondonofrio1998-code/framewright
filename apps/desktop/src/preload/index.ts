@@ -1,18 +1,44 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IpcChannel, isMenuCommand, type AppInfo, type FramewrightApi, type MenuCommand } from '../shared/ipc';
+import { IpcChannel, isMenuCommand, type FileRef, type FramewrightApi } from '../shared/ipc';
+
+function subscribe<T>(channel: string, accept: (value: unknown) => value is T, listener: (value: T) => void) {
+  const handler = (_event: IpcRendererEvent, value: unknown) => {
+    if (accept(value)) listener(value);
+  };
+  ipcRenderer.on(channel, handler);
+  return () => {
+    ipcRenderer.off(channel, handler);
+  };
+}
+
+const isFileRef = (value: unknown): value is FileRef =>
+  typeof value === 'object' && value !== null && typeof (value as FileRef).handle === 'string';
 
 const api: FramewrightApi = {
   app: {
-    info: () => ipcRenderer.invoke(IpcChannel.appInfo) as Promise<AppInfo>,
+    info: () => ipcRenderer.invoke(IpcChannel.appInfo),
+    ready: () => ipcRenderer.send(IpcChannel.rendererReady),
+    showMessage: (request) => ipcRenderer.invoke(IpcChannel.showMessage, request),
+    confirmDiscard: (title) => ipcRenderer.invoke(IpcChannel.confirmDiscard, title),
+    setDocState: (state) => ipcRenderer.send(IpcChannel.docState, state),
+    closeWindow: () => ipcRenderer.send(IpcChannel.closeWindow),
+  },
+  file: {
+    openDialog: () => ipcRenderer.invoke(IpcChannel.fileOpenDialog),
+    openHandle: (handle) => ipcRenderer.invoke(IpcChannel.fileOpenHandle, handle),
+    save: (handle, text) => ipcRenderer.invoke(IpcChannel.fileSave, handle, text),
+    saveAs: (suggestedName, text) => ipcRenderer.invoke(IpcChannel.fileSaveAs, suggestedName, text),
+    recent: () => ipcRenderer.invoke(IpcChannel.recentList),
+    onOpenRequest: (listener) => subscribe(IpcChannel.openRequest, isFileRef, listener),
+  },
+  autosave: {
+    write: (payload) => ipcRenderer.invoke(IpcChannel.autosaveWrite, payload),
+    clear: (docId) => ipcRenderer.invoke(IpcChannel.autosaveClear, docId),
+    list: () => ipcRenderer.invoke(IpcChannel.autosaveList),
+    read: (docId) => ipcRenderer.invoke(IpcChannel.autosaveRead, docId),
   },
   menu: {
-    onCommand(listener: (command: MenuCommand) => void) {
-      const handler = (_event: IpcRendererEvent, command: unknown) => {
-        if (isMenuCommand(command)) listener(command);
-      };
-      ipcRenderer.on(IpcChannel.menuCommand, handler);
-      return () => ipcRenderer.off(IpcChannel.menuCommand, handler);
-    },
+    onCommand: (listener) => subscribe(IpcChannel.menuCommand, isMenuCommand, listener),
   },
 };
 

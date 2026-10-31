@@ -1,12 +1,22 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import type { MenuCommand, Platform } from '../shared/ipc';
+import type { FileRef, MenuCommand, Platform } from '../shared/ipc';
+
+export interface MenuState {
+  undoLabel: string | null;
+  redoLabel: string | null;
+  recent: FileRef[];
+}
+
+export const EMPTY_MENU_STATE: MenuState = { undoLabel: null, redoLabel: null, recent: [] };
 
 export interface MenuContext {
   platform: Platform;
   appName: string;
   devTools: boolean;
+  state: MenuState;
   send(command: MenuCommand): void;
   showAbout(): void;
+  clearRecent(): void;
 }
 
 const sep: MenuItemConstructorOptions = { type: 'separator' };
@@ -16,8 +26,27 @@ function pending(label: string, accelerator?: string): MenuItemConstructorOption
   return accelerator === undefined ? { label, enabled: false } : { label, accelerator, enabled: false };
 }
 
+/** Escapes `&` so Windows does not treat file names as mnemonics. */
+const literal = (text: string) => text.replace(/&/g, '&&');
+
+function recentSubmenu(ctx: MenuContext): MenuItemConstructorOptions[] {
+  if (ctx.state.recent.length === 0) return [{ label: 'No Recent Plans', enabled: false }];
+  return [
+    ...ctx.state.recent.map(
+      (file, i): MenuItemConstructorOptions => ({
+        label: ctx.platform === 'darwin' ? literal(file.displayName) : `&${(i + 1) % 10} ${literal(file.displayName)}`,
+        sublabel: file.path,
+        click: () => ctx.send({ type: 'file.openHandle', handle: file.handle }),
+      }),
+    ),
+    sep,
+    { label: 'Clear Recent', click: () => ctx.clearRecent() },
+  ];
+}
+
 export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[] {
   const mac = ctx.platform === 'darwin';
+  const { undoLabel, redoLabel } = ctx.state;
 
   const appMenu: MenuItemConstructorOptions = {
     label: ctx.appName,
@@ -39,12 +68,12 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
   const file: MenuItemConstructorOptions = {
     label: '&File',
     submenu: [
-      pending('New Plan', 'CmdOrCtrl+N'),
-      pending('Open…', 'CmdOrCtrl+O'),
-      pending('Open Recent'),
+      { label: 'New Plan', accelerator: 'CmdOrCtrl+N', click: () => ctx.send({ type: 'file.new' }) },
+      { label: 'Open…', accelerator: 'CmdOrCtrl+O', click: () => ctx.send({ type: 'file.open' }) },
+      { label: 'Open Recent', submenu: recentSubmenu(ctx) },
       sep,
-      pending('Save', 'CmdOrCtrl+S'),
-      pending('Save As…', 'CmdOrCtrl+Shift+S'),
+      { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => ctx.send({ type: 'file.save' }) },
+      { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => ctx.send({ type: 'file.saveAs' }) },
       sep,
       pending('Export'),
       sep,
@@ -56,8 +85,18 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
   const edit: MenuItemConstructorOptions = {
     label: '&Edit',
     submenu: [
-      pending('Undo', 'CmdOrCtrl+Z'),
-      pending('Redo', mac ? 'Cmd+Shift+Z' : 'Ctrl+Y'),
+      {
+        label: undoLabel ? `Undo ${literal(undoLabel)}` : 'Undo',
+        accelerator: 'CmdOrCtrl+Z',
+        enabled: undoLabel !== null,
+        click: () => ctx.send({ type: 'edit.undo' }),
+      },
+      {
+        label: redoLabel ? `Redo ${literal(redoLabel)}` : 'Redo',
+        accelerator: mac ? 'Cmd+Shift+Z' : 'Ctrl+Y',
+        enabled: redoLabel !== null,
+        click: () => ctx.send({ type: 'edit.redo' }),
+      },
       sep,
       { role: 'cut' },
       { role: 'copy' },
@@ -87,7 +126,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
   const view: MenuItemConstructorOptions = {
     label: '&View',
     submenu: [
-      { label: 'Reset Layout', click: () => ctx.send('view.resetLayout') },
+      { label: 'Reset Layout', click: () => ctx.send({ type: 'view.resetLayout' }) },
       sep,
       { role: 'togglefullscreen' },
       ...(ctx.devTools
