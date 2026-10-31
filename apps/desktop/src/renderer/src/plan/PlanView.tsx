@@ -19,6 +19,7 @@ import { deleteSelection } from '../editor/actions';
 import { notify, setSelection, setTool, useEditor } from '../editor/store';
 import { createBreakTool } from '../tools/break-tool';
 import { createDimensionTool } from '../tools/dimension-tool';
+import { createOpeningTool } from '../tools/opening-tool';
 import { createSelectTool } from '../tools/select-tool';
 import type { PlanPointer, SnapRequest, Tool, ToolContext } from '../tools/types';
 import { createWallTool } from '../tools/wall-tool';
@@ -51,6 +52,8 @@ const createTools = (): Record<ToolId, Tool> => ({
   select: createSelectTool(),
   walls: createWallTool(),
   break: createBreakTool(),
+  doors: createOpeningTool('door'),
+  windows: createOpeningTool('window'),
   dimensions: createDimensionTool(),
 });
 

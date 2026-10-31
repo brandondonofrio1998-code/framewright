@@ -12,6 +12,9 @@ const PENS: Record<PenId, PenStyle> = {
   'wall.layer': { width: 0.75, color: '#8b8680' },
   dimension: { width: 1, color: '#30343a' },
   reference: { width: 1, color: '#b9b4ad', dash: [6, 4] },
+  opening: { width: 1.25, color: '#1f2328' },
+  'opening.swing': { width: 0.75, color: '#5f6670' },
+  'opening.hidden': { width: 0.75, color: '#5f6670', dash: [4, 3] },
 };
 
 const FILLS: Record<FillId, string> = {
@@ -118,6 +121,15 @@ export function drawDisplayList(ctx: CanvasRenderingContext2D, view: Viewport, i
           applyPen(ctx, prim.pen, color);
           ctx.stroke();
           break;
+        case 'arc': {
+          const c = view.toScreen(prim.c);
+          ctx.beginPath();
+          // Screen Y points down, so model angles flip sign.
+          ctx.arc(c.x, c.y, prim.r * view.scale, -prim.start, -(prim.start + prim.sweep), prim.sweep > 0);
+          applyPen(ctx, prim.pen, color);
+          ctx.stroke();
+          break;
+        }
         case 'text':
           drawText(ctx, view, prim, color ?? PENS.dimension.color);
           break;

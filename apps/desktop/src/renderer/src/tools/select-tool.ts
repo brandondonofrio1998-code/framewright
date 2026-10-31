@@ -1,10 +1,14 @@
 import { produce } from 'immer';
 import {
   add,
+  clampOpeningT,
   distance,
   dot,
   elementsInBox,
   formatLength,
+  isOpening,
+  openingFitError,
+  wallLength,
   normalize,
   perp,
   pickElement,
@@ -16,6 +20,7 @@ import {
   type Vec2,
 } from '@framewright/core';
 import { dispatch } from '../document/store';
+import { openingClearances, openingSpotAt, type OpeningSpot } from './opening-placement';
 import type { Overlay, PlanPointer, Tool, ToolContext } from './types';
 
 const DRAG_THRESHOLD_PX = 4;
@@ -24,7 +29,8 @@ const HANDLE_TOLERANCE_PX = 7;
 
 type Drag =
   | { kind: 'none' }
-  | { kind: 'pressing'; start: PlanPointer; target: 'walls' | 'dimension' }
+  | { kind: 'pressing'; start: PlanPointer; target: 'walls' | 'dimension' | 'opening'; id: Id }
+  | { kind: 'opening'; id: Id; grab: number; spot: OpeningSpot | null }
   | { kind: 'walls'; start: Vec2; wallIds: Id[]; delta: Vec2; snap: SnapResult | null }
   | { kind: 'node'; nodeId: Id; anchor: Vec2 | undefined; to: Vec2; snap: SnapResult | null }
   | { kind: 'dimension'; id: Id; offset: number }
@@ -82,7 +88,8 @@ export function createSelectTool(): Tool {
       } else if (!selection.includes(hit.id)) {
         ctx.setSelection([hit.id]);
       }
-      drag = { kind: 'pressing', start: e, target: hit.kind === 'wall' ? 'walls' : 'dimension' };
+      const target = hit.kind === 'wall' ? 'walls' : hit.kind === 'dimension' ? 'dimension' : 'opening';
+      drag = { kind: 'pressing', start: e, target, id: hit.id };
       ctx.redraw();
     },
     move(e, ctx) {
@@ -94,6 +101,12 @@ export function createSelectTool(): Tool {
             const wallIds = selectedWalls(ctx).map((w) => w.id);
             if (wallIds.length === 0) return;
             drag = { kind: 'walls', start: drag.start.model, wallIds, delta: { x: 0, y: 0 }, snap: null };
+          } else if (drag.target === 'opening') {
+            const opening = doc.elements[drag.id];
+            const grabbed = isOpening(opening) ? openingSpotAt(ctx, drag.start.model, opening.width, opening.id) : null;
+            if (!isOpening(opening) || !grabbed) return;
+            // Keep the point you grabbed under the cursor instead of jumping the opening's center to it.
+            drag = { kind: 'opening', id: opening.id, grab: opening.wallId === grabbed.wallId ? opening.t - grabbed.t : 0, spot: null };
           } else {
             const id = ctx.selection().find((sel) => doc.elements[sel]?.kind === 'dimension');
             const dim = id ? doc.elements[id] : undefined;
@@ -134,6 +147,21 @@ export function createSelectTool(): Tool {
           drag.offset = dot(sub(e.model, a), perp(normalize(sub(b, a))));
           break;
         }
+        case 'opening': {
+          const opening = doc.elements[drag.id];
+          if (!isOpening(opening)) return;
+          const spot = openingSpotAt(ctx, e.model, opening.width, opening.id);
+          if (spot && spot.wallId === opening.wallId) {
+            const wall = doc.elements[spot.wallId];
+            const length = wall?.kind === 'wall' ? wallLength(doc, wall) : 0;
+            spot.t = clampOpeningT(length, opening.width, spot.t + drag.grab);
+            spot.side = opening.side;
+            spot.error = wall?.kind === 'wall' ? openingFitError(doc, wall, spot.t, opening.width, opening.id) : spot.error;
+          }
+          drag.spot = spot;
+          ctx.notify(spot?.error ?? null);
+          break;
+        }
         case 'box':
           drag.end = e.model;
           break;
@@ -154,6 +182,12 @@ export function createSelectTool(): Tool {
           break;
         case 'dimension':
           commit(dispatch('dimension.update', { id: current.id, offset: current.offset }), ctx);
+          break;
+        case 'opening':
+          if (current.spot && !current.spot.error) {
+            const { wallId, t, side } = current.spot;
+            commit(dispatch('opening.move', { id: current.id, wallId, t, side }), ctx);
+          }
           break;
         case 'box': {
           const box = {
@@ -210,6 +244,13 @@ export function createSelectTool(): Tool {
           if (dim?.kind === 'dimension') dim.offset = d.offset;
         });
       }
+      if (d.kind === 'opening' && d.spot && !d.spot.error) {
+        const { wallId, t, side } = d.spot;
+        return produce(doc, (draft) => {
+          const o = draft.elements[d.id];
+          if (isOpening(o)) Object.assign(o, { wallId, t, side });
+        });
+      }
       return null;
     },
     overlay(ctx): Overlay {
@@ -220,7 +261,14 @@ export function createSelectTool(): Tool {
         overlay.lines = drag.snap.guides.map(([a, b]) => ({ a, b, style: 'guide' as const }));
       }
       const doc = ctx.selection().length === 1 ? this.preview?.(ctx.doc(), ctx) ?? ctx.doc() : null;
-      const wall = doc ? doc.elements[ctx.selection()[0]!] : undefined;
+      const selected = doc ? doc.elements[ctx.selection()[0]!] : undefined;
+      if (doc && isOpening(selected)) {
+        // Moving an opening never changes wall geometry, so the committed geometry still applies.
+        const geom = ctx.geometry().get(selected.wallId);
+        if (geom) overlay.dimensions = openingClearances({ ...ctx, doc: () => doc }, geom, selected, selected.width, selected.id);
+        return overlay;
+      }
+      const wall = selected;
       if (doc && wall?.kind === 'wall') {
         const a = nodePosition(doc, wall.a);
         const b = nodePosition(doc, wall.b);

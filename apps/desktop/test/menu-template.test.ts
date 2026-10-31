@@ -90,7 +90,7 @@ describe('menu template', () => {
 
   it('keeps unbuilt features visible but disabled', () => {
     const { template } = build('win32');
-    for (const name of ['Doors', 'Roof', 'Text']) {
+    for (const name of ['Cabinets', 'Roof', 'Text']) {
       expect(find(submenu(top(template, 'Build')), name)?.enabled).toBe(false);
     }
   });
@@ -102,6 +102,8 @@ describe('menu template', () => {
       ['Select Objects', 'select'],
       ['Walls', 'walls'],
       ['Break Wall', 'break'],
+      ['Doors', 'doors'],
+      ['Windows', 'windows'],
       ['Dimensions', 'dimensions'],
     ] as const) {
       click(find(items, name));

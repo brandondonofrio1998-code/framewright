@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Id, SnapKind, SnapSettings, Vec2 } from '@framewright/core';
+import { DEFAULT_DOOR, DEFAULT_WINDOW, type DoorDefaults, type Id, type SnapKind, type SnapSettings, type Vec2, type WindowDefaults } from '@framewright/core';
 import type { ToolId } from '../../../shared/ipc';
 import { history, useDocument } from '../document/store';
 
@@ -7,6 +7,9 @@ export interface EditorState {
   tool: ToolId;
   /** Wall type used by the Walls tool; null means the plan's first wall type. */
   wallTypeId: Id | null;
+  /** What the Doors and Windows tools place next. */
+  doorDefaults: DoorDefaults;
+  windowDefaults: WindowDefaults;
   selection: Id[];
   snaps: SnapSettings;
   /** Cursor position in model inches, while over the plan. */
@@ -19,6 +22,8 @@ export interface EditorState {
 export const useEditor = create<EditorState>(() => ({
   tool: 'select',
   wallTypeId: null,
+  doorDefaults: DEFAULT_DOOR,
+  windowDefaults: DEFAULT_WINDOW,
   selection: [],
   snaps: { objects: true, angles: true, grid: true },
   cursor: null,
@@ -30,6 +35,8 @@ export const TOOL_LABELS: Record<ToolId, string> = {
   select: 'Select Objects',
   walls: 'Walls',
   break: 'Break Wall',
+  doors: 'Doors',
+  windows: 'Windows',
   dimensions: 'Dimensions',
 };
 

@@ -206,6 +206,75 @@ test('breaks a wall and places an attached dimension', async ({ electronApp, win
   await window.screenshot({ path: test.info().outputPath('dimension.png') });
 });
 
+interface SavedOpening {
+  kind: string;
+  wallId: string;
+  t: number;
+  width: number;
+  side: string;
+  sill?: number;
+}
+
+const openings = (plan: SavedPlan) => ofKind(plan, 'door').concat(ofKind(plan, 'window')) as unknown as SavedOpening[];
+
+async function placeDoorAndWindow(app: ElectronApplication, window: Page): Promise<void> {
+  await drawRoom(app, window);
+  await window.getByRole('button', { name: 'Doors', exact: true }).click();
+  await expect(window.getByRole('heading', { name: 'Doors tool' })).toBeVisible();
+  // Inside the room, just above the bottom wall's midpoint: snaps to the wall's center, swings inward.
+  await clickAt(window, { x: 2, y: ROOM.y0 + 4 });
+  await window.getByRole('button', { name: 'Windows', exact: true }).click();
+  await clickAt(window, { x: -60, y: ROOM.y1 - 4 });
+}
+
+test('places doors and windows on walls, refusing overlaps', async ({ electronApp, window, userData, consoleErrors }) => {
+  await placeDoorAndWindow(electronApp, window);
+  let plan = await savePlan(electronApp, userData, 'openings');
+  const [door] = ofKind(plan, 'door') as unknown as SavedOpening[];
+  const [win] = ofKind(plan, 'window') as unknown as SavedOpening[];
+  expect(door).toMatchObject({ t: 120, width: 36, side: 'left' });
+  // The top wall runs right to left, so x = -60 is 180" from its start, and its outside (+y) is its right.
+  expect(win).toMatchObject({ t: 180, width: 36, sill: 32, side: 'right' });
+
+  await window.getByRole('button', { name: 'Doors', exact: true }).click();
+  await clickAt(window, { x: -40, y: ROOM.y1 - 4 });
+  await expect(window.getByTestId('status-notice')).toHaveText('Openings on the same wall cannot overlap.');
+  plan = await savePlan(electronApp, userData, 'refused');
+  expect(openings(plan)).toHaveLength(2);
+  expect(consoleErrors).toEqual([]);
+  await window.screenshot({ path: test.info().outputPath('openings.png') });
+});
+
+test('edits, flips, slides and deletes a door; doors ride along when their wall moves', async ({ electronApp, window, userData }) => {
+  await placeDoorAndWindow(electronApp, window);
+  await window.getByRole('button', { name: 'Select Objects' }).click();
+  await clickAt(window, { x: 0, y: ROOM.y0 });
+  await expect(window.getByRole('heading', { name: 'Door', exact: true })).toBeVisible();
+
+  const width = window.getByLabel('Door width', { exact: true });
+  await width.fill('32');
+  await width.press('Enter');
+  await window.getByRole('button', { name: 'Flip Side' }).click();
+  await window.getByLabel('Door style', { exact: true }).selectOption('pocket');
+  let [door] = ofKind(await savePlan(electronApp, userData, 'edited'), 'door') as unknown as (SavedOpening & { style: string })[];
+  expect(door).toMatchObject({ width: 32, side: 'right', style: 'pocket', t: 120 });
+
+  await dragFrom(window, { x: 0, y: ROOM.y0 }, { x: 24, y: ROOM.y0 });
+  [door] = ofKind(await savePlan(electronApp, userData, 'slid'), 'door') as unknown as (SavedOpening & { style: string })[];
+  expect(door!.t).toBe(144);
+
+  await clickAt(window, { x: 0, y: ROOM.y1 });
+  await dragFrom(window, { x: 0, y: ROOM.y1 }, { x: 0, y: ROOM.y1 + 24 });
+  const moved = await savePlan(electronApp, userData, 'wall-moved');
+  const [win] = ofKind(moved, 'window') as unknown as SavedOpening[];
+  expect(win!.t).toBe(180);
+
+  await clickAt(window, { x: 24, y: ROOM.y0 });
+  await window.getByLabel('Plan view').focus();
+  await window.keyboard.press('Delete');
+  expect(ofKind(await savePlan(electronApp, userData, 'door-deleted'), 'door')).toHaveLength(0);
+});
+
 test('status bar shows the cursor position and snap toggles', async ({ window }) => {
   const s = await screenOf(window, { x: 36, y: 24 });
   await window.mouse.move(s.x, s.y);

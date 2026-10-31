@@ -98,7 +98,7 @@ export type MenuCommand =
   | { type: 'view.zoomIn' }
   | { type: 'view.zoomOut' };
 
-export const TOOL_IDS = ['select', 'walls', 'break', 'dimensions'] as const;
+export const TOOL_IDS = ['select', 'walls', 'break', 'doors', 'windows', 'dimensions'] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
 const SIMPLE_COMMANDS = new Set([

@@ -26,7 +26,21 @@ A file is a Framewright plan when its top-level object has `"format": "framewrig
 | `levelOrder` | Level ids from the bottom level up; at least one |
 | `wallTypes` | Map of wall type id to `{ id, name, layers[], coreIndex }`. Layers run from the wall's left side to its right (relative to its start and end points), each `{ materialId, thickness, fn }` |
 | `materials` | Map of material id to `{ id, name, category, color }` |
-| `elements` | Map of element id to an element, discriminated by `kind` (`wallNode`, `wall`; more kinds arrive with later milestones) |
+| `elements` | Map of element id to an element, discriminated by `kind` (see below) |
+
+### Element kinds
+
+Every element has `id`, `kind` and `levelId`, plus optional `name` and `locked`.
+
+| Kind | Fields |
+| --- | --- |
+| `wallNode` | `p`: a point where walls meet. Walls that join share a node |
+| `wall` | `a`, `b`: node ids (the wall's centerline runs a → b); `typeId`; `height` (`null` = from the level); `baseOffset` |
+| `dimension` | `a`, `b`: ends `{ p, nodeId? }` (an end with `nodeId` follows that wall node; `p` is its last position); `offset`: distance of the dimension line, positive to the left of a → b |
+| `door` | `wallId`; `t`: distance along the wall from node a to the door's center; `width`; `height`; `side` (`left`/`right` of a → b: the swing side); `hinge` (`start` = the jamb nearer node a, or `end`); `style` (`hinged`, `double`, `pocket`, `sliding`, `bifold`, `opening`) |
+| `window` | Same as `door`, plus `sill` (height of the window's bottom above the wall's base). `side` is the exterior side. `style` is `double-hung`, `casement`, `slider`, `awning` or `fixed` |
+
+A door or window must lie entirely within its wall (`width/2 ≤ t ≤ length − width/2`), and openings on one wall don't overlap.
 
 Level elevations are stacked: each level above the bottom one sits at `below.elevation + below.ceilingHeight + this.floorDepth`. Only the bottom level's elevation is free. The app recomputes the stack on load, so hand-edited elevations of upper levels are corrected.
 

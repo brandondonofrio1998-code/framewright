@@ -4,6 +4,7 @@ import {
   defaultWallHeight,
   distance,
   formatLength,
+  isOpening,
   resolveDimensionEnd,
   sub,
   wallThickness,
@@ -14,6 +15,7 @@ import {
 import { dispatch, useDocument } from '../document/store';
 import { activeWallTypeId, notify, useEditor } from '../editor/store';
 import { LengthInput } from '../ui/LengthInput';
+import { OpeningProperties, OpeningToolDefaults } from './OpeningProperties';
 
 const errorOf = (result: { ok: boolean; error?: string }) => (result.ok ? null : (result.error ?? 'Rejected'));
 
@@ -116,7 +118,9 @@ export function PropertiesPanel() {
     const typeId = activeWallTypeId();
     return (
       <div className="panel properties-panel">
-        {tool === 'walls' && typeId ? (
+        {tool === 'doors' || tool === 'windows' ? (
+          <OpeningToolDefaults kind={tool === 'doors' ? 'door' : 'window'} doc={doc} />
+        ) : tool === 'walls' && typeId ? (
           <>
             <h3 className="panel-heading">Walls tool</h3>
             <dl className="level-fields">
@@ -128,7 +132,7 @@ export function PropertiesPanel() {
             <p className="panel-hint">Click to place corners, or type a length (Tab for an angle) and press Enter. Esc ends the run.</p>
           </>
         ) : (
-          <p className="panel-hint">Nothing selected. Click a wall or dimension in the plan to see its properties.</p>
+          <p className="panel-hint">Nothing selected. Click a wall, door, window or dimension in the plan to see its properties.</p>
         )}
       </div>
     );
@@ -143,6 +147,13 @@ export function PropertiesPanel() {
   }
 
   const only = elements[0];
+  if (elements.length === 1 && isOpening(only)) {
+    return (
+      <div className="panel properties-panel">
+        <OpeningProperties doc={doc} opening={only} deleteButton={<DeleteButton ids={[only.id]} />} />
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'dimension') {
     const a = resolveDimensionEnd(doc, only.a);
     const b = resolveDimensionEnd(doc, only.b);

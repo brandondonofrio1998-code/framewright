@@ -24,8 +24,8 @@ const TOOL_GROUPS: ToolButton[][] = [
   [
     { id: 'walls', icon: BrickWall },
     { id: 'break', icon: Scissors },
-    { id: 'doors', label: 'Doors', icon: DoorOpen, availableIn: 'M2' },
-    { id: 'windows', label: 'Windows', icon: AppWindow, availableIn: 'M2' },
+    { id: 'doors', icon: DoorOpen },
+    { id: 'windows', icon: AppWindow },
   ],
   [
     { id: 'cabinets', label: 'Cabinets', icon: Archive, availableIn: 'M2' },

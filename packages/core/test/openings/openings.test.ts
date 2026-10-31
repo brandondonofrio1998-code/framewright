@@ -4,6 +4,7 @@ import {
   checkInvariants,
   computeWallGeometry,
   elementsInBox,
+  guessExteriorSide,
   openingsOnWall,
   pickElement,
   repairInvariants,
@@ -13,6 +14,7 @@ import {
   type PlaceOpening,
   type Prim,
   type Vec2,
+  type Wall,
   type WindowOpening,
 } from '../../src';
 import { testHistory } from '../helpers';
@@ -206,6 +208,19 @@ describe('opening drawing and picking', () => {
     expect(pickElement(s.history.doc, s.baseLevelId, geometry, p(60, 1), 2)).toEqual({ kind: 'door', id });
     expect(pickElement(s.history.doc, s.baseLevelId, geometry, p(150, 1), 2)).toEqual({ kind: 'wall', id: wall });
     expect(elementsInBox(s.history.doc, s.baseLevelId, geometry, { minX: 30, minY: -10, maxX: 90, maxY: 10 })).toEqual([id]);
+  });
+});
+
+describe('exterior side guess', () => {
+  it('picks the side facing away from the plan, whichever way each wall was drawn', () => {
+    const s = setup();
+    const [bottom, right, top, left] = s.draw([p(0, 0), p(240, 0), p(240, 144), p(0, 144), p(0, 0)]);
+    const side = (id: string) => guessExteriorSide(s.history.doc, s.history.doc.elements[id] as Wall);
+    // Drawn counter-clockwise, so the inside is always on the left.
+    expect([bottom, right, top, left].map((id) => side(id!))).toEqual(['right', 'right', 'right', 'right']);
+    const [reversed] = s.draw([p(240, -100), p(0, -100)]);
+    // The middle of the plan is now above this wall, which runs right to left: its outside (−y) is its left.
+    expect(side(reversed!)).toBe('left');
   });
 });
 

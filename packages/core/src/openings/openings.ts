@@ -59,6 +59,25 @@ export function clampOpeningT(length: number, width: number, t: number): number 
   return Math.min(Math.max(t, width / 2), Math.max(width / 2, length - width / 2));
 }
 
+/**
+ * Best guess at a wall's exterior side: the side facing away from the middle of its level's walls.
+ * Right for ordinary house outlines; room-based exterior detection replaces this later.
+ */
+export function guessExteriorSide(doc: PlanDocument, wall: Wall): Opening['side'] | null {
+  const a = nodePoint(doc, wall.a);
+  const b = nodePoint(doc, wall.b);
+  if (!a || !b) return null;
+  const points = Object.values(doc.elements).flatMap((el) => (el.kind === 'wallNode' && el.levelId === wall.levelId ? [el.p] : []));
+  const center = {
+    x: points.reduce((s, p) => s + p.x, 0) / points.length,
+    y: points.reduce((s, p) => s + p.y, 0) / points.length,
+  };
+  // Left normal of a → b is (-dy, dx); positive dot means the middle of the plan is on the left.
+  const toCenter = (b.x - a.x) * (center.y - a.y) - (b.y - a.y) * (center.x - a.x);
+  if (Math.abs(toCenter) < 1e-6) return null;
+  return toCenter > 0 ? 'right' : 'left';
+}
+
 /** Where each opening sat before a wall edit, so it can be re-hosted afterwards. */
 export interface OpeningAnchor {
   wallId: Id;

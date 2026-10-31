@@ -1,7 +1,7 @@
 import { dimensionLine } from '../display/display-list';
 import { openingOutline } from '../display/openings';
 import { dimensionsOnLevel, resolveDimensionEnd } from '../display/plan';
-import { pointInPolygon, projectOnSegment, type Bounds } from '../geometry/vec2';
+import { cross, distance, pointInPolygon, projectOnSegment, sub, type Bounds } from '../geometry/vec2';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
 import type { WallGeometry } from '../walls/joins';
@@ -42,6 +42,28 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
     consider({ kind: 'wall', id: geom.wallId }, d);
   }
   return best.picked;
+}
+
+export interface WallHit {
+  wallId: Id;
+  /** Distance along the wall from node a to the point nearest `p`. */
+  t: number;
+  length: number;
+  /** Whether `p` is on the wall's left (relative to a → b). */
+  left: boolean;
+}
+
+/** The wall nearest `p` whose faces are within `tolerance`, for placing and sliding doors and windows. */
+export function nearestWall(geometry: Map<Id, WallGeometry>, p: Vec2, tolerance: number): WallHit | null {
+  let best: (WallHit & { d: number }) | null = null;
+  for (const geom of geometry.values()) {
+    const hit = projectOnSegment(p, geom.a, geom.b);
+    const d = Math.max(0, hit.distance - geom.thickness / 2);
+    if (d > tolerance || (best && d >= best.d)) continue;
+    const length = distance(geom.a, geom.b);
+    best = { wallId: geom.wallId, t: hit.t * length, length, left: cross(sub(geom.b, geom.a), sub(p, geom.a)) > 0, d };
+  }
+  return best && { wallId: best.wallId, t: best.t, length: best.length, left: best.left };
 }
 
 const inside = (p: Vec2, box: Bounds) => p.x >= box.minX && p.x <= box.maxX && p.y >= box.minY && p.y <= box.maxY;
