@@ -240,10 +240,13 @@ export function PlanView() {
     return () => canvas.removeEventListener('wheel', onWheel);
   }, [redraw]);
 
-  const pointer = (e: React.PointerEvent | React.MouseEvent): PlanPointer => {
+  // The viewport is created in an effect, so a pointer event on the first paint has nowhere to land yet.
+  const pointer = (e: React.PointerEvent | React.MouseEvent): PlanPointer | null => {
+    const view = viewRef.current;
+    if (!view) return null;
     const rect = e.currentTarget.getBoundingClientRect();
     const screen = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    return { screen, model: viewRef.current!.toModel(screen), button: e.button, shift: e.shiftKey };
+    return { screen, model: view.toModel(screen), button: e.button, shift: e.shiftKey };
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -254,8 +257,11 @@ export function PlanView() {
       e.preventDefault();
       return;
     }
+    const p = pointer(e);
+    const ctx = ctxRef.current;
+    if (!p || !ctx) return;
     setEntry(null);
-    activeTool().down?.(pointer(e), ctxRef.current!);
+    activeTool().down?.(p, ctx);
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -266,8 +272,10 @@ export function PlanView() {
       return;
     }
     const p = pointer(e);
+    const ctx = ctxRef.current;
+    if (!p || !ctx) return;
     useEditor.setState({ cursor: p.model });
-    activeTool().move?.(p, ctxRef.current!);
+    activeTool().move?.(p, ctx);
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -275,12 +283,16 @@ export function PlanView() {
       panRef.current = null;
       return;
     }
-    activeTool().up?.(pointer(e), ctxRef.current!);
+    const p = pointer(e);
+    const ctx = ctxRef.current;
+    if (!p || !ctx) return;
+    activeTool().up?.(p, ctx);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const ctx = ctxRef.current!;
+    const ctx = ctxRef.current;
+    if (!ctx) return;
     const tool = activeTool();
     if (e.key === ' ') {
       spaceRef.current = true;
@@ -321,7 +333,11 @@ export function PlanView() {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={() => useEditor.setState({ cursor: null })}
-        onDoubleClick={(e) => activeTool().doubleClick?.(pointer(e), ctxRef.current!)}
+        onDoubleClick={(e) => {
+          const p = pointer(e);
+          const ctx = ctxRef.current;
+          if (p && ctx) activeTool().doubleClick?.(p, ctx);
+        }}
         onContextMenu={(e) => e.preventDefault()}
         onKeyDown={onKeyDown}
         onKeyUp={(e) => {
@@ -333,7 +349,8 @@ export function PlanView() {
           state={entry}
           onChange={setEntry}
           onCommit={(length, angle) => {
-            const handler = activeTool().lengthEntry?.(ctxRef.current!);
+            const ctx = ctxRef.current;
+            const handler = ctx && activeTool().lengthEntry?.(ctx);
             if (!handler) {
               closeEntry();
               return null;
