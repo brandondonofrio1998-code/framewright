@@ -42,7 +42,7 @@ describe('display list', () => {
     expect(lines).toHaveLength(5);
     expect(lines).toContainEqual({ t: 'line', a: p(0, 24), b: p(120, 24), pen: 'dimension' });
     const text = prims.find((x) => x.t === 'text');
-    expect(text).toMatchObject({ s: "10'", rot: 0, align: 'center', p: { x: 60, y: 28.5 } });
+    expect(text).toMatchObject({ s: "10'", rot: 0, align: 'center', p: { x: 60, y: 25.5 } });
   });
 
   it('draws each wall as layer fills plus face lines, and dimensions with formatted lengths', () => {

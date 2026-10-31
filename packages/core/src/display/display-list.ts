@@ -10,6 +10,7 @@ export type Prim =
   | { t: 'line'; a: Vec2; b: Vec2; pen: PenId }
   | { t: 'polyline'; pts: Vec2[]; closed: boolean; pen: PenId }
   | { t: 'poly'; rings: Vec2[][]; fill: FillId; pen?: PenId }
+  /** `p` is on the text's bottom edge, so text drawn larger than `size` still clears what it labels. */
   | { t: 'text'; p: Vec2; s: string; size: number; rot: number; align: TextAlign };
 
 export interface DisplayItem {
@@ -67,6 +68,6 @@ export function dimensionPrims(a: Vec2, b: Vec2, offset: number, label: string, 
 
   const rot = readableRotation(d);
   const up = perp({ x: Math.cos(rot), y: Math.sin(rot) });
-  prims.push({ t: 'text', p: add(midpoint(a2, b2), scale(up, style.textSize * 0.75)), s: label, size: style.textSize, rot, align: 'center' });
+  prims.push({ t: 'text', p: add(midpoint(a2, b2), scale(up, style.textSize * 0.25)), s: label, size: style.textSize, rot, align: 'center' });
   return prims;
 }
