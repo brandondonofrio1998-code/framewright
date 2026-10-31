@@ -2,25 +2,24 @@ import { useEffect, useState } from 'react';
 import type { AppInfo, MenuCommand, RecoveryEntry } from '../../../shared/ipc';
 import { newPlan, openHandle, openPlan, restoreRecovered, save, saveAndClose, saveAs } from '../document/file-actions';
 import { history, setAppVersion } from '../document/store';
+import { deleteSelection, isEditable, selectAll } from '../editor/actions';
+import { setTool } from '../editor/store';
 import { startDocumentSync } from '../document/sync';
 import { RecoveryDialog } from './RecoveryDialog';
 import { StatusBar } from './StatusBar';
 import { Toolbar } from './Toolbar';
 import { Workspace } from './Workspace';
 
-function isEditable(element: Element | null): boolean {
-  if (!(element instanceof HTMLElement)) return false;
-  return element.isContentEditable || element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
-}
-
-/** Text fields keep their own undo; everything else undoes document commands. */
-function undoOrRedo(kind: 'undo' | 'redo'): void {
+/** Text fields keep their own editing commands; everything else acts on the plan. */
+function editCommand(kind: 'undo' | 'redo' | 'delete' | 'selectAll'): void {
   if (isEditable(document.activeElement)) {
     document.execCommand(kind);
     return;
   }
   if (kind === 'undo') history.undo();
-  else history.redo();
+  else if (kind === 'redo') history.redo();
+  else if (kind === 'delete') deleteSelection();
+  else selectAll();
 }
 
 function handleMenu(command: MenuCommand): void {
@@ -38,10 +37,19 @@ function handleMenu(command: MenuCommand): void {
     case 'file.saveAndClose':
       return void saveAndClose();
     case 'edit.undo':
-      return undoOrRedo('undo');
+      return editCommand('undo');
     case 'edit.redo':
-      return undoOrRedo('redo');
+      return editCommand('redo');
+    case 'edit.delete':
+      return editCommand('delete');
+    case 'edit.selectAll':
+      return editCommand('selectAll');
+    case 'tool.activate':
+      return setTool(command.tool);
     case 'view.resetLayout':
+    case 'view.fit':
+    case 'view.zoomIn':
+    case 'view.zoomOut':
       return;
   }
 }

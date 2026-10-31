@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import {
   createDocument,
-  documentCommands,
   History,
   type DispatchResult,
-  type DocumentCommands,
+  planCommands,
+  type PlanCommands,
   type Id,
   type PayloadOf,
   type PlanDocument,
@@ -26,7 +26,7 @@ export function blankDocument(): PlanDocument {
   return createDocument({ newId, now: new Date().toISOString(), appVersion });
 }
 
-export const history = new History(blankDocument(), documentCommands, { newId });
+export const history = new History(blankDocument(), planCommands, { newId });
 
 export interface DocumentState {
   doc: PlanDocument;
@@ -63,10 +63,10 @@ history.subscribe(() => {
   });
 });
 
-export function dispatch<K extends keyof DocumentCommands & string>(
+export function dispatch<K extends keyof PlanCommands & string>(
   type: K,
-  payload: PayloadOf<DocumentCommands[K]>,
-): DispatchResult<ResultOf<DocumentCommands[K]>> {
+  payload: PayloadOf<PlanCommands[K]>,
+): DispatchResult<ResultOf<PlanCommands[K]>> {
   return history.dispatch(type, payload);
 }
 

@@ -8,21 +8,22 @@ import {
   House,
   MousePointer2,
   RulerDimensionLine,
+  Scissors,
   Type,
   Video,
 } from 'lucide-react';
+import type { ToolId } from '../../../shared/ipc';
+import { setTool, TOOL_LABELS, useEditor } from '../editor/store';
 
-interface ToolButton {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  availableIn: string;
-}
+type ToolButton =
+  | { id: ToolId; icon: LucideIcon }
+  | { id: string; label: string; icon: LucideIcon; availableIn: string };
 
 const TOOL_GROUPS: ToolButton[][] = [
-  [{ id: 'select', label: 'Select', icon: MousePointer2, availableIn: 'M1c' }],
+  [{ id: 'select', icon: MousePointer2 }],
   [
-    { id: 'walls', label: 'Walls', icon: BrickWall, availableIn: 'M1c' },
+    { id: 'walls', icon: BrickWall },
+    { id: 'break', icon: Scissors },
     { id: 'doors', label: 'Doors', icon: DoorOpen, availableIn: 'M2' },
     { id: 'windows', label: 'Windows', icon: AppWindow, availableIn: 'M2' },
   ],
@@ -32,29 +33,42 @@ const TOOL_GROUPS: ToolButton[][] = [
     { id: 'roof', label: 'Roof', icon: House, availableIn: 'M5' },
   ],
   [
-    { id: 'dimensions', label: 'Dimensions', icon: RulerDimensionLine, availableIn: 'M1c' },
-    { id: 'text', label: 'Text', icon: Type, availableIn: 'M1c' },
+    { id: 'dimensions', icon: RulerDimensionLine },
+    { id: 'text', label: 'Text', icon: Type, availableIn: 'M7' },
   ],
   [{ id: 'camera', label: 'Camera Views', icon: Video, availableIn: 'M3' }],
 ];
 
 export function Toolbar() {
+  const active = useEditor((s) => s.tool);
   return (
     <div className="toolbar" role="toolbar" aria-label="Tools">
       {TOOL_GROUPS.map((group, index) => (
         <div className="toolbar-group" key={index}>
-          {group.map(({ id, label, icon: Icon, availableIn }) => (
-            <button
-              key={id}
-              type="button"
-              className="tool-button"
-              aria-label={label}
-              title={`${label} (available in ${availableIn})`}
-              disabled
-            >
-              <Icon size={18} strokeWidth={1.75} aria-hidden />
-            </button>
-          ))}
+          {group.map((button) => {
+            const Icon = button.icon;
+            if ('availableIn' in button) {
+              return (
+                <button key={button.id} type="button" className="tool-button" aria-label={button.label} title={`${button.label} (available in ${button.availableIn})`} disabled>
+                  <Icon size={18} strokeWidth={1.75} aria-hidden />
+                </button>
+              );
+            }
+            const label = TOOL_LABELS[button.id];
+            return (
+              <button
+                key={button.id}
+                type="button"
+                className="tool-button"
+                aria-label={label}
+                aria-pressed={active === button.id}
+                title={label}
+                onClick={() => setTool(button.id)}
+              >
+                <Icon size={18} strokeWidth={1.75} aria-hidden />
+              </button>
+            );
+          })}
         </div>
       ))}
     </div>

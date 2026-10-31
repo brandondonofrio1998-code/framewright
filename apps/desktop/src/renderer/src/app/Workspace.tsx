@@ -8,6 +8,8 @@ import {
   type IDockviewPanelProps,
 } from 'dockview-react';
 import { LevelsPanel } from '../panels/LevelsPanel';
+import { PropertiesPanel } from '../panels/PropertiesPanel';
+import { PlanView } from '../plan/PlanView';
 
 const theme: DockviewTheme = {
   ...themeLight,
@@ -29,16 +31,11 @@ function PlaceholderPanel({ params }: IDockviewPanelProps<PlaceholderParams>) {
   );
 }
 
-const components = { placeholder: PlaceholderPanel, levels: LevelsPanel };
+const components = { placeholder: PlaceholderPanel, levels: LevelsPanel, plan: PlanView, properties: PropertiesPanel };
 
 function buildDefaultLayout(api: DockviewApi): void {
   api.clear();
-  const plan = api.addPanel<PlaceholderParams>({
-    id: 'plan',
-    title: 'Plan',
-    component: 'placeholder',
-    params: { title: 'Plan view', arrives: 'M1c' },
-  });
+  const plan = api.addPanel({ id: 'plan', title: 'Plan', component: 'plan' });
   api.addPanel<PlaceholderParams>({
     id: 'perspective',
     title: '3D',
@@ -61,14 +58,13 @@ function buildDefaultLayout(api: DockviewApi): void {
     position: { referencePanel: plan, direction: 'right' },
     initialWidth: 300,
   });
-  api.addPanel<PlaceholderParams>({
+  const properties = api.addPanel({
     id: 'properties',
     title: 'Properties',
-    component: 'placeholder',
-    params: { title: 'Properties', arrives: 'M1c' },
+    component: 'properties',
     position: { referencePanel: levels, direction: 'within' },
   });
-  levels.api.setActive();
+  properties.api.setActive();
   plan.api.setActive();
 }
 
