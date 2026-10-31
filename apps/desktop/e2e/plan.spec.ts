@@ -180,6 +180,8 @@ test('moves a wall and drags a wall end, keeping corners joined', async ({ elect
   expect(points.filter((p) => p.y === ROOM.y1 + 24)).toHaveLength(2);
   expect(ofKind(await savePlan(electronApp, userData, 'moved2'), 'wall')).toHaveLength(4);
 
+  // With angle snaps on, a 15° step from the wall's far end can win over the grid when zoomed out.
+  await window.getByRole('button', { name: 'Angle', exact: true }).click();
   await clickAt(window, { x: ROOM.x1, y: 0 });
   await dragFrom(window, { x: ROOM.x1, y: ROOM.y0 }, { x: ROOM.x1 + 36, y: ROOM.y0 });
   points = nodePoints(await savePlan(electronApp, userData, 'dragged'));
