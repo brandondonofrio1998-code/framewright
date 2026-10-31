@@ -402,6 +402,7 @@ interface DisplayItem { elementId?: Id; layer: DrawLayer; prims: Prim[] }
 ```
 - Coordinates are in model inches. Pens (weight, color, dash) and fills (solid or hatch pattern) are named styles, so the screen, PDF, and DXF backends each map them natively. DXF output uses one layer per `DrawLayer`.
 - **Hit testing** uses an rbush index of item bounds, followed by exact distance checks on the primitives.
+- **As of M1c:** plan geometry (joins, display list, snap scene, picking) is derived on the main thread with linear scans and cached per document revision. At M1 scale (walls and dimensions only) this takes well under a frame. The geometry worker and rbush index arrive when meshes, rooms, and framing make derivation expensive (M3/M5), behind the same `core` functions. Joins currently use a through/butt rule: a collinear pair runs through, preferring the thicker pair, and other walls butt into its face. Per-layer core priority comes with framing in M5. Dimension text `p` marks the bottom edge of the label.
 
 ### 8.3 3D view
 - The r3f scene is built from mesh descriptors, one `BufferGeometry` per element and reused across updates. Framing and other repeated members use `InstancedMesh`.
@@ -426,6 +427,7 @@ interface DisplayItem { elementId?: Id; layer: DrawLayer; prims: Prim[] }
 - **Spec dialogs** open on double-click. They are tabbed (General, Structure, Materials, Roof, Framing, …) and built from each element kind's declarative schema. Every edit is a command, so the whole dialog applies as one undo step.
 - **Tools** are state machines (`idle → placing → dragging …`) that receive normalized pointer and keyboard events in model coordinates. Typing a number while drawing opens an inline length/angle field.
 - **Snapping** (`core/snap`, pure) works like this. Candidates come from the rbush index near the cursor: endpoints and nodes, midpoints, intersections, on-wall projections, extension lines, and grid. Angle snapping (15°, 45°, 90°) applies relative to the X axis and to the previous segment. Snaps resolve in priority order (point snaps > angle × length > grid) within a pixel tolerance. The result carries a reason, which the UI shows as a glyph and tooltip. Snaps are unit-tested on synthetic scenes.
+- **Plan editing (M1c):** the tools are Select Objects (click, shift-click, box select, drag walls, drag a selected wall's end handles, drag dimension offsets), Walls (click per corner, type a length and Tab for an angle, finish on an existing end, double-click, Enter, or Esc), Break Wall, and Dimensions (two points, then an offset; ends that snap to a wall end stay attached to it). Pan with middle-drag or Space+drag, zoom with the wheel, and press F to fill the window. Snap toggles (Object, Angle, Grid) are per-session for now.
 
 ---
 
