@@ -9,4 +9,4 @@ Every asset that ships inside Framewright is listed here with its source and lic
 
 Fonts: none are bundled. The UI uses the operating system's font (Segoe UI on Windows, San Francisco on macOS).
 
-Textures, materials, and catalog items will be added starting in M2/M3. Each one will be listed here when it's added.
+Wall, floor, and object colors in the 3D view come from the materials stored in the plan (or a small set of display defaults for floors, door panels, and glass). No texture images are bundled yet. When ambientCG maps are added, each file will be listed here.

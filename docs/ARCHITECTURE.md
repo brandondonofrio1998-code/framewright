@@ -410,6 +410,7 @@ interface DisplayItem { elementId?: Id; layer: DrawLayer; prims: Prim[] }
 - The r3f scene is built from mesh descriptors, one `BufferGeometry` per element and reused across updates. Framing and other repeated members use `InstancedMesh`.
 - **Cameras:** orbit (perspective or orthographic toggle) and walkthrough (WASD plus mouse look, eye height from the level, collision optional later).
 - **Materials:** `MeshStandardMaterial` built from bundled ambientCG CC0 sets (1K color, normal, and roughness maps). World-space UVs come from core, so textures keep real-world scale. Each material records its real size per tile.
+- **As built in M3a.** `buildPlanMeshes` extrudes each wall layer (with door and window holes cut directly, no CSG), a 3/4" floor under each room, a door slab, a glass pane, and a box for each catalog object. Coordinates are Z-up inches. UVs are inches in the face plane. The 3D tab orbits the whole model and colors each solid from its material, with flat colors for floors, door panels, and glass until texture maps arrive. Walkthrough, saved cameras, and ambientCG textures are M3b. Ceilings are omitted so the inside of a room stays visible.
 - **Performance targets** (3,000 sq ft, two stories, about 150 walls, 40 openings, 120 objects, full framing): 60 fps orbit on a mid-range integrated GPU, under 16 ms main-thread work per wall-drag frame, under 300 ms worker recompute after a commit, and full framing regeneration under 1 s. A benchmark fixture house in `core/test/fixtures` is used to track these.
 
 ### 8.4 Multiple windows
@@ -466,7 +467,7 @@ M1 is too big for one pass, so I propose splitting it:
 - **M1b, document core.** Data model, units parse/format, the command and history system, file open/save/save as, migrations, autosave and recovery, recent files, and levels.
 - **M1c, plan editor.** Canvas plan view, wall tool with typed lengths, joins, split, move, the snap engine, dimensions, the status bar, and Playwright flows.
 
-M2 is done: **M2a** doors and windows hosted in walls, **M2b** the starter catalog and Library panel, **M2c** room detection with area labels and exterior sides taken from the room graph. M3–M7 follow as specified and will be split the same way when they come up (M5 almost certainly into roofs, framing, foundations, and stairs).
+M2 is done: **M2a** doors and windows hosted in walls, **M2b** the starter catalog and Library panel, **M2c** room detection with area labels and exterior sides taken from the room graph. M3 is split into **M3a** (orbit view of wall, floor, opening, and object solids, colored from the plan's materials) and **M3b** (bundled textures, walkthrough, saved cameras). M4–M7 follow as specified and will be split the same way when they come up (M5 almost certainly into roofs, framing, foundations, and stairs).
 
 ## 13. Known risks
 - **Hip roofs with mixed pitches** need a weighted straight skeleton. No permissively licensed TS implementation is mature enough, so we will write our own with heavy tests. This is the riskiest geometry in the project and will get its own sub-milestone in M5.
