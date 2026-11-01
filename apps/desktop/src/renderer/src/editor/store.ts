@@ -42,6 +42,7 @@ export const TOOL_LABELS: Record<ToolId, string> = {
   windows: 'Windows',
   objects: 'Objects',
   dimensions: 'Dimensions',
+  stairs: 'Stairs',
 };
 
 export function setTool(tool: ToolId): void {

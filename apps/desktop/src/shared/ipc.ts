@@ -105,7 +105,7 @@ export type MenuCommand =
   | { type: 'view.show3d'; mode: 'orbit' | 'walk' }
   | { type: 'view.cameras' };
 
-export const TOOL_IDS = ['select', 'walls', 'break', 'doors', 'windows', 'objects', 'dimensions'] as const;
+export const TOOL_IDS = ['select', 'walls', 'break', 'doors', 'windows', 'objects', 'dimensions', 'stairs'] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
 const SIMPLE_COMMANDS = new Set([

@@ -37,7 +37,7 @@ const TOOL_GROUPS: ToolButton[][] = [
   ],
   [
     { id: 'objects', icon: Archive },
-    { id: 'stairs', label: 'Stairs', icon: DoorStairwell, availableIn: 'M5' },
+    { id: 'stairs', icon: DoorStairwell },
     { id: 'roof', label: 'Roof', icon: House },
     { id: 'hip', label: 'Hip Roof', icon: Pyramid },
     { id: 'foundation', label: 'Foundation', icon: LandPlot },

@@ -10,6 +10,7 @@ import {
   frameLevel,
   resolveDimensionEnd,
   snapPoint,
+  stairCorners,
   type Id,
   type PlanDocument,
   type Vec2,
@@ -23,6 +24,7 @@ import { createBreakTool } from '../tools/break-tool';
 import { createDimensionTool } from '../tools/dimension-tool';
 import { createObjectTool } from '../tools/object-tool';
 import { createOpeningTool } from '../tools/opening-tool';
+import { createStairTool } from '../tools/stair-tool';
 import { createSelectTool } from '../tools/select-tool';
 import type { PlanPointer, SnapRequest, Tool, ToolContext } from '../tools/types';
 import { createWallTool } from '../tools/wall-tool';
@@ -54,6 +56,7 @@ function levelBounds(doc: PlanDocument, levelId: Id, geometry: Map<Id, WallGeome
     points.push(...el.polygon);
     for (const footing of el.footings) points.push(...footing);
   }
+  for (const el of Object.values(doc.elements)) if (el.kind === 'stair' && el.levelId === levelId) points.push(...stairCorners(el));
   return boundsOf(points);
 }
 
@@ -65,6 +68,7 @@ const createTools = (): Record<ToolId, Tool> => ({
   windows: createOpeningTool('window'),
   objects: createObjectTool(),
   dimensions: createDimensionTool(),
+  stairs: createStairTool(),
 });
 
 const isLengthKey = (key: string) => /^[0-9.'"]$/.test(key);

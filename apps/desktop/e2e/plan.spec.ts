@@ -235,6 +235,25 @@ test('builds a slab and footing under the room', async ({ electronApp, window, u
   expect(consoleErrors).toEqual([]);
 });
 
+test('builds a straight stair up to the level above', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-tab', { hasText: 'Levels' }).click();
+  await window.getByRole('button', { name: 'Add Level Above' }).click();
+  await window.getByRole('button', { name: 'Make Level 1 the active level' }).click();
+  await window.getByRole('button', { name: 'Stairs', exact: true }).click();
+  await expect(window.getByTestId('status-tool')).toHaveText('Stairs');
+  await clickAt(window, { x: -72, y: 0 });
+  await clickAt(window, { x: 72, y: 0 });
+  const plan = await savePlan(electronApp, userData, 'stairs');
+  const stairs = ofKind(plan, 'stair') as unknown as { risers: number; riser: number; tread: number; width: number }[];
+  expect(stairs).toHaveLength(1);
+  expect(stairs[0]!.risers).toBeGreaterThan(10);
+  expect(stairs[0]!.riser).toBeLessThanOrEqual(7.75);
+  expect(stairs[0]!.tread).toBeGreaterThanOrEqual(10);
+  expect(stairs[0]!.width).toBe(36);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('undo removes walls one at a time and redo restores them', async ({ electronApp, window, userData }) => {
   await drawRoom(electronApp, window);
   await undoRedo(electronApp, 'Undo');

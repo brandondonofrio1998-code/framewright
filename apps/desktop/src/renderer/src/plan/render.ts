@@ -20,6 +20,7 @@ const PENS: Record<PenId, PenStyle> = {
   'object.hidden': { width: 1, color: '#5f6670', dash: [5, 3] },
   roof: { width: 1.5, color: '#6b4f3a' },
   foundation: { width: 1.25, color: '#5c6560' },
+  stair: { width: 1.25, color: '#243044' },
 };
 
 const FILLS: Record<FillId, string> = {

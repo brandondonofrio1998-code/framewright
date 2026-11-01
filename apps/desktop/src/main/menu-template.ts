@@ -124,7 +124,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       tool('Doors', 'doors'),
       tool('Windows', 'windows'),
       tool('Objects', 'objects'),
-      pending('Stairs'),
+      tool('Stairs', 'stairs'),
       { label: 'Roof', click: () => ctx.send({ type: 'build.roof' }) },
       { label: 'Hip Roof', click: () => ctx.send({ type: 'build.hip' }) },
       { label: 'Foundation', click: () => ctx.send({ type: 'foundation.build' }) },

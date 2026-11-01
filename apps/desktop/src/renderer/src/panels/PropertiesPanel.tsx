@@ -337,6 +337,39 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'stair') {
+    const format = doc.settings.lengthFormat;
+    const upstairs = doc.levels[only.toLevelId]?.name ?? 'the level above';
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Stairs</h3>
+        <dl className="level-fields">
+          <dt>Risers</dt>
+          <dd>
+            <span className="field-readonly">
+              {only.risers} at {formatLength(only.riser, format)}
+            </span>
+          </dd>
+          <dt>Tread</dt>
+          <dd>
+            <span className="field-readonly">{formatLength(only.tread, format)}</span>
+          </dd>
+          <dt>Width</dt>
+          <dd>
+            <span className="field-readonly">{formatLength(only.width, format)}</span>
+          </dd>
+          <dt>Up to</dt>
+          <dd>
+            <span className="field-readonly">{upstairs}</span>
+          </dd>
+        </dl>
+        <p className="panel-hint">A straight flight under IRC 2021. The floor above is not opened yet.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'dimension') {
     const a = resolveDimensionEnd(doc, only.a);
     const b = resolveDimensionEnd(doc, only.b);
