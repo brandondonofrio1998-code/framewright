@@ -1,7 +1,5 @@
-import { computeWallGeometry } from '../walls/joins';
-import { defaultWallHeight } from '../model/levels';
-import type { Id, PlanDocument, RoofPlane, Vec2, Wall } from '../model/schema';
-import { analyzeLevel } from '../rooms/rooms';
+import type { Id, PlanDocument, RoofPlane, Vec2 } from '../model/schema';
+import { outlineError, rectangularOutline } from './outline';
 
 /** 6 in 12, a common house pitch. */
 export const DEFAULT_PITCH = 6;
@@ -9,8 +7,6 @@ export const DEFAULT_PITCH = 6;
 export const DEFAULT_OVERHANG = 12;
 /** Sheathing thickness, measured square to the slope. */
 export const ROOF_THICKNESS = 0.5;
-
-const AXIS_EPS = 0.05;
 
 export interface GableSlope {
   polygon: Vec2[];
@@ -32,19 +28,6 @@ export function roofZ(plane: Pick<GableSlope, 'eave' | 'eaveZ' | 'up' | 'pitch'>
   return plane.eaveZ + (plane.pitch / 12) * run;
 }
 
-function wallTop(doc: PlanDocument, wall: Wall): number {
-  const level = doc.levels[wall.levelId];
-  if (!level) return 0;
-  return level.elevation + wall.baseOffset + (wall.height ?? defaultWallHeight(doc.levels, doc.levelOrder, wall.levelId));
-}
-
-interface Face {
-  wallId: Id;
-  wall: Wall;
-  axis: 'x' | 'y';
-  coord: number;
-}
-
 /**
  * A gable over a rectangular outline. The ridge runs the long way. The plane passes through
  * the top of the eave walls and continues past them by the overhang, so the fascia sits lower
@@ -53,34 +36,11 @@ interface Face {
 export function gableOnLevel(doc: PlanDocument, levelId: Id, pitch = DEFAULT_PITCH, overhang = DEFAULT_OVERHANG): { ok: true; roof: GableRoof } | { ok: false; error: string } {
   if (!(pitch > 0) || pitch > 24) return { ok: false, error: 'Pitch must be greater than 0 and at most 24 in 12.' };
   if (!(overhang >= 0) || overhang > 48) return { ok: false, error: 'Overhang must be from 0 to 4 feet.' };
-  const { exterior } = analyzeLevel(doc, levelId);
-  const geometry = computeWallGeometry(doc, levelId);
-  const faces: Face[] = [];
-  for (const [wallId, side] of exterior) {
-    const geom = geometry.get(wallId);
-    const wall = doc.elements[wallId];
-    if (!geom || wall?.kind !== 'wall') continue;
-    const [a, b] = side === 'left' ? geom.leftFace : geom.rightFace;
-    const dx = Math.abs(b.x - a.x);
-    const dy = Math.abs(b.y - a.y);
-    if (dy <= AXIS_EPS && dx > 1) faces.push({ wallId, wall, axis: 'y', coord: (a.y + b.y) / 2 });
-    else if (dx <= AXIS_EPS && dy > 1) faces.push({ wallId, wall, axis: 'x', coord: (a.x + b.x) / 2 });
-    else return { ok: false, error: 'A gable roof needs a rectangular outline. Hips come later.' };
-  }
-  const vertical = faces.filter((face) => face.axis === 'x');
-  const horizontal = faces.filter((face) => face.axis === 'y');
-  if (vertical.length !== 2 || horizontal.length !== 2) {
-    return { ok: false, error: 'Draw a closed rectangular room before building a gable roof.' };
-  }
-  const x0 = Math.min(vertical[0]!.coord, vertical[1]!.coord);
-  const x1 = Math.max(vertical[0]!.coord, vertical[1]!.coord);
-  const y0 = Math.min(horizontal[0]!.coord, horizontal[1]!.coord);
-  const y1 = Math.max(horizontal[0]!.coord, horizontal[1]!.coord);
-  if (x1 - x0 < 12 || y1 - y0 < 12) return { ok: false, error: 'The room is too small for a roof.' };
+  const outline = rectangularOutline(doc, levelId);
+  if (!outline.ok) return { ok: false, error: outlineError(outline.reason, 'gable') };
+  const { x0, x1, y0, y1, plateX0, plateX1, plateY0, plateY1, generatedFrom } = outline.rect;
   const alongX = x1 - x0 >= y1 - y0;
-  const eaves = alongX ? horizontal : vertical;
-  const plateZ = Math.min(wallTop(doc, eaves[0]!.wall), wallTop(doc, eaves[1]!.wall));
-  const generatedFrom = faces.map((face) => face.wallId);
+  const plateZ = alongX ? Math.min(plateY0, plateY1) : Math.min(plateX0, plateX1);
   const drop = overhang * (pitch / 12);
   const planes = alongX
     ? [
