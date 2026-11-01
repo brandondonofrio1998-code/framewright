@@ -7,6 +7,7 @@ import {
   computeWallGeometry,
   dimensionPrims,
   dimensionsOnLevel,
+  frameLevel,
   resolveDimensionEnd,
   snapPoint,
   type Id,
@@ -96,6 +97,8 @@ export function PlanView() {
 
     drawGrid(ctx2d, view, shown.settings.gridSpacing);
     drawDisplayList(ctx2d, view, buildPlanDisplayList(shown, activeLevelId, { geometry }), new Set(selection));
+    const studs = frameLevel(shown, activeLevelId, geometry).reduce((n, wall) => n + wall.members.filter((member) => member.kind === 'stud' || member.kind === 'king').length, 0);
+    if (wrapRef.current) wrapRef.current.dataset.studCount = String(studs);
     for (const id of selection) {
       const g = geometry.get(id);
       if (g) drawOutline(ctx2d, view, g.footprint);

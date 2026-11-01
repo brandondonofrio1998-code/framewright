@@ -133,6 +133,7 @@ test('draws a room from typed lengths and angles', async ({ electronApp, window,
   await drawRoom(electronApp, window);
   const plan = await savePlan(electronApp, userData, 'room');
   expect(ofKind(plan, 'wall')).toHaveLength(4);
+  await expect.poll(async () => Number(await window.getByTestId('plan-view').getAttribute('data-stud-count'))).toBeGreaterThan(20);
   expect(nodePoints(plan)).toEqual([
     { x: ROOM.x0, y: ROOM.y0 },
     { x: ROOM.x0, y: ROOM.y1 },
