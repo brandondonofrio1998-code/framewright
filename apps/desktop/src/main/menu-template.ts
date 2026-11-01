@@ -126,6 +126,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       tool('Objects', 'objects'),
       pending('Stairs'),
       { label: 'Roof', click: () => ctx.send({ type: 'build.roof' }) },
+      { label: 'Hip Roof', click: () => ctx.send({ type: 'build.hip' }) },
       sep,
       tool('Dimensions', 'dimensions'),
       pending('Text'),

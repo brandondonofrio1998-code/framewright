@@ -306,7 +306,7 @@ export function PropertiesPanel() {
             <span className="field-readonly">{only.pitch} in 12</span>
           </dd>
         </dl>
-        <p className="panel-hint">A gable over the rectangular outline. Build the roof again after the walls change.</p>
+        <p className="panel-hint">One slope of the roof. Build the roof again after the walls change.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

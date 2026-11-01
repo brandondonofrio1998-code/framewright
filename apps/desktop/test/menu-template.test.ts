@@ -121,6 +121,8 @@ describe('menu template', () => {
     const { template, send } = build('win32');
     click(find(submenu(top(template, 'Build')), 'Roof'));
     expect(send).toHaveBeenLastCalledWith({ type: 'build.roof' });
+    click(find(submenu(top(template, 'Build')), 'Hip Roof'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'build.hip' });
   });
 
   it('Build activates plan tools', () => {

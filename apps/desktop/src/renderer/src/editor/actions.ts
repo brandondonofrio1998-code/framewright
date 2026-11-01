@@ -28,3 +28,10 @@ export function buildGable(): void {
   const result = history.dispatch('roof.build', { levelId: activeLevelId });
   notify(result.ok ? null : result.error);
 }
+
+/** Builds a hip over the rectangular outline on the active level, replacing a roof already there. */
+export function buildHip(): void {
+  const { activeLevelId } = useDocument.getState();
+  const result = history.dispatch('roof.hip', { levelId: activeLevelId });
+  notify(result.ok ? null : result.error);
+}
