@@ -1,5 +1,6 @@
 import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
+import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
 import type { Id, Opening, PlanDocument, Vec2 } from '../model/schema';
@@ -314,6 +315,23 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   }
   floorSolids(doc, levelId, level.elevation, parts);
   objectSolids(doc, levelId, level.elevation, parts);
+  const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.id ?? null;
+  for (const roof of roofsOnLevel(doc, levelId)) {
+    const b = builder();
+    const { positions, indices } = roofTriangles(roof);
+    const slope = roof.pitch / 12;
+    const len = Math.hypot(roof.up.x * slope, roof.up.y * slope, 1);
+    const nx = (-roof.up.x * slope) / len;
+    const ny = (-roof.up.y * slope) / len;
+    const nz = 1 / len;
+    const count = roof.polygon.length;
+    b.positions.push(...positions);
+    b.indices.push(...indices);
+    for (let i = 0; i < count; i++) b.normals.push(-nx, -ny, -nz);
+    for (let i = 0; i < count; i++) b.normals.push(nx, ny, nz);
+    for (let i = 0; i < count * 2; i++) b.uvs.push(positions[i * 3] ?? 0, positions[i * 3 + 1] ?? 0);
+    push(parts, finish(b, roof.id, sheathing, 'solid'));
+  }
   return parts;
 }
 

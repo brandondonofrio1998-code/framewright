@@ -1,6 +1,7 @@
 import { distance } from '../geometry/vec2';
 import { objectPrims } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
+import { roofsOnLevel } from '../roofs/gable';
 import type { Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
 import { formatArea, roomFace, roomsOnLevel } from '../rooms/rooms';
@@ -96,6 +97,13 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     const face = roomFace(doc, room);
     if (!face) continue;
     items.push({ elementId: room.id, layer: 'rooms', prims: roomLabel(room, face.area) });
+  }
+  for (const roof of roofsOnLevel(doc, levelId)) {
+    items.push({
+      elementId: roof.id,
+      layer: 'objects',
+      prims: [{ t: 'polyline', pts: roof.polygon, closed: true, pen: 'roof' }],
+    });
   }
 
   const format = doc.settings.lengthFormat;

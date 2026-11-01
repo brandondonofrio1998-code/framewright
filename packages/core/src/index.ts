@@ -25,6 +25,7 @@ export * from './mesh/meshes';
 export * from './elevate/elevation';
 export * from './elevate/section';
 export * from './framing/members';
+export * from './roofs/gable';
 export * from './walls/graph';
 export * from './walls/joins';
 export * from './display/display-list';

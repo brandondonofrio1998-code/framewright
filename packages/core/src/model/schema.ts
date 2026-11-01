@@ -249,6 +249,24 @@ export const CameraSchema = z.object({
 });
 export type SavedCamera = z.infer<typeof CameraSchema>;
 
+/** One slope of a roof. Height is `eaveZ` at `eave`, rising `pitch` inches per 12 inches of run along `up`. */
+export const RoofPlaneSchema = z.object({
+  ...elementBase,
+  kind: z.literal('roofPlane'),
+  polygon: z.array(Vec2Schema).min(3).max(8),
+  /** Rise per 12 inches of horizontal run. */
+  pitch: z.number().positive().max(24),
+  /** Unit vector in plan, from the fascia toward the ridge. */
+  up: Vec2Schema,
+  /** A point on the fascia. */
+  eave: Vec2Schema,
+  /** Height of the fascia, in inches. */
+  eaveZ: z.number().finite(),
+  /** Walls this roof was built from. */
+  generatedFrom: z.array(IdSchema).max(64),
+});
+export type RoofPlane = z.infer<typeof RoofPlaneSchema>;
+
 export const ElementSchema = z.discriminatedUnion('kind', [
   WallNodeSchema,
   WallSchema,
@@ -258,6 +276,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   RoomSchema,
   CatalogObjectSchema,
   CameraSchema,
+  RoofPlaneSchema,
 ]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];

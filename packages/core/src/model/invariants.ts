@@ -89,6 +89,7 @@ export function checkInvariants(doc: PlanDocument): string[] {
       }
     }
     if (el.kind === 'camera' && lookLength(el.eye, el.target) < MIN_LOOK) problems.push(`camera ${el.id} has no look direction`);
+    if (el.kind === 'roofPlane' && Math.hypot(el.up.x, el.up.y) < 0.5) problems.push(`roof ${el.id} has no slope direction`);
   }
   return problems;
 }
@@ -218,6 +219,17 @@ export function repairInvariants(input: PlanDocument): RepairResult {
       if (lookLength(el.eye, el.target) < MIN_LOOK) {
         delete d.elements[el.id];
         repairs.push(`Removed camera ${el.id} with no look direction`);
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'roofPlane') continue;
+      const len = Math.hypot(el.up.x, el.up.y);
+      if (len < 0.5) {
+        delete d.elements[el.id];
+        repairs.push(`Removed roof ${el.id} with no slope direction`);
+      } else if (Math.abs(len - 1) > 1e-6) {
+        el.up = { x: el.up.x / len, y: el.up.y / len };
+        repairs.push(`Normalized the slope of roof ${el.id}`);
       }
     }
   });
