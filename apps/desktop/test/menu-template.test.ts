@@ -123,6 +123,8 @@ describe('menu template', () => {
     expect(send).toHaveBeenLastCalledWith({ type: 'build.roof' });
     click(find(submenu(top(template, 'Build')), 'Hip Roof'));
     expect(send).toHaveBeenLastCalledWith({ type: 'build.hip' });
+    click(find(submenu(top(template, 'Build')), 'Foundation'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'foundation.build' });
   });
 
   it('Build activates plan tools', () => {

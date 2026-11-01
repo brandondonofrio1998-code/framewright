@@ -313,6 +313,30 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'foundation') {
+    const format = doc.settings.lengthFormat;
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Foundation</h3>
+        <dl className="level-fields">
+          <dt>Slab</dt>
+          <dd>
+            <span className="field-readonly">{formatLength(only.thickness, format)}</span>
+          </dd>
+          <dt>Footing</dt>
+          <dd>
+            <span className="field-readonly">
+              {formatLength(only.footingWidth, format)} wide, {formatLength(only.footingDepth, format)} deep
+            </span>
+          </dd>
+        </dl>
+        <p className="panel-hint">A slab under the outline, with a footing under the exterior walls. Build it again after the walls change.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'dimension') {
     const a = resolveDimensionEnd(doc, only.a);
     const b = resolveDimensionEnd(doc, only.b);

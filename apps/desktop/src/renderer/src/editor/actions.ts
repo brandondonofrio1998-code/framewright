@@ -35,3 +35,10 @@ export function buildHip(): void {
   const result = history.dispatch('roof.hip', { levelId: activeLevelId });
   notify(result.ok ? null : result.error);
 }
+
+/** Builds a slab and perimeter footing under the closed outline on the active level. */
+export function buildFoundation(): void {
+  const { activeLevelId } = useDocument.getState();
+  const result = history.dispatch('foundation.build', { levelId: activeLevelId });
+  notify(result.ok ? null : result.error);
+}

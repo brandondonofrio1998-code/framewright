@@ -222,6 +222,19 @@ test('builds a hip over the room', async ({ electronApp, window, userData, conso
   await window.screenshot({ path: test.info().outputPath('hip.png') });
 });
 
+test('builds a slab and footing under the room', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Foundation', exact: true }).click();
+  const plan = await savePlan(electronApp, userData, 'foundation');
+  const foundations = ofKind(plan, 'foundation') as unknown as { thickness: number; footingWidth: number; footings: Vec2[][]; polygon: Vec2[] }[];
+  expect(foundations).toHaveLength(1);
+  expect(foundations[0]?.thickness).toBe(4);
+  expect(foundations[0]?.footingWidth).toBe(16);
+  expect(foundations[0]?.polygon).toHaveLength(4);
+  expect(foundations[0]?.footings).toHaveLength(4);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('undo removes walls one at a time and redo restores them', async ({ electronApp, window, userData }) => {
   await drawRoom(electronApp, window);
   await undoRedo(electronApp, 'Undo');
