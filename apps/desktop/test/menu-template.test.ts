@@ -88,6 +88,14 @@ describe('menu template', () => {
     expect(send).toHaveBeenCalledWith({ type: 'view.resetLayout' });
   });
 
+  it('opens the elevation and leaves the section for later', () => {
+    const { template, send } = build('win32');
+    const view = submenu(top(template, 'View'));
+    click(find(view, 'Elevation'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.showElevation' });
+    expect(find(view, 'Section')?.enabled).toBe(false);
+  });
+
   it('opens the orbit view, the walkthrough, and the camera list', () => {
     const { template, send } = build('win32');
     const items = submenu(top(template, '3D'));

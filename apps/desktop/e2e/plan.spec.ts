@@ -390,6 +390,36 @@ test('walks the room and restores a saved camera', async ({ electronApp, window,
   await window.screenshot({ path: test.info().outputPath('walk.png') });
 });
 
+test('shows the room in elevation', async ({ electronApp, window, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-default-tab-content', { hasText: 'Elevation' }).click();
+  const view = window.getByTestId('elevation-view');
+  await expect(view).toBeVisible();
+  await expect.poll(async () => Number(await view.getAttribute('data-line-count'))).toBeGreaterThan(8);
+  await view.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(view).toHaveAttribute('data-facing', 'back');
+  await view.getByRole('button', { name: 'Front', exact: true }).click();
+  await expect(view).toHaveAttribute('data-facing', 'front');
+  const canvas = view.locator('canvas');
+  await expect.poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(300);
+  const dark = await canvas.evaluate((node: HTMLCanvasElement) => {
+    const ctx = node.getContext('2d');
+    if (!ctx || node.width < 2) return -1;
+    const pixels = ctx.getImageData(0, 0, node.width, node.height).data;
+    let n = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const r = pixels[i] ?? 255;
+      const g = pixels[i + 1] ?? 255;
+      const b = pixels[i + 2] ?? 255;
+      if (r < 80 && g < 80 && b < 80) n++;
+    }
+    return n;
+  });
+  expect(dark).toBeGreaterThan(40);
+  expect(consoleErrors).toEqual([]);
+  await window.screenshot({ path: test.info().outputPath('elevation.png') });
+});
+
 test('status bar shows the cursor position and snap toggles', async ({ window }) => {
   const s = await screenOf(window, { x: 36, y: 24 });
   await window.mouse.move(s.x, s.y);

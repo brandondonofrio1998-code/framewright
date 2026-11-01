@@ -440,7 +440,8 @@ body {
   pointer-events: none;
 }
 
-.view-3d-bar {
+.view-3d-bar,
+.elevation-bar {
   position: absolute;
   left: 10px;
   bottom: 8px;
@@ -451,7 +452,8 @@ body {
   max-width: calc(100% - 20px);
 }
 
-.view-3d-modes {
+.view-3d-modes,
+.elevation-modes {
   display: flex;
   flex: none;
   overflow: hidden;
@@ -460,7 +462,8 @@ body {
   border-radius: 4px;
 }
 
-.view-3d-modes button {
+.view-3d-modes button,
+.elevation-modes button {
   border: 0;
   background: transparent;
   color: var(--fw-ink);
@@ -469,7 +472,8 @@ body {
   cursor: pointer;
 }
 
-.view-3d-modes button[aria-pressed='true'] {
+.view-3d-modes button[aria-pressed='true'],
+.elevation-modes button[aria-pressed='true'] {
   background: var(--fw-accent);
   color: #fff;
 }
@@ -529,7 +533,8 @@ body {
   padding: 2px 0;
 }
 
-.plan-view {
+.plan-view,
+.elevation-view {
   position: relative;
   width: 100%;
   height: 100%;
@@ -537,7 +542,8 @@ body {
   background: var(--fw-canvas);
 }
 
-.plan-canvas {
+.plan-canvas,
+.elevation-canvas {
   display: block;
   width: 100%;
   height: 100%;

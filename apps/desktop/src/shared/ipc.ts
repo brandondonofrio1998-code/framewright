@@ -97,6 +97,7 @@ export type MenuCommand =
   | { type: 'view.fit' }
   | { type: 'view.zoomIn' }
   | { type: 'view.zoomOut' }
+  | { type: 'view.showElevation' }
   | { type: 'view.show3d'; mode: 'orbit' | 'walk' }
   | { type: 'view.cameras' };
 
@@ -117,6 +118,7 @@ const SIMPLE_COMMANDS = new Set([
   'view.fit',
   'view.zoomIn',
   'view.zoomOut',
+  'view.showElevation',
   'view.cameras',
 ]);
 

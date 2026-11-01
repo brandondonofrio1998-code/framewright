@@ -9,6 +9,7 @@ import {
 import { LevelsPanel } from '../panels/LevelsPanel';
 import { LibraryPanel } from '../panels/LibraryPanel';
 import { PropertiesPanel } from '../panels/PropertiesPanel';
+import { ElevationView } from '../elevate/ElevationView';
 import { PlanView } from '../plan/PlanView';
 import { View3D } from '../view3d/View3D';
 import { openCameras, setViewMode, useView3d } from '../view3d/view-state';
@@ -19,7 +20,23 @@ const theme: DockviewTheme = {
   className: `${themeLight.className} fw-dock-theme`,
 };
 
-const components = { levels: LevelsPanel, plan: PlanView, properties: PropertiesPanel, library: LibraryPanel, view3d: View3D };
+const components = { levels: LevelsPanel, plan: PlanView, properties: PropertiesPanel, library: LibraryPanel, view3d: View3D, elevation: ElevationView };
+
+function showElevation(api: DockviewApi): void {
+  const existing = api.getPanel('elevation');
+  if (existing) {
+    existing.api.setActive();
+    return;
+  }
+  const plan = api.getPanel('plan');
+  const panel = api.addPanel({
+    id: 'elevation',
+    title: 'Elevation',
+    component: 'elevation',
+    ...(plan ? { position: { referencePanel: plan, direction: 'within' as const } } : {}),
+  });
+  panel.api.setActive();
+}
 
 function showPerspective(api: DockviewApi): void {
   const existing = api.getPanel('perspective');
@@ -40,6 +57,12 @@ function showPerspective(api: DockviewApi): void {
 function buildDefaultLayout(api: DockviewApi): void {
   api.clear();
   const plan = api.addPanel({ id: 'plan', title: 'Plan', component: 'plan' });
+  api.addPanel({
+    id: 'elevation',
+    title: 'Elevation',
+    component: 'elevation',
+    position: { referencePanel: plan, direction: 'within' },
+  });
   api.addPanel({
     id: 'perspective',
     title: '3D',
@@ -89,6 +112,7 @@ export function Workspace() {
       window.fw.menu.onCommand((command) => {
         if (!apiRef.current) return;
         if (command.type === 'view.resetLayout') buildDefaultLayout(apiRef.current);
+        else if (command.type === 'view.showElevation') showElevation(apiRef.current);
         else if (command.type === 'view.show3d') {
           setViewMode(command.mode);
           showPerspective(apiRef.current);

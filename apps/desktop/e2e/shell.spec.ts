@@ -5,7 +5,7 @@ test('opens the workspace with toolbar, docked panels and status bar', async ({ 
   for (const label of ['Select Objects', 'Walls', 'Break Wall', 'Doors', 'Windows', 'Objects', 'Stairs', 'Roof', 'Dimensions', 'Text']) {
     await expect(window.getByRole('button', { name: label, exact: true })).toBeVisible();
   }
-  for (const tab of ['Plan', '3D', 'Library', 'Levels', 'Properties']) {
+  for (const tab of ['Plan', 'Elevation', '3D', 'Library', 'Levels', 'Properties']) {
     await expect(window.locator('.dv-tab', { hasText: tab })).toHaveCount(1);
   }
   await expect(window.getByTestId('status-tool')).toBeVisible();
