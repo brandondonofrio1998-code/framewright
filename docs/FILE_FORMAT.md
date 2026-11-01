@@ -44,6 +44,7 @@ Every element has `id`, `kind` and `levelId`, plus optional `name` and `locked`.
 | `object` | `defId` (a key in `catalogDefs`); `p`: plan center; `z`: base height above the level; `rotation`: radians counter-clockwise from +x (local +y points at the back); `params`: overrides of the definition's defaults; optional `hostWallId`, `hostT` (distance from node a to the center), and `side` (`left`/`right` of a → b) when the object is hosted on a wall |
 | `camera` | `name`; `mode` (`orbit` or `walk`); `eye` and `target`, each `{ x, y, z }` in inches (Z up). `target` is a point the camera looks at and must not be the same point as `eye`. Cameras are not drawn in the plan |
 | `roofPlane` | `polygon` (the slope in plan); `pitch` (rise per 12 inches of run); `up` (a unit vector from the fascia toward the ridge); `eave` (a point on the fascia) and `eaveZ` (its height); `generatedFrom` (the wall ids the roof was built from). A gable is two of these and a hip is four. Sides of one hip can carry different pitches. The file stays at schema 2 |
+| `foundation` | `polygon` (the outside face of a closed outline); `thickness` (slab thickness); `footingWidth` and `footingDepth`; `footings` (one quad per exterior wall); `materialId`; `generatedFrom` (the wall ids). The slab top is the underside of the 3/4 inch floor, derived from the level elevation rather than stored. The file stays at schema 2 |
 
 A door or window must lie entirely within its wall (`width/2 ≤ t ≤ length − width/2`), and openings on one wall don't overlap.
 
@@ -57,7 +58,7 @@ Loading validates the whole file against the schema. A file that fails validatio
 
 ## Versioning
 
-- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, and the optional material `texture` were added at version 2 for that reason.
+- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, and the optional material `texture` were added at version 2 for that reason.
 - Version 1 files upgrade to version 2 by adding `catalogDefs: {}`. The frozen fixture is `packages/core/test/fixtures/v1/two-levels.fwplan`.
 - Older files are upgraded on load, and open with unsaved changes, by a chain of migrations, one per version step (`MIGRATIONS` in `packages/core/src/file/format.ts`). Each migration has a frozen fixture file under `packages/core/test/fixtures/v<N>/`.
 - A file from a newer version of Framewright is not opened. The message tells the user to update rather than risk losing data the older app doesn't understand.
