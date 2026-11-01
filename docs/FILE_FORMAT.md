@@ -43,7 +43,7 @@ Every element has `id`, `kind` and `levelId`, plus optional `name` and `locked`.
 | `room` | `name` (required); `roomType` (`unspecified`, `living`, `kitchen`, `dining`, `bedroom`, `bathroom`, `hall`, `closet`, `garage`, `utility`, `other`); `seed`: a point inside the room; `ceilingHeight` (`null` = the level's ceiling height). The polygon and area are not stored |
 | `object` | `defId` (a key in `catalogDefs`); `p`: plan center; `z`: base height above the level; `rotation`: radians counter-clockwise from +x (local +y points at the back); `params`: overrides of the definition's defaults; optional `hostWallId`, `hostT` (distance from node a to the center), and `side` (`left`/`right` of a → b) when the object is hosted on a wall |
 | `camera` | `name`; `mode` (`orbit` or `walk`); `eye` and `target`, each `{ x, y, z }` in inches (Z up). `target` is a point the camera looks at and must not be the same point as `eye`. Cameras are not drawn in the plan |
-| `roofPlane` | `polygon` (the slope in plan); `pitch` (rise per 12 inches of run); `up` (a unit vector from the fascia toward the ridge); `eave` (a point on the fascia) and `eaveZ` (its height); `generatedFrom` (the wall ids the roof was built from). A gable is two of these. The file stays at schema 2 |
+| `roofPlane` | `polygon` (the slope in plan); `pitch` (rise per 12 inches of run); `up` (a unit vector from the fascia toward the ridge); `eave` (a point on the fascia) and `eaveZ` (its height); `generatedFrom` (the wall ids the roof was built from). A gable is two of these and a hip is four. Sides of one hip can carry different pitches. The file stays at schema 2 |
 
 A door or window must lie entirely within its wall (`width/2 ≤ t ≤ length − width/2`), and openings on one wall don't overlap.
 
