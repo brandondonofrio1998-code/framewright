@@ -1,5 +1,6 @@
 import { distance } from '../geometry/vec2';
 import { objectPrims } from '../catalog/symbols';
+import { frameLevel, memberQuad } from '../framing/members';
 import type { Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
 import { formatArea, roomFace, roomsOnLevel } from '../rooms/rooms';
@@ -70,6 +71,16 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
   const byWall = new Map<Id, Opening[]>();
   for (const o of openingsOnLevel(doc, levelId)) byWall.set(o.wallId, [...(byWall.get(o.wallId) ?? []), o]);
   for (const geom of geometry.values()) items.push(wallDisplayItem(geom, byWall.get(geom.wallId)));
+  for (const framed of frameLevel(doc, levelId, geometry)) {
+    const geom = geometry.get(framed.wallId);
+    if (!geom) continue;
+    const prims: Prim[] = [];
+    for (const member of framed.members) {
+      if (member.kind !== 'stud' && member.kind !== 'king' && member.kind !== 'jack') continue;
+      prims.push({ t: 'polyline', pts: memberQuad(geom.a, geom.b, framed.off0, framed.off1, member.s0, member.s1), closed: true, pen: 'wall.layer' });
+    }
+    if (prims.length > 0) items.push({ elementId: framed.wallId, layer: 'walls', prims });
+  }
   for (const [wallId, openings] of byWall) {
     const geom = geometry.get(wallId);
     if (!geom) continue;

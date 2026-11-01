@@ -24,6 +24,7 @@ export * from './geometry/polygon';
 export * from './mesh/meshes';
 export * from './elevate/elevation';
 export * from './elevate/section';
+export * from './framing/members';
 export * from './walls/graph';
 export * from './walls/joins';
 export * from './display/display-list';

@@ -1,4 +1,5 @@
 import { objectFootprint, objectSize } from '../catalog/symbols';
+import { frameLevel, memberQuad } from '../framing/members';
 import { clipToSlab, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
 import type { Id, Opening, PlanDocument, Vec2 } from '../model/schema';
@@ -184,6 +185,7 @@ function wallSolids(doc: PlanDocument, geom: WallGeometry, z0: number, z1: numbe
   const skipCut = (p: Vec2, q: Vec2) => sameStation(p, q, project, cuts);
 
   for (const layer of geom.layers) {
+    if (layer.fn === 'structure') continue;
     const b = builder();
     for (let i = 0; i < unique.length - 1; i++) {
       const s0 = unique[i]!;
@@ -291,6 +293,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   if (!level) return [];
   const geometry = computeWallGeometry(doc, levelId);
   const height = defaultWallHeight(doc.levels, doc.levelOrder, levelId);
+  const framing = new Map(frameLevel(doc, levelId, geometry).map((wall) => [wall.wallId, wall]));
   const parts: MeshPart[] = [];
   for (const wall of wallsOnLevel(doc, levelId)) {
     const geom = geometry.get(wall.id);
@@ -299,6 +302,14 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
     const z1 = z0 + (wall.height ?? height);
     if (z1 - z0 < MIN_BAND) continue;
     wallSolids(doc, geom, z0, z1, parts);
+    const framed = framing.get(geom.wallId);
+    if (framed) {
+      const b = builder();
+      for (const member of framed.members) {
+        extrude(b, memberQuad(geom.a, geom.b, framed.off0, framed.off1, member.s0, member.s1), member.z0, member.z1);
+      }
+      push(parts, finish(b, geom.wallId, framed.materialId, 'solid'));
+    }
     openingSolids(doc, geom, z0, parts);
   }
   floorSolids(doc, levelId, level.elevation, parts);

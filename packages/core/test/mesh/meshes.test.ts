@@ -58,12 +58,14 @@ describe('level meshes', () => {
     expect(materials.has(byName.find((m) => m.name.startsWith('Lap siding'))!.id)).toBe(true);
     expect(materials.has(byName.find((m) => m.name.startsWith('Gypsum'))!.id)).toBe(true);
 
-    // y = 0 is inside the stud layer. x = 80 sits between the window and the door.
-    expect(pointInsideMesh(wall, [120, 0, 40])).toBe(false);
-    expect(pointInsideMesh(wall, [80, 0, 40])).toBe(true);
-    expect(pointInsideMesh(wall, [40, 0, 16])).toBe(true);
-    expect(pointInsideMesh(wall, [40, 0, 56])).toBe(false);
-    expect(pointInsideMesh(wall, [30, 0, height + 12])).toBe(false);
+    // The stud cavity is framed, so a bay is empty and a stud is solid. y = 0 is in that cavity.
+    expect(pointInsideMesh(wall, [120, 0.15, 40])).toBe(false);
+    expect(pointInsideMesh(wall, [16.9, 0.15, 40])).toBe(true);
+    expect(pointInsideMesh(wall, [72, 0.15, 40])).toBe(false);
+    expect(pointInsideMesh(wall, [72, 2.6, 40])).toBe(true);
+    expect(pointInsideMesh(wall, [40, 2.6, 16])).toBe(true);
+    expect(pointInsideMesh(wall, [40, 2.6, 56])).toBe(false);
+    expect(pointInsideMesh(wall, [30, 0.15, height + 12])).toBe(false);
 
     // Off the center of a face, so the ray does not ride the diagonal between two triangles.
     expect(pointInsideMesh(ofId(parts, door.value), [120, 0, 30])).toBe(true);
