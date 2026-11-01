@@ -1,6 +1,7 @@
 import { distance } from '../geometry/vec2';
 import { objectPrims } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
+import { foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import type { Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
@@ -103,6 +104,16 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
       elementId: roof.id,
       layer: 'objects',
       prims: [{ t: 'polyline', pts: roof.polygon, closed: true, pen: 'roof' }],
+    });
+  }
+  for (const foundation of foundationsOnLevel(doc, levelId)) {
+    items.push({
+      elementId: foundation.id,
+      layer: 'objects',
+      prims: [
+        { t: 'polyline', pts: foundation.polygon, closed: true, pen: 'foundation' },
+        ...foundation.footings.map((footing): Prim => ({ t: 'polyline', pts: footing, closed: true, pen: 'foundation' })),
+      ],
     });
   }
 

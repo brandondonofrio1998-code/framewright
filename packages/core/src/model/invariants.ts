@@ -90,6 +90,7 @@ export function checkInvariants(doc: PlanDocument): string[] {
     }
     if (el.kind === 'camera' && lookLength(el.eye, el.target) < MIN_LOOK) problems.push(`camera ${el.id} has no look direction`);
     if (el.kind === 'roofPlane' && Math.hypot(el.up.x, el.up.y) < 0.5) problems.push(`roof ${el.id} has no slope direction`);
+    if (el.kind === 'foundation' && !doc.materials[el.materialId]) problems.push(`foundation ${el.id} references a missing material`);
   }
   return problems;
 }
@@ -230,6 +231,13 @@ export function repairInvariants(input: PlanDocument): RepairResult {
       } else if (Math.abs(len - 1) > 1e-6) {
         el.up = { x: el.up.x / len, y: el.up.y / len };
         repairs.push(`Normalized the slope of roof ${el.id}`);
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'foundation') continue;
+      if (el.polygon.length < 3 || !d.materials[el.materialId]) {
+        delete d.elements[el.id];
+        repairs.push(`Removed foundation ${el.id}`);
       }
     }
   });

@@ -267,6 +267,26 @@ export const RoofPlaneSchema = z.object({
 });
 export type RoofPlane = z.infer<typeof RoofPlaneSchema>;
 
+/** A slab under a closed outline, with a footing strip under each exterior wall. */
+export const FoundationSchema = z.object({
+  ...elementBase,
+  kind: z.literal('foundation'),
+  /** Outside face of the outline, counter-clockwise in plan. */
+  polygon: z.array(Vec2Schema).min(3).max(128),
+  /** Slab thickness, inches. The top meets the underside of the drawn floor. */
+  thickness: z.number().positive().max(24),
+  /** Footing width, inches, centered on the exterior wall centerline. */
+  footingWidth: z.number().positive().max(48),
+  /** Footing depth below the bottom of the slab. */
+  footingDepth: z.number().nonnegative().max(48),
+  materialId: IdSchema,
+  /** One quad per exterior wall. */
+  footings: z.array(z.array(Vec2Schema).min(3).max(8)).max(128),
+  /** Walls this foundation was built from. */
+  generatedFrom: z.array(IdSchema).max(128),
+});
+export type Foundation = z.infer<typeof FoundationSchema>;
+
 export const ElementSchema = z.discriminatedUnion('kind', [
   WallNodeSchema,
   WallSchema,
@@ -277,6 +297,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   CatalogObjectSchema,
   CameraSchema,
   RoofPlaneSchema,
+  FoundationSchema,
 ]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];

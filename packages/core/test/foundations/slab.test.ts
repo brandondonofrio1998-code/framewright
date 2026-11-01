@@ -1,0 +1,77 @@
+import { describe, expect, it } from 'vitest';
+import { buildLevelMeshes, buildPlanDisplayList, foundationsOnLevel, pointInPolygon, slabOnLevel, FLOOR_FINISH, FOOTING_DEPTH, FOOTING_WIDTH, SLAB_THICKNESS } from '../../src';
+import { testHistory } from '../helpers';
+
+const p = (x: number, y: number) => ({ x, y });
+
+function room(points: { x: number; y: number }[]) {
+  const ctx = testHistory();
+  const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
+  const drawn = ctx.history.dispatch('wall.draw', { levelId: ctx.baseLevelId, typeId, points, closed: true });
+  if (!drawn.ok) throw new Error(drawn.error);
+  return ctx;
+}
+
+describe('slab foundations', () => {
+  it('refuses a wall that does not close', () => {
+    const ctx = testHistory();
+    const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
+    const drawn = ctx.history.dispatch('wall.draw', { levelId: ctx.baseLevelId, typeId, points: [p(0, 0), p(120, 0)] });
+    if (!drawn.ok) throw new Error(drawn.error);
+    expect(slabOnLevel(ctx.history.doc, ctx.baseLevelId).ok).toBe(false);
+  });
+
+  it('puts a slab on the outside face and a footing past it', () => {
+    const ctx = room([p(0, 0), p(240, 0), p(240, 144), p(0, 144)]);
+    const built = slabOnLevel(ctx.history.doc, ctx.baseLevelId);
+    if (!built.ok) throw new Error(built.error);
+    expect(built.slabs).toHaveLength(1);
+    const slab = built.slabs[0]!;
+    expect(slab.polygon).toHaveLength(4);
+    expect(slab.footings).toHaveLength(4);
+    expect(slab.thickness).toBe(SLAB_THICKNESS);
+    expect(pointInPolygon(p(120, 72), slab.polygon)).toBe(true);
+    expect(pointInPolygon(p(-3, -3), slab.polygon)).toBe(true);
+    expect(pointInPolygon(p(-6, -6), slab.polygon)).toBe(false);
+    expect(slab.footings.some((footing) => pointInPolygon(p(-7, 72), footing))).toBe(true);
+  });
+
+  it('follows an L-shaped outline', () => {
+    const ctx = room([p(0, 0), p(200, 0), p(200, 80), p(80, 80), p(80, 160), p(0, 160)]);
+    const built = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId });
+    if (!built.ok) throw new Error(built.error);
+    const [foundation] = foundationsOnLevel(ctx.history.doc, ctx.baseLevelId);
+    expect(foundation?.polygon).toHaveLength(6);
+    expect(foundation?.footings).toHaveLength(6);
+    expect(foundation?.footingWidth).toBe(FOOTING_WIDTH);
+    expect(Object.values(ctx.history.doc.materials).some((material) => material.name === 'Concrete')).toBe(true);
+  });
+
+  it('replaces an existing foundation, and undo takes it away', () => {
+    const ctx = room([p(0, 0), p(240, 0), p(240, 144), p(0, 144)]);
+    const first = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId });
+    if (!first.ok) throw new Error(first.error);
+    const again = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId, thickness: 6 });
+    if (!again.ok) throw new Error(again.error);
+    expect(foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]?.thickness).toBe(6);
+    ctx.history.undo();
+    expect(foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]?.thickness).toBe(SLAB_THICKNESS);
+    ctx.history.undo();
+    expect(foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)).toHaveLength(0);
+  });
+
+  it('sits under the floor and continues down through the footing', () => {
+    const ctx = room([p(0, 0), p(240, 0), p(240, 144), p(0, 144)]);
+    const built = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId });
+    if (!built.ok) throw new Error(built.error);
+    const elevation = ctx.history.doc.levels[ctx.baseLevelId]!.elevation;
+    const id = foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!.id;
+    const zs = buildLevelMeshes(ctx.history.doc, ctx.baseLevelId)
+      .filter((part) => part.elementId === id)
+      .flatMap((part) => [...part.positions].filter((_, i) => i % 3 === 2));
+    expect(Math.max(...zs)).toBeCloseTo(elevation - FLOOR_FINISH, 3);
+    expect(Math.min(...zs)).toBeCloseTo(elevation - FLOOR_FINISH - SLAB_THICKNESS - FOOTING_DEPTH, 3);
+    const outlines = buildPlanDisplayList(ctx.history.doc, ctx.baseLevelId).filter((item) => item.prims.some((prim) => prim.t === 'polyline' && prim.pen === 'foundation'));
+    expect(outlines).toHaveLength(1);
+  });
+});

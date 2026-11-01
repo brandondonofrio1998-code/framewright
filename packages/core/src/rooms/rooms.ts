@@ -114,11 +114,18 @@ interface FaceWalk {
   area: number;
 }
 
+export interface ExteriorShell {
+  /** Centerline of the exterior, walked clockwise. */
+  points: Vec2[];
+  edges: { wallId: Id; forward: boolean }[];
+}
+
 /**
  * Faces of one level's wall graph. Bounded counter-clockwise faces are rooms; the clockwise face around each
- * connected outline is the exterior, and it says which side of each wall faces outside.
+ * connected outline is the exterior, and it says which side of each wall faces outside. `shells` are those
+ * clockwise outlines.
  */
-export function analyzeLevel(doc: PlanDocument, levelId: Id): { rooms: RoomFace[]; exterior: Map<Id, 'left' | 'right'> } {
+export function analyzeLevel(doc: PlanDocument, levelId: Id): { rooms: RoomFace[]; exterior: Map<Id, 'left' | 'right'>; shells: ExteriorShell[] } {
   const walls = wallsOnLevel(doc, levelId);
   const outgoing = new Map<Id, HalfEdge[]>();
   const add = (wall: Wall, from: Id, to: Id, forward: boolean) => {
@@ -164,9 +171,11 @@ export function analyzeLevel(doc: PlanDocument, levelId: Id): { rooms: RoomFace[
   }
 
   const exterior = new Map<Id, 'left' | 'right'>();
+  const shells: ExteriorShell[] = [];
   const rooms: RoomFace[] = [];
   for (const walk of walks) {
     if (walk.area < -1) {
+      shells.push({ points: walk.points, edges: walk.edges });
       for (const edge of walk.edges) exterior.set(edge.wallId, edge.forward ? 'left' : 'right');
       continue;
     }
@@ -181,7 +190,7 @@ export function analyzeLevel(doc: PlanDocument, levelId: Id): { rooms: RoomFace[
     if (polygon.length < 3 || area < MIN_ROOM_AREA) continue;
     rooms.push({ centerline: walk.points, polygon, area, edges: walk.edges });
   }
-  return { rooms, exterior };
+  return { rooms, exterior, shells };
 }
 
 /**

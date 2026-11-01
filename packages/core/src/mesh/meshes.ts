@@ -1,5 +1,6 @@
 import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
+import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
@@ -278,6 +279,22 @@ function objectSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: 
   }
 }
 
+function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  const top = elevation - FLOOR_FINISH;
+  for (const foundation of foundationsOnLevel(doc, levelId)) {
+    const bottom = top - foundation.thickness;
+    const slab = builder();
+    extrude(slab, foundation.polygon, bottom, top);
+    push(parts, finish(slab, foundation.id, foundation.materialId, 'solid'));
+    if (foundation.footingDepth < MIN_BAND) continue;
+    for (const footing of foundation.footings) {
+      const b = builder();
+      extrude(b, footing, bottom - foundation.footingDepth, bottom);
+      push(parts, finish(b, foundation.id, foundation.materialId, 'solid'));
+    }
+  }
+}
+
 function floorSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   for (const room of roomsOnLevel(doc, levelId)) {
     const face = roomFace(doc, room);
@@ -315,6 +332,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   }
   floorSolids(doc, levelId, level.elevation, parts);
   objectSolids(doc, levelId, level.elevation, parts);
+  foundationSolids(doc, levelId, level.elevation, parts);
   const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.id ?? null;
   for (const roof of roofsOnLevel(doc, levelId)) {
     const b = builder();
