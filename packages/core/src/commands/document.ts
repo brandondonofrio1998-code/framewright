@@ -102,7 +102,9 @@ export const deleteLevel = defineCommand<{ id: Id }>({
   run: (doc, { id }) => {
     requireLevel(doc, id);
     if (doc.levelOrder.length === 1) throw new CommandError('A plan needs at least one level.');
-    for (const el of Object.values(doc.elements)) if (el.levelId === id) delete doc.elements[el.id];
+    for (const el of Object.values(doc.elements)) {
+      if (el.levelId === id || (el.kind === 'stair' && el.toLevelId === id)) delete doc.elements[el.id];
+    }
     delete doc.levels[id];
     doc.levelOrder.splice(doc.levelOrder.indexOf(id), 1);
     restackLevels(doc.levels, doc.levelOrder);

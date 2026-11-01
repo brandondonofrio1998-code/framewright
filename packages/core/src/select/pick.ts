@@ -1,4 +1,5 @@
 import { objectFootprint } from '../catalog/symbols';
+import { stairCorners, stairsOnLevel } from '../stairs/straight';
 import { dimensionLine } from '../display/display-list';
 import { openingOutline } from '../display/openings';
 import { dimensionsOnLevel, resolveDimensionEnd } from '../display/plan';
@@ -9,7 +10,7 @@ import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair';
   id: Id;
 }
 
@@ -43,6 +44,8 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
     if (el.kind !== 'object' || el.levelId !== levelId) continue;
     consider({ kind: 'object', id: el.id }, distanceToPolygon(p, objectFootprint(doc, el)));
   }
+  if (best.picked) return best.picked;
+  for (const stair of stairsOnLevel(doc, levelId)) consider({ kind: 'stair', id: stair.id }, distanceToPolygon(p, stairCorners(stair)));
   if (best.picked) return best.picked;
   for (const geom of geometry.values()) {
     const d = pointInPolygon(p, geom.footprint) ? 0 : Math.max(0, projectOnSegment(p, geom.a, geom.b).distance - geom.thickness / 2);
@@ -95,6 +98,7 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
     const geom = geometry.get(o.wallId);
     if (geom && openingOutline(geom, o).every((p) => inside(p, box))) ids.push(o.id);
   }
+  for (const stair of stairsOnLevel(doc, levelId)) if (stairCorners(stair).every((p) => inside(p, box))) ids.push(stair.id);
   for (const dim of dimensionsOnLevel(doc, levelId)) {
     const ends = [resolveDimensionEnd(doc, dim.a), resolveDimensionEnd(doc, dim.b)];
     if ([...ends, ...dimensionLine(ends[0]!, ends[1]!, dim.offset)].every((p) => inside(p, box))) ids.push(dim.id);

@@ -91,6 +91,11 @@ export function checkInvariants(doc: PlanDocument): string[] {
     if (el.kind === 'camera' && lookLength(el.eye, el.target) < MIN_LOOK) problems.push(`camera ${el.id} has no look direction`);
     if (el.kind === 'roofPlane' && Math.hypot(el.up.x, el.up.y) < 0.5) problems.push(`roof ${el.id} has no slope direction`);
     if (el.kind === 'foundation' && !doc.materials[el.materialId]) problems.push(`foundation ${el.id} references a missing material`);
+    if (el.kind === 'stair') {
+      if (Math.hypot(el.dir.x, el.dir.y) < 0.5) problems.push(`stair ${el.id} has no direction`);
+      const target = doc.levels[el.toLevelId];
+      if (!target || target.id === el.levelId) problems.push(`stair ${el.id} does not arrive at a level above`);
+    }
   }
   return problems;
 }
@@ -238,6 +243,18 @@ export function repairInvariants(input: PlanDocument): RepairResult {
       if (el.polygon.length < 3 || !d.materials[el.materialId]) {
         delete d.elements[el.id];
         repairs.push(`Removed foundation ${el.id}`);
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'stair') continue;
+      const len = Math.hypot(el.dir.x, el.dir.y);
+      const target = d.levels[el.toLevelId];
+      if (len < 0.5 || !target || target.id === el.levelId) {
+        delete d.elements[el.id];
+        repairs.push(`Removed stair ${el.id}`);
+      } else if (Math.abs(len - 1) > 1e-6) {
+        el.dir = { x: el.dir.x / len, y: el.dir.y / len };
+        repairs.push(`Normalized the direction of stair ${el.id}`);
       }
     }
   });

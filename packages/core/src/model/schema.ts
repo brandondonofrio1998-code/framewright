@@ -287,6 +287,28 @@ export const FoundationSchema = z.object({
 });
 export type Foundation = z.infer<typeof FoundationSchema>;
 
+/** A straight flight from this level's floor to the level above. IRC 2021 R311.7. */
+export const StairSchema = z.object({
+  ...elementBase,
+  kind: z.literal('stair'),
+  /** Bottom of the flight. */
+  start: Vec2Schema,
+  /** Unit vector in plan, toward the top of the flight. */
+  dir: Vec2Schema,
+  /** Horizontal length of the treads, inches. */
+  run: z.number().positive().max(600),
+  /** Clear width, inches. */
+  width: z.number().min(36).max(120),
+  /** The level whose floor this flight arrives at. */
+  toLevelId: IdSchema,
+  risers: z.number().int().min(2).max(40),
+  /** Equal riser height, inches. At most 7 3/4. */
+  riser: z.number().positive().max(7.75),
+  /** Equal tread depth, inches. At least 10, at most 10 feet. */
+  tread: z.number().min(10).max(120),
+});
+export type Stair = z.infer<typeof StairSchema>;
+
 export const ElementSchema = z.discriminatedUnion('kind', [
   WallNodeSchema,
   WallSchema,
@@ -298,6 +320,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   CameraSchema,
   RoofPlaneSchema,
   FoundationSchema,
+  StairSchema,
 ]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];

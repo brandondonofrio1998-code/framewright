@@ -1,6 +1,7 @@
 import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
+import { RISER_THICKNESS, TREAD_THICKNESS, runRect, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
@@ -279,6 +280,24 @@ function objectSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: 
   }
 }
 
+function stairSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  const lumber = Object.values(doc.materials).find((material) => material.category === 'framing')?.id ?? null;
+  for (const stair of stairsOnLevel(doc, levelId)) {
+    const treads = stair.risers - 1;
+    for (let k = 1; k <= treads; k++) {
+      const b = builder();
+      extrude(b, runRect(stair.start, stair.dir, stair.width, (k - 1) * stair.tread, k * stair.tread), elevation + k * stair.riser - TREAD_THICKNESS, elevation + k * stair.riser);
+      push(parts, finish(b, stair.id, lumber, 'solid'));
+    }
+    for (let k = 1; k <= stair.risers; k++) {
+      const s = (k - 1) * stair.tread;
+      const b = builder();
+      extrude(b, runRect(stair.start, stair.dir, stair.width, s, s + RISER_THICKNESS), elevation + (k - 1) * stair.riser, elevation + k * stair.riser);
+      push(parts, finish(b, stair.id, lumber, 'solid'));
+    }
+  }
+}
+
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   const top = elevation - FLOOR_FINISH;
   for (const foundation of foundationsOnLevel(doc, levelId)) {
@@ -333,6 +352,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   floorSolids(doc, levelId, level.elevation, parts);
   objectSolids(doc, levelId, level.elevation, parts);
   foundationSolids(doc, levelId, level.elevation, parts);
+  stairSolids(doc, levelId, level.elevation, parts);
   const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.id ?? null;
   for (const roof of roofsOnLevel(doc, levelId)) {
     const b = builder();

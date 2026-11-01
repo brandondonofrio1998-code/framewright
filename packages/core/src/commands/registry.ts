@@ -4,7 +4,17 @@ import { documentCommands } from './document';
 import { foundationCommands } from './foundations';
 import { openingCommands } from './openings';
 import { roofCommands } from './roofs';
+import { stairCommands } from './stairs';
 import { wallCommands } from './walls';
 
-export const planCommands = { ...documentCommands, ...wallCommands, ...openingCommands, ...catalogCommands, ...cameraCommands, ...roofCommands, ...foundationCommands };
+export const planCommands = {
+  ...documentCommands,
+  ...wallCommands,
+  ...openingCommands,
+  ...catalogCommands,
+  ...cameraCommands,
+  ...roofCommands,
+  ...foundationCommands,
+  ...stairCommands,
+};
 export type PlanCommands = typeof planCommands;
