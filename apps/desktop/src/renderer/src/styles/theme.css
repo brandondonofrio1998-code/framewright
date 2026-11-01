@@ -485,6 +485,18 @@ body {
   pointer-events: none;
 }
 
+.section-cut {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fw-ink-muted);
+  font-size: 12px;
+}
+
+.section-cut input {
+  width: 96px;
+}
+
 .view-3d-cameras {
   position: absolute;
   top: 10px;
@@ -534,7 +546,8 @@ body {
 }
 
 .plan-view,
-.elevation-view {
+.elevation-view,
+.section-view {
   position: relative;
   width: 100%;
   height: 100%;
@@ -543,7 +556,8 @@ body {
 }
 
 .plan-canvas,
-.elevation-canvas {
+.elevation-canvas,
+.section-canvas {
   display: block;
   width: 100%;
   height: 100%;

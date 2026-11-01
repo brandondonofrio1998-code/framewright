@@ -420,6 +420,38 @@ test('shows the room in elevation', async ({ electronApp, window, consoleErrors 
   await window.screenshot({ path: test.info().outputPath('elevation.png') });
 });
 
+test('shows the room in section', async ({ electronApp, window, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-default-tab-content', { hasText: 'Section' }).click();
+  const view = window.getByTestId('section-view');
+  await expect(view).toBeVisible();
+  await expect.poll(async () => Number(await view.getAttribute('data-fill-count'))).toBeGreaterThan(0);
+  await expect.poll(async () => Number(await view.getAttribute('data-line-count'))).toBeGreaterThan(4);
+  await view.getByRole('button', { name: 'Left', exact: true }).click();
+  await expect(view).toHaveAttribute('data-facing', 'left');
+  const slider = view.getByLabel('Section cut');
+  await slider.fill('25');
+  await expect(view).toHaveAttribute('data-cut', '0.25');
+  const canvas = view.locator('canvas');
+  await expect.poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(300);
+  const filled = await canvas.evaluate((node: HTMLCanvasElement) => {
+    const ctx = node.getContext('2d');
+    if (!ctx || node.width < 2) return -1;
+    const pixels = ctx.getImageData(0, 0, node.width, node.height).data;
+    let n = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const r = pixels[i] ?? 0;
+      const g = pixels[i + 1] ?? 0;
+      const b = pixels[i + 2] ?? 0;
+      if (r > 190 && r < 250 && g > 170 && g < 235 && b < 220 && r - b > 12) n++;
+    }
+    return n;
+  });
+  expect(filled).toBeGreaterThan(40);
+  expect(consoleErrors).toEqual([]);
+  await window.screenshot({ path: test.info().outputPath('section.png') });
+});
+
 test('status bar shows the cursor position and snap toggles', async ({ window }) => {
   const s = await screenOf(window, { x: 36, y: 24 });
   await window.mouse.move(s.x, s.y);

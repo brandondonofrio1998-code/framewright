@@ -140,7 +140,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       { label: 'Fill Window', accelerator: 'F', registerAccelerator: false, click: () => ctx.send({ type: 'view.fit' }) },
       sep,
       { label: 'Elevation', click: () => ctx.send({ type: 'view.showElevation' }) },
-      pending('Section'),
+      { label: 'Section', click: () => ctx.send({ type: 'view.showSection' }) },
       sep,
       { label: 'Reset Layout', click: () => ctx.send({ type: 'view.resetLayout' }) },
       sep,
