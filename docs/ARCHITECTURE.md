@@ -421,6 +421,7 @@ interface DisplayItem { elementId?: Id; layer: DrawLayer; prims: Prim[] }
 - The worker uses the 3D mesh descriptors with an orthographic projection.
 - **Section cut:** intersect the meshes with the cut plane to get closed loops, which are filled as poché (clipper union by material).
 - **Beyond the cut:** extract feature edges (boundary edges and edges whose dihedral angle exceeds a threshold, plus silhouettes). For each edge, sample visibility by raycasting with three-mesh-bvh along the view direction. Wherever visibility changes, bisect to find the exact break point. The result is vector lines, which go directly into the display list and on to PDF and DXF.
+- **As built in M4a.** `buildElevation` takes the same meshes as the 3D view. Front looks from the bottom of the plan toward +Y, and back, left, and right are the other three sides. Sheet X is to the right and sheet Y is Z. An edge is drawn when it is a boundary, a crease steeper than 15° between face normals, or a silhouette. Visibility is a ray from the edge toward the camera; where it changes, the edge is bisected. Hidden portions are left out. The Elevation tab pans and zooms like the plan. Sections, poché, and the geometry worker are M4b. The ray test is a straight scan, which is enough for one house; three-mesh-bvh waits until that scan is slow.
 
 ---
 
@@ -468,7 +469,7 @@ M1 is too big for one pass, so I propose splitting it:
 - **M1b, document core.** Data model, units parse/format, the command and history system, file open/save/save as, migrations, autosave and recovery, recent files, and levels.
 - **M1c, plan editor.** Canvas plan view, wall tool with typed lengths, joins, split, move, the snap engine, dimensions, the status bar, and Playwright flows.
 
-M2 is done: **M2a** doors and windows hosted in walls, **M2b** the starter catalog and Library panel, **M2c** room detection with area labels and exterior sides taken from the room graph. M3 is done: **M3a** the orbit view of wall, floor, opening, and object solids, and **M3b** bundled textures, the walkthrough, and saved cameras. M4–M7 follow as specified and will be split the same way when they come up (M5 almost certainly into roofs, framing, foundations, and stairs).
+M2 is done: **M2a** doors and windows hosted in walls, **M2b** the starter catalog and Library panel, **M2c** room detection with area labels and exterior sides taken from the room graph. M3 is done: **M3a** the orbit view of wall, floor, opening, and object solids, and **M3b** bundled textures, the walkthrough, and saved cameras. M4 is split into **M4a** (elevations: visible crease and silhouette edges of the meshes) and **M4b** (sections and poché). M5–M7 follow as specified and will be split the same way when they come up (M5 almost certainly into roofs, framing, foundations, and stairs).
 
 ## 13. Known risks
 - **Hip roofs with mixed pitches** need a weighted straight skeleton. No permissively licensed TS implementation is mature enough, so we will write our own with heavy tests. This is the riskiest geometry in the project and will get its own sub-milestone in M5.
