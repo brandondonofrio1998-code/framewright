@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { AppInfo, MenuCommand, RecoveryEntry } from '../../../shared/ipc';
 import { newPlan, openHandle, openPlan, restoreRecovered, save, saveAndClose, saveAs } from '../document/file-actions';
 import { history, setAppVersion } from '../document/store';
-import { deleteSelection, isEditable, selectAll } from '../editor/actions';
+import { deleteSelection, isEditable, selectAll, buildGable } from '../editor/actions';
 import { setTool } from '../editor/store';
 import { startDocumentSync } from '../document/sync';
 import { RecoveryDialog } from './RecoveryDialog';
@@ -46,6 +46,8 @@ function handleMenu(command: MenuCommand): void {
       return editCommand('selectAll');
     case 'tool.activate':
       return setTool(command.tool);
+    case 'build.roof':
+      return buildGable();
     case 'view.resetLayout':
     case 'view.fit':
     case 'view.zoomIn':

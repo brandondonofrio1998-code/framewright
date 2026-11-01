@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import type { ToolId } from '../../../shared/ipc';
 import { setTool, TOOL_LABELS, useEditor } from '../editor/store';
+import { buildGable } from '../editor/actions';
 import { toggleCameras, useView3d } from '../view3d/view-state';
 
 type ToolButton =
   | { id: ToolId; icon: LucideIcon }
   | { id: 'camera'; label: string; icon: LucideIcon }
+  | { id: 'roof'; label: string; icon: LucideIcon }
   | { id: string; label: string; icon: LucideIcon; availableIn: string };
 
 const TOOL_GROUPS: ToolButton[][] = [
@@ -32,7 +34,7 @@ const TOOL_GROUPS: ToolButton[][] = [
   [
     { id: 'objects', icon: Archive },
     { id: 'stairs', label: 'Stairs', icon: DoorStairwell, availableIn: 'M5' },
-    { id: 'roof', label: 'Roof', icon: House, availableIn: 'M5' },
+    { id: 'roof', label: 'Roof', icon: House },
   ],
   [
     { id: 'dimensions', icon: RulerDimensionLine },
@@ -60,6 +62,13 @@ export function Toolbar() {
             if (button.id === 'camera') {
               return (
                 <button key={button.id} type="button" className="tool-button" aria-label={button.label} aria-pressed={camerasOpen} title={button.label} onClick={() => toggleCameras()}>
+                  <Icon size={18} strokeWidth={1.75} aria-hidden />
+                </button>
+              );
+            }
+            if (button.id === 'roof') {
+              return (
+                <button key={button.id} type="button" className="tool-button" aria-label={button.label} title="Build a gable roof" onClick={() => buildGable()}>
                   <Icon size={18} strokeWidth={1.75} aria-hidden />
                 </button>
               );

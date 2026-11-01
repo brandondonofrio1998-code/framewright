@@ -112,9 +112,15 @@ describe('menu template', () => {
 
   it('keeps unbuilt features visible but disabled', () => {
     const { template } = build('win32');
-    for (const name of ['Stairs', 'Roof', 'Text']) {
+    for (const name of ['Stairs', 'Text']) {
       expect(find(submenu(top(template, 'Build')), name)?.enabled).toBe(false);
     }
+  });
+
+  it('Build Roof asks for a gable', () => {
+    const { template, send } = build('win32');
+    click(find(submenu(top(template, 'Build')), 'Roof'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'build.roof' });
   });
 
   it('Build activates plan tools', () => {

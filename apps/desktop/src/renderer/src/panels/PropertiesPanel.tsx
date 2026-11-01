@@ -296,6 +296,23 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'roofPlane') {
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Roof</h3>
+        <dl className="level-fields">
+          <dt>Pitch</dt>
+          <dd>
+            <span className="field-readonly">{only.pitch} in 12</span>
+          </dd>
+        </dl>
+        <p className="panel-hint">A gable over the rectangular outline. Build the roof again after the walls change.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'dimension') {
     const a = resolveDimensionEnd(doc, only.a);
     const b = resolveDimensionEnd(doc, only.b);

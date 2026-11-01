@@ -93,6 +93,7 @@ export type MenuCommand =
   | { type: 'edit.delete' }
   | { type: 'edit.selectAll' }
   | { type: 'tool.activate'; tool: ToolId }
+  | { type: 'build.roof' }
   | { type: 'view.resetLayout' }
   | { type: 'view.fit' }
   | { type: 'view.zoomIn' }
@@ -122,6 +123,7 @@ const SIMPLE_COMMANDS = new Set([
   'view.showElevation',
   'view.showSection',
   'view.cameras',
+  'build.roof',
 ]);
 
 export function isMenuCommand(value: unknown): value is MenuCommand {

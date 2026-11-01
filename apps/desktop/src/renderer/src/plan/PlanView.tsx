@@ -48,6 +48,7 @@ function geometryCache() {
 function levelBounds(doc: PlanDocument, levelId: Id, geometry: Map<Id, WallGeometry>) {
   const points: Vec2[] = [...geometry.values()].flatMap((g) => g.footprint);
   for (const dim of dimensionsOnLevel(doc, levelId)) points.push(resolveDimensionEnd(doc, dim.a), resolveDimensionEnd(doc, dim.b));
+  for (const el of Object.values(doc.elements)) if (el.kind === 'roofPlane' && el.levelId === levelId) points.push(...el.polygon);
   return boundsOf(points);
 }
 

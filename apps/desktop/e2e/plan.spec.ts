@@ -144,6 +144,45 @@ test('draws a room from typed lengths and angles', async ({ electronApp, window,
   await window.screenshot({ path: test.info().outputPath('room.png') });
 });
 
+test('builds a gable over the room', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Roof', exact: true }).click();
+  const plan = await savePlan(electronApp, userData, 'roof');
+  const roofs = ofKind(plan, 'roofPlane') as unknown as { pitch: number; polygon: Vec2[] }[];
+  expect(roofs).toHaveLength(2);
+  expect(roofs[0]?.pitch).toBe(6);
+  expect(roofs.every((roof) => roof.polygon.length === 4)).toBe(true);
+  await window.locator('.dv-default-tab-content', { hasText: '3D' }).click();
+  const view = window.getByTestId('view-3d');
+  await expect.poll(async () => Number(await view.getAttribute('data-mesh-count'))).toBeGreaterThan(4);
+  await expect.poll(async () => Number(await view.getAttribute('data-textured'))).toBeGreaterThan(4);
+  const canvas = view.locator('canvas');
+  await expect.poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(400);
+  const sample = await canvas.evaluate((canvas: HTMLCanvasElement) => {
+    const gl = canvas.getContext('webgl2');
+    if (!gl || canvas.width < 2) return { w: canvas.width, h: canvas.height, brown: -1, colored: -1, center: [] as number[] };
+    const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    const mid = ((canvas.height >> 1) * canvas.width + (canvas.width >> 1)) * 4;
+    let brown = 0;
+    let colored = 0;
+    for (let i = 0; i < pixels.length; i += 16) {
+      const r = pixels[i] ?? 0;
+      const g = pixels[i + 1] ?? 0;
+      const b = pixels[i + 2] ?? 0;
+      if (r + g + b === 0) continue;
+      if (Math.abs(r - 228) <= 14 && Math.abs(g - 231) <= 14 && Math.abs(b - 236) <= 14) continue;
+      colored++;
+      if (r > 90 && r < 240 && g > 40 && g < 210 && b < 170 && r > g && g > b && r - b > 30) brown++;
+    }
+    return { w: canvas.width, h: canvas.height, brown, colored, center: [pixels[mid], pixels[mid + 1], pixels[mid + 2]] };
+  });
+  expect(sample.colored, JSON.stringify(sample)).toBeGreaterThan(800);
+  expect(sample.brown, JSON.stringify(sample)).toBeGreaterThan(400);
+  expect(consoleErrors).toEqual([]);
+  await window.screenshot({ path: test.info().outputPath('roof.png') });
+});
+
 test('undo removes walls one at a time and redo restores them', async ({ electronApp, window, userData }) => {
   await drawRoom(electronApp, window);
   await undoRedo(electronApp, 'Undo');

@@ -21,3 +21,10 @@ export function selectAll(): void {
       .map((el) => el.id),
   );
 }
+
+/** Builds a gable over the rectangular outline on the active level, replacing a roof already there. */
+export function buildGable(): void {
+  const { activeLevelId } = useDocument.getState();
+  const result = history.dispatch('roof.build', { levelId: activeLevelId });
+  notify(result.ok ? null : result.error);
+}
