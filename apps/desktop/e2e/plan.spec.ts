@@ -144,6 +144,16 @@ test('draws a room from typed lengths and angles', async ({ electronApp, window,
   await window.screenshot({ path: test.info().outputPath('room.png') });
 });
 
+test('lists the room on the Materials tab', async ({ electronApp, window, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-default-tab-content', { hasText: 'Materials' }).click();
+  const panel = window.locator('.materials-panel');
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole('row', { name: /OSB sheathing/ })).toContainText('518.0 sq ft');
+  await expect(panel.getByRole('row', { name: /Studs/ })).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
 test('builds a gable over the room', async ({ electronApp, window, userData, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.getByRole('button', { name: 'Roof', exact: true }).click();

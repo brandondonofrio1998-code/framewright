@@ -659,6 +659,35 @@ body {
   color: var(--fw-ink-muted);
 }
 
+.materials-table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 12px;
+  user-select: text;
+}
+
+.materials-table th,
+.materials-table td {
+  padding: 4px 2px;
+  text-align: left;
+  border-bottom: 1px solid var(--fw-border);
+}
+
+.materials-table td:last-child,
+.materials-table thead th:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.materials-category th {
+  padding-top: 10px;
+  color: var(--fw-ink-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .library-item-meta:empty {
   display: none;
 }

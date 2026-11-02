@@ -8,6 +8,7 @@ import {
 } from 'dockview-react';
 import { LevelsPanel } from '../panels/LevelsPanel';
 import { LibraryPanel } from '../panels/LibraryPanel';
+import { MaterialsPanel } from '../panels/MaterialsPanel';
 import { PropertiesPanel } from '../panels/PropertiesPanel';
 import { ElevationView } from '../elevate/ElevationView';
 import { PlanView } from '../plan/PlanView';
@@ -21,7 +22,16 @@ const theme: DockviewTheme = {
   className: `${themeLight.className} fw-dock-theme`,
 };
 
-const components = { levels: LevelsPanel, plan: PlanView, properties: PropertiesPanel, library: LibraryPanel, view3d: View3D, elevation: ElevationView, section: SectionView };
+const components = {
+  levels: LevelsPanel,
+  plan: PlanView,
+  properties: PropertiesPanel,
+  materials: MaterialsPanel,
+  library: LibraryPanel,
+  view3d: View3D,
+  elevation: ElevationView,
+  section: SectionView,
+};
 
 function showSection(api: DockviewApi): void {
   const existing = api.getPanel('section');
@@ -111,6 +121,12 @@ function buildDefaultLayout(api: DockviewApi): void {
     title: 'Properties',
     component: 'properties',
     position: { referencePanel: levels, direction: 'within' },
+  });
+  api.addPanel({
+    id: 'materials',
+    title: 'Materials',
+    component: 'materials',
+    position: { referencePanel: properties, direction: 'within' },
   });
   properties.api.setActive();
   plan.api.setActive();
