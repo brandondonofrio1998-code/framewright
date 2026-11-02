@@ -1,5 +1,6 @@
 import { Fragment, useMemo } from 'react';
 import { materialsList, type TakeoffUnit } from '@framewright/core';
+import { exportMaterials } from '../document/file-actions';
 import { useDocument } from '../document/store';
 
 function formatQty(quantity: number, unit: TakeoffUnit): string {
@@ -15,6 +16,11 @@ export function MaterialsPanel() {
   return (
     <div className="panel materials-panel">
       <h3 className="panel-heading">Materials</h3>
+      <div className="panel-actions">
+        <button type="button" className="text-button" onClick={() => void exportMaterials()}>
+          Export CSV
+        </button>
+      </div>
       {lines.length === 0 ? (
         <p className="panel-hint">Draw walls to see quantities.</p>
       ) : (

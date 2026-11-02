@@ -1,4 +1,4 @@
-import { loadDocument, serializeDocument } from '@framewright/core';
+import { loadDocument, materialsCsv, materialsList, serializeDocument } from '@framewright/core';
 import type { FileHandle, FileRef, IpcResult, OpenedFile } from '../../../shared/ipc';
 import { blankDocument, documentTitle, getAppVersion, history, markSaved, replaceDocument, useDocument } from './store';
 
@@ -35,6 +35,14 @@ function serialized(task: () => Promise<boolean>): Promise<boolean> {
 
 export function saveAs(): Promise<boolean> {
   return serialized(() => writeWith((text) => window.fw.file.saveAs(documentTitle(useDocument.getState()), text)));
+}
+
+/** Writes the derived materials list. The plan file and its saved state stay as they are. */
+export async function exportMaterials(): Promise<void> {
+  const state = useDocument.getState();
+  const result = await window.fw.file.exportCsv(`${documentTitle(state)} materials`, materialsCsv(materialsList(state.doc)));
+  if (result === null) return;
+  if (!result.ok) await window.fw.app.showMessage({ type: 'error', message: 'The materials list could not be saved.', detail: result.error });
 }
 
 export function save(): Promise<boolean> {

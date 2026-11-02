@@ -11,6 +11,7 @@ export const IpcChannel = {
   fileOpenHandle: 'fw:file-open-handle',
   fileSave: 'fw:file-save',
   fileSaveAs: 'fw:file-save-as',
+  fileExportCsv: 'fw:file-export-csv',
   recentList: 'fw:recent-list',
   autosaveWrite: 'fw:autosave-write',
   autosaveClear: 'fw:autosave-clear',
@@ -87,6 +88,7 @@ export type MenuCommand =
   | { type: 'file.openHandle'; handle: FileHandle }
   | { type: 'file.save' }
   | { type: 'file.saveAs' }
+  | { type: 'file.exportMaterials' }
   | { type: 'file.saveAndClose' }
   | { type: 'edit.undo' }
   | { type: 'edit.redo' }
@@ -113,6 +115,7 @@ const SIMPLE_COMMANDS = new Set([
   'file.open',
   'file.save',
   'file.saveAs',
+  'file.exportMaterials',
   'file.saveAndClose',
   'edit.undo',
   'edit.redo',
@@ -158,6 +161,8 @@ export interface FramewrightApi {
     openHandle(handle: FileHandle): Promise<IpcResult<OpenedFile>>;
     save(handle: FileHandle, text: string): Promise<IpcResult<FileRef>>;
     saveAs(suggestedName: string, text: string): Promise<IpcResult<FileRef> | null>;
+    /** Writes a text file the user names. Cancel returns null. This is not a plan. */
+    exportCsv(suggestedName: string, text: string): Promise<IpcResult<{ path: string }> | null>;
     recent(): Promise<FileRef[]>;
     onOpenRequest(listener: (file: FileRef) => void): Unsubscribe;
   };

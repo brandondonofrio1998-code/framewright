@@ -28,6 +28,7 @@ const api: FramewrightApi = {
     openHandle: (handle) => ipcRenderer.invoke(IpcChannel.fileOpenHandle, handle),
     save: (handle, text) => ipcRenderer.invoke(IpcChannel.fileSave, handle, text),
     saveAs: (suggestedName, text) => ipcRenderer.invoke(IpcChannel.fileSaveAs, suggestedName, text),
+    exportCsv: (suggestedName, text) => ipcRenderer.invoke(IpcChannel.fileExportCsv, suggestedName, text),
     recent: () => ipcRenderer.invoke(IpcChannel.recentList),
     onOpenRequest: (listener) => subscribe(IpcChannel.openRequest, isFileRef, listener),
   },

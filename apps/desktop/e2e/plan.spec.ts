@@ -154,6 +154,22 @@ test('lists the room on the Materials tab', async ({ electronApp, window, consol
   expect(consoleErrors).toEqual([]);
 });
 
+test('exports the materials list as a CSV file', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-default-tab-content', { hasText: 'Materials' }).click();
+  const target = join(userData, 'materials');
+  await electronApp.evaluate(({ dialog }, path) => {
+    dialog.showSaveDialog = (async () => ({ canceled: false, filePath: path })) as typeof dialog.showSaveDialog;
+  }, target);
+  await window.getByRole('button', { name: 'Export CSV' }).click();
+  const saved = `${target}.csv`;
+  await expect.poll(() => existsSync(saved)).toBe(true);
+  const text = readFileSync(saved, 'utf8');
+  expect(text.startsWith('Category,Item,Quantity,Unit')).toBe(true);
+  expect(text).toContain('OSB sheathing');
+  expect(consoleErrors).toEqual([]);
+});
+
 test('builds a gable over the room', async ({ electronApp, window, userData, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.getByRole('button', { name: 'Roof', exact: true }).click();

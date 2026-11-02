@@ -53,6 +53,8 @@ describe('menu template', () => {
       click(item);
       expect(send).toHaveBeenLastCalledWith({ type });
     }
+    click(find(file, 'Export Materials…'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'file.exportMaterials' });
   });
 
   it('undo/redo are disabled without history and labelled with the command', () => {

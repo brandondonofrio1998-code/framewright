@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
 import {
   IpcChannel,
@@ -23,6 +23,7 @@ const OPEN_FILTERS = [
   { name: 'All Files', extensions: ['*'] },
 ];
 const SAVE_FILTERS = [{ name: 'Framewright Plan', extensions: [PLAN_EXTENSION.slice(1)] }];
+const CSV_FILTERS = [{ name: 'CSV', extensions: ['csv'] }];
 
 interface WindowState {
   doc: DocState | null;
@@ -229,6 +230,22 @@ export class DocumentServices {
         properties: ['showOverwriteConfirmation', 'createDirectory'],
       });
       return result.canceled || !result.filePath ? null : this.writePlan(withPlanExtension(result.filePath), text);
+    });
+    handle(IpcChannel.fileExportCsv, async (win, suggestedName: unknown, text: unknown) => {
+      if (typeof text !== 'string' || text.length > MAX_PLAN_BYTES) return { ok: false, error: 'The materials list is too large.' } satisfies IpcResult<never>;
+      const result = await dialog.showSaveDialog(win, {
+        defaultPath: join(app.getPath('documents'), `${sanitizeFileName(String(suggestedName))}.csv`),
+        filters: CSV_FILTERS,
+        properties: ['showOverwriteConfirmation', 'createDirectory'],
+      });
+      if (result.canceled || !result.filePath) return null;
+      const path = extname(result.filePath).toLowerCase() === '.csv' ? result.filePath : `${result.filePath}.csv`;
+      try {
+        await writeFileAtomic(path, text);
+        return { ok: true, value: { path } } satisfies IpcResult<{ path: string }>;
+      } catch (error) {
+        return { ok: false, error: `Could not save the file: ${errorMessage(error)}` } satisfies IpcResult<never>;
+      }
     });
     handle(IpcChannel.recentList, () => this.recentRefs());
 
