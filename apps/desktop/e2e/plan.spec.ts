@@ -169,6 +169,21 @@ test('shows the room on an architectural sheet', async ({ electronApp, window, c
   expect(consoleErrors).toEqual([]);
 });
 
+test('exports the sheet as a PDF', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  const target = join(userData, 'sheet');
+  await electronApp.evaluate(({ dialog }, path) => {
+    dialog.showSaveDialog = (async () => ({ canceled: false, filePath: path })) as typeof dialog.showSaveDialog;
+  }, target);
+  await clickMenu(electronApp, ['File', 'Export Sheet…']);
+  const saved = `${target}.pdf`;
+  await expect.poll(() => existsSync(saved)).toBe(true);
+  const bytes = readFileSync(saved);
+  expect(bytes.subarray(0, 5).toString('utf8')).toBe('%PDF-');
+  expect(bytes.byteLength).toBeGreaterThan(1500);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('lists the room on the Materials tab', async ({ electronApp, window, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.locator('.dv-default-tab-content', { hasText: 'Materials' }).click();

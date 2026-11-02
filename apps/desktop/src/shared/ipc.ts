@@ -12,6 +12,7 @@ export const IpcChannel = {
   fileSave: 'fw:file-save',
   fileSaveAs: 'fw:file-save-as',
   fileExportCsv: 'fw:file-export-csv',
+  fileExportPdf: 'fw:file-export-pdf',
   recentList: 'fw:recent-list',
   autosaveWrite: 'fw:autosave-write',
   autosaveClear: 'fw:autosave-clear',
@@ -89,6 +90,7 @@ export type MenuCommand =
   | { type: 'file.save' }
   | { type: 'file.saveAs' }
   | { type: 'file.exportMaterials' }
+  | { type: 'file.exportSheet' }
   | { type: 'file.saveAndClose' }
   | { type: 'edit.undo' }
   | { type: 'edit.redo' }
@@ -116,6 +118,7 @@ const SIMPLE_COMMANDS = new Set([
   'file.save',
   'file.saveAs',
   'file.exportMaterials',
+  'file.exportSheet',
   'file.saveAndClose',
   'edit.undo',
   'edit.redo',
@@ -163,6 +166,8 @@ export interface FramewrightApi {
     saveAs(suggestedName: string, text: string): Promise<IpcResult<FileRef> | null>;
     /** Writes a text file the user names. Cancel returns null. This is not a plan. */
     exportCsv(suggestedName: string, text: string): Promise<IpcResult<{ path: string }> | null>;
+    /** Writes a PDF the user names. Cancel returns null. This is not a plan. */
+    exportPdf(suggestedName: string, data: Uint8Array): Promise<IpcResult<{ path: string }> | null>;
     recent(): Promise<FileRef[]>;
     onOpenRequest(listener: (file: FileRef) => void): Unsubscribe;
   };

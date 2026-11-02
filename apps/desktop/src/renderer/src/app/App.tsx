@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AppInfo, MenuCommand, RecoveryEntry } from '../../../shared/ipc';
-import { newPlan, openHandle, openPlan, restoreRecovered, save, saveAndClose, saveAs, exportMaterials } from '../document/file-actions';
+import { newPlan, openHandle, openPlan, restoreRecovered, save, saveAndClose, saveAs, exportMaterials, exportSheet } from '../document/file-actions';
 import { history, setAppVersion } from '../document/store';
 import { deleteSelection, isEditable, selectAll, buildFoundation, buildGable, buildHip } from '../editor/actions';
 import { setTool } from '../editor/store';
@@ -36,6 +36,8 @@ function handleMenu(command: MenuCommand): void {
       return void saveAs();
     case 'file.exportMaterials':
       return void exportMaterials();
+    case 'file.exportSheet':
+      return void exportSheet();
     case 'file.saveAndClose':
       return void saveAndClose();
     case 'edit.undo':

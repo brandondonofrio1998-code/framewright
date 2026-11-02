@@ -16,11 +16,12 @@ export async function exists(path: string): Promise<boolean> {
 }
 
 /** Writes via a temp file + fsync + rename so a crash never leaves a half-written file. */
-export async function writeFileAtomic(path: string, text: string, { backup = false } = {}): Promise<void> {
+export async function writeFileAtomic(path: string, data: string | Uint8Array, { backup = false } = {}): Promise<void> {
   const tmp = `${path}.${randomBytes(6).toString('hex')}.tmp`;
   const handle = await open(tmp, 'w');
   try {
-    await handle.writeFile(text, 'utf8');
+    if (typeof data === 'string') await handle.writeFile(data, 'utf8');
+    else await handle.writeFile(data);
     await handle.sync();
   } finally {
     await handle.close();

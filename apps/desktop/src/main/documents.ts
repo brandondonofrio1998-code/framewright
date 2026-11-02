@@ -24,6 +24,7 @@ const OPEN_FILTERS = [
 ];
 const SAVE_FILTERS = [{ name: 'Framewright Plan', extensions: [PLAN_EXTENSION.slice(1)] }];
 const CSV_FILTERS = [{ name: 'CSV', extensions: ['csv'] }];
+const PDF_FILTERS = [{ name: 'PDF', extensions: ['pdf'] }];
 
 interface WindowState {
   doc: DocState | null;
@@ -242,6 +243,23 @@ export class DocumentServices {
       const path = extname(result.filePath).toLowerCase() === '.csv' ? result.filePath : `${result.filePath}.csv`;
       try {
         await writeFileAtomic(path, text);
+        return { ok: true, value: { path } } satisfies IpcResult<{ path: string }>;
+      } catch (error) {
+        return { ok: false, error: `Could not save the file: ${errorMessage(error)}` } satisfies IpcResult<never>;
+      }
+    });
+    handle(IpcChannel.fileExportPdf, async (win, suggestedName: unknown, data: unknown) => {
+      const bytes = data instanceof Uint8Array ? data : null;
+      if (!bytes || bytes.byteLength === 0 || bytes.byteLength > MAX_PLAN_BYTES) return { ok: false, error: 'The sheet could not be prepared.' } satisfies IpcResult<never>;
+      const result = await dialog.showSaveDialog(win, {
+        defaultPath: join(app.getPath('documents'), `${sanitizeFileName(String(suggestedName))}.pdf`),
+        filters: PDF_FILTERS,
+        properties: ['showOverwriteConfirmation', 'createDirectory'],
+      });
+      if (result.canceled || !result.filePath) return null;
+      const path = extname(result.filePath).toLowerCase() === '.pdf' ? result.filePath : `${result.filePath}.pdf`;
+      try {
+        await writeFileAtomic(path, bytes);
         return { ok: true, value: { path } } satisfies IpcResult<{ path: string }>;
       } catch (error) {
         return { ok: false, error: `Could not save the file: ${errorMessage(error)}` } satisfies IpcResult<never>;
