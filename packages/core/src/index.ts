@@ -32,6 +32,7 @@ export * from './foundations/slab';
 export * from './stairs/straight';
 export * from './takeoff/materials';
 export * from './sheets/layout';
+export * from './sheets/pdf';
 export * from './walls/graph';
 export * from './walls/joins';
 export * from './display/display-list';

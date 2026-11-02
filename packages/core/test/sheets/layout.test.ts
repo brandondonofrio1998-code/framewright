@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildPlanDisplayList, layoutSheet, SHEET_HEIGHT, SHEET_WIDTH } from '../../src';
+import { PDFDocument } from 'pdf-lib';
+import { buildPlanDisplayList, layoutSheet, sheetPdf, SHEET_HEIGHT, SHEET_WIDTH } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -50,5 +51,26 @@ describe('sheet layout', () => {
     expect(sheet.center.x).toBeGreaterThan(100);
     expect(sheet.center.x).toBeLessThan(140);
     expect(sheet.scaleLabel).toMatch(/=\s*1'-0"/);
+  });
+
+  it('writes a one-page PDF the size of the sheet', async () => {
+    const ctx = testHistory();
+    const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
+    const drawn = ctx.history.dispatch('wall.draw', {
+      levelId: ctx.baseLevelId,
+      typeId,
+      points: [p(0, 0), p(240, 0), p(240, 144), p(0, 144)],
+      closed: true,
+    });
+    if (!drawn.ok) throw new Error(drawn.error);
+    const bytes = await sheetPdf(ctx.history.doc, ctx.baseLevelId);
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
+    expect(bytes.byteLength).toBeGreaterThan(1500);
+    const pdf = await PDFDocument.load(bytes);
+    expect(pdf.getPageCount()).toBe(1);
+    const page = pdf.getPage(0);
+    expect(page.getWidth()).toBeCloseTo(SHEET_WIDTH * 72, 3);
+    expect(page.getHeight()).toBeCloseTo(SHEET_HEIGHT * 72, 3);
+    expect(layoutSheet(ctx.history.doc, ctx.baseLevelId).scaleLabel.length).toBeGreaterThan(0);
   });
 });
