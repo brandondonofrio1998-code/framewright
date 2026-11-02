@@ -1,6 +1,7 @@
 import type { Draft } from 'immer';
 import { gableOnLevel, DEFAULT_OVERHANG, DEFAULT_PITCH, type GableSlope } from '../roofs/gable';
 import { hipOnLevel, type HipPitches } from '../roofs/hip';
+import type { RoofRecipe } from '../roofs/follow';
 import type { Id, PlanDocument, RoofPlane } from '../model/schema';
 import { CommandError, defineCommand, type CommandContext } from './history';
 
@@ -53,4 +54,16 @@ export const roofCommands = {
   'roof.build': buildRoof,
   'roof.hip': buildHip,
 };
+
+/** Rebuilds roofs captured before a wall edit. A roof whose outline is no longer a rectangle stays as it was. */
+export function applyRoofRecipes(doc: Draft<PlanDocument>, recipes: readonly RoofRecipe[], ctx: CommandContext): void {
+  for (const recipe of recipes) {
+    const built =
+      recipe.kind === 'gable'
+        ? gableOnLevel(doc, recipe.levelId, recipe.pitch, recipe.overhang)
+        : hipOnLevel(doc, recipe.levelId, recipe.pitch, recipe.overhang, recipe.pitches);
+    if (!built.ok) continue;
+    place(doc, recipe.levelId, built.roof.planes, ctx);
+  }
+}
 export type RoofCommands = typeof roofCommands;

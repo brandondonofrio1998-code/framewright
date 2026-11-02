@@ -1,6 +1,8 @@
 import { add, distance, normalize, POINT_EPS, projectOnSegment, scale, sub } from '../geometry/vec2';
 import type { Dimension, DimensionEnd, Id, PlanDocument, Vec2, Wall } from '../model/schema';
 import { reconcileObjects, snapshotObjects, type ObjectAnchor } from '../catalog/host';
+import { applyRoofRecipes } from './roofs';
+import { roofRecipes, type RoofRecipe } from '../roofs/follow';
 import { openingSpan, openingsOnWall, reconcileOpenings, snapshotOpenings, type OpeningAnchor } from '../openings/openings';
 import { reconcileRooms, snapshotRoomPolygons } from '../rooms/rooms';
 import { attachNode, getNode, getWall, insertWall, splitWall, tidyGraph, wallEnds } from '../walls/graph';
@@ -10,11 +12,12 @@ interface LayoutBefore {
   openings: Map<Id, OpeningAnchor>;
   objects: Map<Id, ObjectAnchor>;
   rooms: Map<Id, Vec2[]>;
+  roofs: RoofRecipe[];
 }
 
 /** Captured at the start of a wall command, so openings, objects and rooms can be matched afterwards. */
 function snapshotLayout(doc: PlanDocument): LayoutBefore {
-  return { openings: snapshotOpenings(doc), objects: snapshotObjects(doc), rooms: snapshotRoomPolygons(doc) };
+  return { openings: snapshotOpenings(doc), objects: snapshotObjects(doc), rooms: snapshotRoomPolygons(doc), roofs: roofRecipes(doc) };
 }
 
 /** Every command that changes the wall graph ends here, so nodes, dimensions, openings, objects and rooms stay consistent. */
@@ -23,6 +26,7 @@ function finishWallEdit(doc: PlanDocument, before: LayoutBefore, ctx: CommandCon
   reconcileOpenings(doc, before.openings);
   reconcileObjects(doc, before.objects);
   reconcileRooms(doc, before.rooms, ctx);
+  applyRoofRecipes(doc, before.roofs, ctx);
 }
 
 const MAX_COORD = 1_000_000;
@@ -139,18 +143,20 @@ export type WallChanges = Partial<Pick<Wall, 'typeId' | 'height' | 'baseOffset'>
 export const updateWalls = defineCommand<{ wallIds: Id[]; changes: WallChanges }>({
   label: (p) => plural(p.wallIds.length, 'Edit Wall', 'Edit Walls'),
   mergeKey: ({ wallIds, changes }) => `wall.update:${[...wallIds].sort().join(',')}:${Object.keys(changes).sort().join(',')}`,
-  run: (doc, { wallIds, changes }) => {
+  run: (doc, { wallIds, changes }, ctx) => {
     if (changes.typeId !== undefined) checkWallType(doc, changes.typeId);
     const height = changes.height === undefined ? undefined : checkHeight(changes.height);
     if (changes.baseOffset !== undefined && (!Number.isFinite(changes.baseOffset) || Math.abs(changes.baseOffset) > MAX_LENGTH)) {
       throw new CommandError('Base offset is out of range.');
     }
+    const roofs = roofRecipes(doc);
     for (const id of wallIds) {
       const wall = getWall(doc, id);
       if (changes.typeId !== undefined) wall.typeId = changes.typeId;
       if (height !== undefined) wall.height = height;
       if (changes.baseOffset !== undefined) wall.baseOffset = changes.baseOffset;
     }
+    applyRoofRecipes(doc, roofs, ctx);
   },
 });
 
