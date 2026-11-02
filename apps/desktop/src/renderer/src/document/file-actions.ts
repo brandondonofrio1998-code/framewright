@@ -1,4 +1,4 @@
-import { loadDocument, materialsCsv, materialsList, planDxf, serializeDocument, sheetPdf } from '@framewright/core';
+import { loadDocument, materialsCsv, materialsList, planDxf, planGlb, serializeDocument, sheetPdf } from '@framewright/core';
 import type { FileHandle, FileRef, IpcResult, OpenedFile } from '../../../shared/ipc';
 import { blankDocument, documentTitle, getAppVersion, history, markSaved, replaceDocument, useDocument } from './store';
 
@@ -59,6 +59,14 @@ export async function exportDxf(): Promise<void> {
   const result = await window.fw.file.exportDxf(`${documentTitle(state)} plan`, planDxf(state.doc, state.activeLevelId));
   if (result === null) return;
   if (!result.ok) await window.fw.app.showMessage({ type: 'error', message: 'The drawing could not be saved.', detail: result.error });
+}
+
+/** Writes the 3D model. The plan file and its saved state stay as they are. */
+export async function exportGlb(): Promise<void> {
+  const state = useDocument.getState();
+  const result = await window.fw.file.exportGlb(`${documentTitle(state)} model`, planGlb(state.doc));
+  if (result === null) return;
+  if (!result.ok) await window.fw.app.showMessage({ type: 'error', message: 'The model could not be saved.', detail: result.error });
 }
 
 export function save(): Promise<boolean> {

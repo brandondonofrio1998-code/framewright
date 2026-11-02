@@ -200,6 +200,21 @@ test('exports the plan as a DXF', async ({ electronApp, window, userData, consol
   expect(consoleErrors).toEqual([]);
 });
 
+test('exports the model as a glTF', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  const target = join(userData, 'model');
+  await electronApp.evaluate(({ dialog }, path) => {
+    dialog.showSaveDialog = (async () => ({ canceled: false, filePath: path })) as typeof dialog.showSaveDialog;
+  }, target);
+  await clickMenu(electronApp, ['File', 'Export glTF…']);
+  const saved = `${target}.glb`;
+  await expect.poll(() => existsSync(saved)).toBe(true);
+  const bytes = readFileSync(saved);
+  expect(bytes.subarray(0, 4).toString('utf8')).toBe('glTF');
+  expect(bytes.byteLength).toBeGreaterThan(1000);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('lists the room on the Materials tab', async ({ electronApp, window, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.locator('.dv-default-tab-content', { hasText: 'Materials' }).click();

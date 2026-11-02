@@ -14,6 +14,7 @@ export const IpcChannel = {
   fileExportCsv: 'fw:file-export-csv',
   fileExportPdf: 'fw:file-export-pdf',
   fileExportDxf: 'fw:file-export-dxf',
+  fileExportGlb: 'fw:file-export-glb',
   recentList: 'fw:recent-list',
   autosaveWrite: 'fw:autosave-write',
   autosaveClear: 'fw:autosave-clear',
@@ -93,6 +94,7 @@ export type MenuCommand =
   | { type: 'file.exportMaterials' }
   | { type: 'file.exportSheet' }
   | { type: 'file.exportDxf' }
+  | { type: 'file.exportGlb' }
   | { type: 'file.saveAndClose' }
   | { type: 'edit.undo' }
   | { type: 'edit.redo' }
@@ -122,6 +124,7 @@ const SIMPLE_COMMANDS = new Set([
   'file.exportMaterials',
   'file.exportSheet',
   'file.exportDxf',
+  'file.exportGlb',
   'file.saveAndClose',
   'edit.undo',
   'edit.redo',
@@ -173,6 +176,8 @@ export interface FramewrightApi {
     exportPdf(suggestedName: string, data: Uint8Array): Promise<IpcResult<{ path: string }> | null>;
     /** Writes a DXF the user names. Cancel returns null. This is not a plan. */
     exportDxf(suggestedName: string, text: string): Promise<IpcResult<{ path: string }> | null>;
+    /** Writes a binary glTF the user names. Cancel returns null. This is not a plan. */
+    exportGlb(suggestedName: string, data: Uint8Array): Promise<IpcResult<{ path: string }> | null>;
     recent(): Promise<FileRef[]>;
     onOpenRequest(listener: (file: FileRef) => void): Unsubscribe;
   };
