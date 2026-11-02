@@ -7,6 +7,7 @@ const METERS_PER_INCH = 0.0254;
 const ROLE_COLOR: Record<MeshRole, [number, number, number]> = {
   solid: [0.784, 0.769, 0.745],
   floor: [0.894, 0.875, 0.847],
+  ceiling: [0.925, 0.918, 0.902],
   panel: [0.553, 0.451, 0.333],
   glass: [0.718, 0.831, 0.871],
 };

@@ -19,7 +19,7 @@ const DOOR_THICKNESS = 1.375;
 const GLASS_THICKNESS = 0.25;
 const MIN_BAND = 0.05;
 
-export type MeshRole = 'solid' | 'floor' | 'panel' | 'glass';
+export type MeshRole = 'solid' | 'floor' | 'ceiling' | 'panel' | 'glass';
 
 /** One drawable solid. Coordinates are inches, Z up. UVs are inches in the face plane. */
 export interface MeshPart {
@@ -324,6 +324,21 @@ function floorSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: M
   }
 }
 
+/** A flat gypsum sheet on the inside of each room, up to that room's ceiling. */
+function ceilingSolids(doc: PlanDocument, levelId: Id, elevation: number, ceilingHeight: number, finishThickness: number, parts: MeshPart[]): void {
+  if (!(finishThickness > 0)) return;
+  const drywall = Object.values(doc.materials).find((material) => material.category === 'drywall')?.id ?? null;
+  for (const room of roomsOnLevel(doc, levelId)) {
+    const face = roomFace(doc, room);
+    if (!face) continue;
+    const top = elevation + (room.ceilingHeight ?? ceilingHeight);
+    if (top - finishThickness < elevation) continue;
+    const b = builder();
+    extrude(b, face.polygon, top - finishThickness, top);
+    push(parts, finish(b, room.id, drywall, 'ceiling'));
+  }
+}
+
 /** Solids for one level: wall layers with opening holes, floors, doors, glass, and catalog boxes. */
 export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   const level = doc.levels[levelId];
@@ -350,6 +365,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
     openingSolids(doc, geom, z0, parts);
   }
   floorSolids(doc, levelId, level.elevation, parts);
+  ceilingSolids(doc, levelId, level.elevation, level.ceilingHeight, level.ceilingFinish, parts);
   objectSolids(doc, levelId, level.elevation, parts);
   foundationSolids(doc, levelId, level.elevation, parts);
   stairSolids(doc, levelId, level.elevation, parts);

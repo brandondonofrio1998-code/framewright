@@ -74,6 +74,14 @@ describe('level meshes', () => {
     const floors = parts.filter((part) => part.role === 'floor');
     expect(floors).toHaveLength(1);
     expect(pointInsideMesh(floors, [120, 72, -0.3])).toBe(true);
+
+    const ceilings = parts.filter((part) => part.role === 'ceiling');
+    expect(ceilings).toHaveLength(1);
+    const ceilingZ = ceilings.flatMap((part) => [...part.positions].filter((_, i) => i % 3 === 2));
+    expect(Math.max(...ceilingZ)).toBeCloseTo(height, 3);
+    expect(Math.min(...ceilingZ)).toBeCloseTo(height - 0.5, 3);
+    expect(pointInsideMesh(ceilings, [120, 72, height - 0.1])).toBe(true);
+    expect(pointInsideMesh(ceilings, [120, 72, 40])).toBe(false);
   });
 
   it('builds a box for a hosted cabinet', () => {

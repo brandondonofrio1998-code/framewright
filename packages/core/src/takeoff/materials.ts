@@ -20,11 +20,12 @@ export interface TakeoffLine {
   unit: TakeoffUnit;
 }
 
-const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Roof', 'Foundation', 'Openings', 'Stairs'];
+const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Openings', 'Stairs'];
 const SHEET = new Set(['finish', 'sheathing', 'insulation']);
 
 /**
  * Quantities derived from the plan. Sheet areas are the wall face minus door and window holes.
+ * Ceiling area is the room's inside face.
  * Roof area is the sloped area. Concrete is the slab plus the footings, in cubic yards.
  */
 export function materialsList(doc: PlanDocument): TakeoffLine[] {
@@ -75,8 +76,15 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Framing', 'Trimmers and cripples', extras, 'each');
 
     let floor = 0;
-    for (const room of roomsOnLevel(doc, levelId)) floor += roomFace(doc, room)?.area ?? 0;
+    let ceiling = 0;
+    for (const room of roomsOnLevel(doc, levelId)) {
+      const area = roomFace(doc, room)?.area ?? 0;
+      floor += area;
+      if (level.ceilingFinish > 0) ceiling += area;
+    }
     add('Floors', 'Finished floor', floor / 144, 'sq ft');
+    const gypsum = Object.values(doc.materials).find((material) => material.category === 'drywall')?.name ?? 'Gypsum board 1/2"';
+    add('Ceilings', gypsum, ceiling / 144, 'sq ft');
 
     for (const roof of roofsOnLevel(doc, levelId)) {
       const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.name ?? 'Roof sheathing';

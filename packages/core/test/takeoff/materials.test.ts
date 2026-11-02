@@ -33,6 +33,9 @@ describe('materials list', () => {
     expect(qty(lines, 'Gypsum board 1/2"')).toBeCloseTo(518, 3);
     const floor = roomsOnLevel(ctx.history.doc, ctx.baseLevelId).reduce((sum, room) => sum + (roomFace(ctx.history.doc, room)?.area ?? 0), 0) / 144;
     expect(qty(lines, 'Finished floor')).toBeCloseTo(floor, 3);
+    const ceiling = lines.find((line) => line.category === 'Ceilings');
+    expect(ceiling).toMatchObject({ name: 'Gypsum board 1/2"', unit: 'sq ft' });
+    expect(ceiling?.quantity).toBeCloseTo(floor, 3);
     expect(qty(lines, 'Studs')).toBeGreaterThan(40);
     expect(qty(lines, 'Plates')).toBeCloseTo(192, 0);
     const csv = materialsCsv(lines);
