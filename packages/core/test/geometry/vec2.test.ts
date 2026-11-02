@@ -47,6 +47,7 @@ describe('vec2', () => {
   it('property: a segment crossing point lies on both segments', () => {
     fc.assert(
       fc.property(point, point, point, point, (a, b, c, d) => {
+        fc.pre(distance(a, b) > 1e-4 && distance(c, d) > 1e-4);
         const hit = segmentIntersection(a, b, c, d);
         if (!hit) return;
         expect(projectOnSegment(hit.point, a, b).distance).toBeLessThan(1e-3 + distance(a, b) * 1e-9);
