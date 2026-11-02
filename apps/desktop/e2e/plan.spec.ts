@@ -144,6 +144,31 @@ test('draws a room from typed lengths and angles', async ({ electronApp, window,
   await window.screenshot({ path: test.info().outputPath('room.png') });
 });
 
+test('shows the room on an architectural sheet', async ({ electronApp, window, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-default-tab-content', { hasText: 'Sheet' }).click();
+  const view = window.getByTestId('sheet-view');
+  await expect(view).toBeVisible();
+  await expect(view).toHaveAttribute('data-scale', /= 1'-0"/);
+  const canvas = view.locator('canvas');
+  await expect.poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(200);
+  const dark = await canvas.evaluate((el: HTMLCanvasElement) => {
+    const ctx = el.getContext('2d');
+    if (!ctx || el.width < 2) return 0;
+    const pixels = ctx.getImageData(0, 0, el.width, el.height).data;
+    let count = 0;
+    for (let i = 0; i < pixels.length; i += 16) {
+      const r = pixels[i] ?? 0;
+      const g = pixels[i + 1] ?? 0;
+      const b = pixels[i + 2] ?? 0;
+      if (r < 60 && g < 60 && b < 60) count++;
+    }
+    return count;
+  });
+  expect(dark).toBeGreaterThan(30);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('lists the room on the Materials tab', async ({ electronApp, window, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.locator('.dv-default-tab-content', { hasText: 'Materials' }).click();

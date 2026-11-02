@@ -547,7 +547,8 @@ body {
 
 .plan-view,
 .elevation-view,
-.section-view {
+.section-view,
+.sheet-view {
   position: relative;
   width: 100%;
   height: 100%;
@@ -557,7 +558,8 @@ body {
 
 .plan-canvas,
 .elevation-canvas,
-.section-canvas {
+.section-canvas,
+.sheet-canvas {
   display: block;
   width: 100%;
   height: 100%;

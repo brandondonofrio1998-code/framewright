@@ -13,6 +13,7 @@ import { PropertiesPanel } from '../panels/PropertiesPanel';
 import { ElevationView } from '../elevate/ElevationView';
 import { PlanView } from '../plan/PlanView';
 import { SectionView } from '../section/SectionView';
+import { SheetView } from '../sheets/SheetView';
 import { View3D } from '../view3d/View3D';
 import { openCameras, setViewMode, useView3d } from '../view3d/view-state';
 
@@ -31,6 +32,7 @@ const components = {
   view3d: View3D,
   elevation: ElevationView,
   section: SectionView,
+  sheet: SheetView,
 };
 
 function showSection(api: DockviewApi): void {
@@ -100,6 +102,12 @@ function buildDefaultLayout(api: DockviewApi): void {
     id: 'perspective',
     title: '3D',
     component: 'view3d',
+    position: { referencePanel: plan, direction: 'within' },
+  });
+  api.addPanel({
+    id: 'sheet',
+    title: 'Sheet',
+    component: 'sheet',
     position: { referencePanel: plan, direction: 'within' },
   });
   api.addPanel({

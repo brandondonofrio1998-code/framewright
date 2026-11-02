@@ -128,10 +128,12 @@ export function drawDisplayList(ctx: CanvasRenderingContext2D, view: Viewport, i
           ctx.stroke();
           break;
         case 'arc': {
+          const radius = prim.r * view.scale;
+          if (!(radius > 0)) break;
           const c = view.toScreen(prim.c);
           ctx.beginPath();
           // Screen Y points down, so model angles flip sign.
-          ctx.arc(c.x, c.y, prim.r * view.scale, -prim.start, -(prim.start + prim.sweep), prim.sweep > 0);
+          ctx.arc(c.x, c.y, radius, -prim.start, -(prim.start + prim.sweep), prim.sweep > 0);
           applyPen(ctx, prim.pen, color);
           ctx.stroke();
           break;
