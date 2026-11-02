@@ -309,6 +309,27 @@ export const StairSchema = z.object({
 });
 export type Stair = z.infer<typeof StairSchema>;
 
+const CadLineSchema = z.object({ t: z.literal('line'), a: Vec2Schema, b: Vec2Schema });
+const CadPolylineSchema = z.object({ t: z.literal('polyline'), pts: z.array(Vec2Schema).min(2).max(500), closed: z.boolean() });
+const CadArcSchema = z.object({
+  t: z.literal('arc'),
+  c: Vec2Schema,
+  r: z.number().positive().max(100_000),
+  start: z.number(),
+  sweep: z.number(),
+});
+const CadTextSchema = z.object({ t: z.literal('text'), p: Vec2Schema, s: z.string().max(250), size: z.number().positive().max(1000) });
+export const CadPrimSchema = z.discriminatedUnion('t', [CadLineSchema, CadPolylineSchema, CadArcSchema, CadTextSchema]);
+export type CadPrim = z.infer<typeof CadPrimSchema>;
+
+/** A drawing imported from DXF. Model inches, Y up. It is a reference, not part of the building. */
+export const CadSchema = z.object({
+  ...elementBase,
+  kind: z.literal('cad'),
+  prims: z.array(CadPrimSchema).min(1).max(20_000),
+});
+export type Cad = z.infer<typeof CadSchema>;
+
 export const ElementSchema = z.discriminatedUnion('kind', [
   WallNodeSchema,
   WallSchema,
@@ -321,6 +342,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   RoofPlaneSchema,
   FoundationSchema,
   StairSchema,
+  CadSchema,
 ]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];

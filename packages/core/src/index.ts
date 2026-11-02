@@ -34,6 +34,7 @@ export * from './takeoff/materials';
 export * from './sheets/layout';
 export * from './sheets/pdf';
 export * from './export/dxf';
+export * from './export/dxf-import';
 export * from './export/gltf';
 export * from './walls/graph';
 export * from './walls/joins';

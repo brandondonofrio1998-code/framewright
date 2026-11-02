@@ -4,7 +4,7 @@ import { frameLevel, memberQuad } from '../framing/members';
 import { foundationsOnLevel } from '../foundations/slab';
 import { stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
-import type { Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
+import type { Cad, Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
 import { formatArea, roomFace, roomsOnLevel } from '../rooms/rooms';
 import { formatLength } from '../units/length';
@@ -30,6 +30,15 @@ export function resolveDimensionEnd(doc: PlanDocument, end: DimensionEnd): Vec2 
 }
 
 const ROOM_TEXT = 8;
+
+function cadReference(el: Cad): Prim[] {
+  return el.prims.map((prim) => {
+    if (prim.t === 'line') return { t: 'line', a: prim.a, b: prim.b, pen: 'reference' };
+    if (prim.t === 'polyline') return { t: 'polyline', pts: prim.pts, closed: prim.closed, pen: 'reference' };
+    if (prim.t === 'arc') return { t: 'arc', c: prim.c, r: prim.r, start: prim.start, sweep: prim.sweep, pen: 'reference' };
+    return { t: 'text', p: prim.p, s: prim.s, size: prim.size, rot: 0, align: 'left' };
+  });
+}
 
 function roomLabel(room: Room, area: number): Prim[] {
   return [
@@ -126,6 +135,11 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
         ...stairTreadLines(stair).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'stair' })),
       ],
     });
+  }
+
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'cad' || el.levelId !== levelId) continue;
+    items.push({ elementId: el.id, layer: 'reference', prims: cadReference(el) });
   }
 
   const format = doc.settings.lengthFormat;

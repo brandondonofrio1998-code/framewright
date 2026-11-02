@@ -1,3 +1,4 @@
+import { cadCommands } from './cad';
 import { cameraCommands } from './cameras';
 import { catalogCommands } from './catalog';
 import { documentCommands } from './document';
@@ -16,5 +17,6 @@ export const planCommands = {
   ...roofCommands,
   ...foundationCommands,
   ...stairCommands,
+  ...cadCommands,
 };
 export type PlanCommands = typeof planCommands;

@@ -4,14 +4,50 @@ import { dimensionLine } from '../display/display-list';
 import { openingOutline } from '../display/openings';
 import { dimensionsOnLevel, resolveDimensionEnd } from '../display/plan';
 import { cross, distance, pointInPolygon, projectOnSegment, sub, type Bounds } from '../geometry/vec2';
-import type { Id, PlanDocument, Vec2 } from '../model/schema';
+import type { Cad, Id, PlanDocument, Vec2 } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad';
   id: Id;
+}
+
+function distanceToCad(p: Vec2, el: Cad): number {
+  let best = Infinity;
+  for (const prim of el.prims) {
+    if (prim.t === 'line') best = Math.min(best, projectOnSegment(p, prim.a, prim.b).distance);
+    else if (prim.t === 'polyline') {
+      for (let i = 0; i < prim.pts.length - 1; i++) best = Math.min(best, projectOnSegment(p, prim.pts[i]!, prim.pts[i + 1]!).distance);
+      if (prim.closed && prim.pts.length > 2) best = Math.min(best, projectOnSegment(p, prim.pts[prim.pts.length - 1]!, prim.pts[0]!).distance);
+    } else if (prim.t === 'text') best = Math.min(best, distance(p, prim.p));
+    else best = Math.min(best, arcDistance(p, prim.c, prim.r, prim.start, prim.sweep));
+  }
+  return best;
+}
+
+function arcDistance(p: Vec2, c: Vec2, r: number, start: number, sweep: number): number {
+  const end = (angle: number): Vec2 => ({ x: c.x + r * Math.cos(angle), y: c.y + r * Math.sin(angle) });
+  const ang = Math.atan2(p.y - c.y, p.x - c.x);
+  const sign = sweep < 0 ? -1 : 1;
+  let rel = ang - start;
+  const turn = sign * Math.PI * 2;
+  while (rel * sign < 0) rel += turn;
+  while (rel * sign >= Math.PI * 2) rel -= turn;
+  if (rel * sign <= Math.abs(sweep)) return Math.abs(Math.hypot(p.x - c.x, p.y - c.y) - r);
+  return Math.min(distance(p, end(start)), distance(p, end(start + sweep)));
+}
+
+function cadPoints(el: Cad): Vec2[] {
+  const points: Vec2[] = [];
+  for (const prim of el.prims) {
+    if (prim.t === 'line') points.push(prim.a, prim.b);
+    else if (prim.t === 'polyline') points.push(...prim.pts);
+    else if (prim.t === 'text') points.push(prim.p);
+    else points.push(prim.c, { x: prim.c.x + prim.r, y: prim.c.y }, { x: prim.c.x - prim.r, y: prim.c.y }, { x: prim.c.x, y: prim.c.y + prim.r }, { x: prim.c.x, y: prim.c.y - prim.r });
+  }
+  return points;
 }
 
 function distanceToPolygon(p: Vec2, polygon: Vec2[]): number {
@@ -50,6 +86,11 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
   for (const geom of geometry.values()) {
     const d = pointInPolygon(p, geom.footprint) ? 0 : Math.max(0, projectOnSegment(p, geom.a, geom.b).distance - geom.thickness / 2);
     consider({ kind: 'wall', id: geom.wallId }, d);
+  }
+  if (best.picked) return best.picked;
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'cad' || el.levelId !== levelId) continue;
+    consider({ kind: 'cad', id: el.id }, distanceToCad(p, el));
   }
   if (best.picked) return best.picked;
   for (const room of roomsOnLevel(doc, levelId)) {
@@ -99,6 +140,9 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
     if (geom && openingOutline(geom, o).every((p) => inside(p, box))) ids.push(o.id);
   }
   for (const stair of stairsOnLevel(doc, levelId)) if (stairCorners(stair).every((p) => inside(p, box))) ids.push(stair.id);
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind === 'cad' && el.levelId === levelId && cadPoints(el).every((p) => inside(p, box))) ids.push(el.id);
+  }
   for (const dim of dimensionsOnLevel(doc, levelId)) {
     const ends = [resolveDimensionEnd(doc, dim.a), resolveDimensionEnd(doc, dim.b)];
     if ([...ends, ...dimensionLine(ends[0]!, ends[1]!, dim.offset)].every((p) => inside(p, box))) ids.push(dim.id);
