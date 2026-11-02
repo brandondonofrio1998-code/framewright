@@ -43,6 +43,7 @@ Object3D.DEFAULT_UP.set(0, 0, 1);
 const ROLE_COLOR: Record<MeshPart['role'], string> = {
   solid: '#c8c4be',
   floor: '#e4dfd8',
+  ceiling: '#eceae6',
   panel: '#8d7355',
   glass: '#b7d4de',
 };
