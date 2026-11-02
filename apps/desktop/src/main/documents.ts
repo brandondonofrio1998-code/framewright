@@ -25,6 +25,7 @@ const OPEN_FILTERS = [
 const SAVE_FILTERS = [{ name: 'Framewright Plan', extensions: [PLAN_EXTENSION.slice(1)] }];
 const CSV_FILTERS = [{ name: 'CSV', extensions: ['csv'] }];
 const PDF_FILTERS = [{ name: 'PDF', extensions: ['pdf'] }];
+const DXF_FILTERS = [{ name: 'DXF', extensions: ['dxf'] }];
 
 interface WindowState {
   doc: DocState | null;
@@ -260,6 +261,22 @@ export class DocumentServices {
       const path = extname(result.filePath).toLowerCase() === '.pdf' ? result.filePath : `${result.filePath}.pdf`;
       try {
         await writeFileAtomic(path, bytes);
+        return { ok: true, value: { path } } satisfies IpcResult<{ path: string }>;
+      } catch (error) {
+        return { ok: false, error: `Could not save the file: ${errorMessage(error)}` } satisfies IpcResult<never>;
+      }
+    });
+    handle(IpcChannel.fileExportDxf, async (win, suggestedName: unknown, text: unknown) => {
+      if (typeof text !== 'string' || text.length === 0 || text.length > MAX_PLAN_BYTES) return { ok: false, error: 'The drawing could not be prepared.' } satisfies IpcResult<never>;
+      const result = await dialog.showSaveDialog(win, {
+        defaultPath: join(app.getPath('documents'), `${sanitizeFileName(String(suggestedName))}.dxf`),
+        filters: DXF_FILTERS,
+        properties: ['showOverwriteConfirmation', 'createDirectory'],
+      });
+      if (result.canceled || !result.filePath) return null;
+      const path = extname(result.filePath).toLowerCase() === '.dxf' ? result.filePath : `${result.filePath}.dxf`;
+      try {
+        await writeFileAtomic(path, text);
         return { ok: true, value: { path } } satisfies IpcResult<{ path: string }>;
       } catch (error) {
         return { ok: false, error: `Could not save the file: ${errorMessage(error)}` } satisfies IpcResult<never>;

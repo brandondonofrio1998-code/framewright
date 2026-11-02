@@ -30,6 +30,7 @@ const api: FramewrightApi = {
     saveAs: (suggestedName, text) => ipcRenderer.invoke(IpcChannel.fileSaveAs, suggestedName, text),
     exportCsv: (suggestedName, text) => ipcRenderer.invoke(IpcChannel.fileExportCsv, suggestedName, text),
     exportPdf: (suggestedName, data) => ipcRenderer.invoke(IpcChannel.fileExportPdf, suggestedName, data),
+    exportDxf: (suggestedName, text) => ipcRenderer.invoke(IpcChannel.fileExportDxf, suggestedName, text),
     recent: () => ipcRenderer.invoke(IpcChannel.recentList),
     onOpenRequest: (listener) => subscribe(IpcChannel.openRequest, isFileRef, listener),
   },

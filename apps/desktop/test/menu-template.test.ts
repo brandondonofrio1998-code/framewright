@@ -57,6 +57,8 @@ describe('menu template', () => {
     expect(send).toHaveBeenLastCalledWith({ type: 'file.exportMaterials' });
     click(find(file, 'Export Sheet…'));
     expect(send).toHaveBeenLastCalledWith({ type: 'file.exportSheet' });
+    click(find(file, 'Export DXF…'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'file.exportDxf' });
   });
 
   it('undo/redo are disabled without history and labelled with the command', () => {

@@ -76,6 +76,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => ctx.send({ type: 'file.saveAs' }) },
       { label: 'Export Materials…', click: () => ctx.send({ type: 'file.exportMaterials' }) },
       { label: 'Export Sheet…', click: () => ctx.send({ type: 'file.exportSheet' }) },
+      { label: 'Export DXF…', click: () => ctx.send({ type: 'file.exportDxf' }) },
       sep,
       { role: 'close', label: 'Close Window' },
       ...(mac ? [] : [sep, { role: 'quit', label: 'E&xit' } satisfies MenuItemConstructorOptions]),
