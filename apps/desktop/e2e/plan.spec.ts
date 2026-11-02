@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { clickMenu, expect, menuItem, test } from './fixtures';
@@ -212,6 +212,17 @@ test('exports the model as a glTF', async ({ electronApp, window, userData, cons
   const bytes = readFileSync(saved);
   expect(bytes.subarray(0, 4).toString('utf8')).toBe('glTF');
   expect(bytes.byteLength).toBeGreaterThan(1000);
+  expect(consoleErrors).toEqual([]);
+});
+
+test('imports a DXF as a reference drawing', async ({ electronApp, window, userData, consoleErrors }) => {
+  const file = join(userData, 'site.dxf');
+  writeFileSync(file, ['0', 'SECTION', '2', 'HEADER', '9', '$INSUNITS', '70', '1', '0', 'ENDSEC', '0', 'SECTION', '2', 'ENTITIES', '0', 'LINE', '8', '0', '10', '0', '20', '0', '11', '120', '21', '0', '0', 'ENDSEC', '0', 'EOF', ''].join('\n'));
+  await electronApp.evaluate(({ dialog }, path) => {
+    dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [path] })) as typeof dialog.showOpenDialog;
+  }, file);
+  await clickMenu(electronApp, ['File', 'Import DXF…']);
+  await expect(window.getByTestId('plan-view')).toHaveAttribute('data-cad-count', '1');
   expect(consoleErrors).toEqual([]);
 });
 

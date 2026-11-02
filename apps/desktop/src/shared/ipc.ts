@@ -15,6 +15,7 @@ export const IpcChannel = {
   fileExportPdf: 'fw:file-export-pdf',
   fileExportDxf: 'fw:file-export-dxf',
   fileExportGlb: 'fw:file-export-glb',
+  fileImportDxf: 'fw:file-import-dxf',
   recentList: 'fw:recent-list',
   autosaveWrite: 'fw:autosave-write',
   autosaveClear: 'fw:autosave-clear',
@@ -95,6 +96,7 @@ export type MenuCommand =
   | { type: 'file.exportSheet' }
   | { type: 'file.exportDxf' }
   | { type: 'file.exportGlb' }
+  | { type: 'file.importDxf' }
   | { type: 'file.saveAndClose' }
   | { type: 'edit.undo' }
   | { type: 'edit.redo' }
@@ -125,6 +127,7 @@ const SIMPLE_COMMANDS = new Set([
   'file.exportSheet',
   'file.exportDxf',
   'file.exportGlb',
+  'file.importDxf',
   'file.saveAndClose',
   'edit.undo',
   'edit.redo',
@@ -178,6 +181,8 @@ export interface FramewrightApi {
     exportDxf(suggestedName: string, text: string): Promise<IpcResult<{ path: string }> | null>;
     /** Writes a binary glTF the user names. Cancel returns null. This is not a plan. */
     exportGlb(suggestedName: string, data: Uint8Array): Promise<IpcResult<{ path: string }> | null>;
+    /** Reads an ASCII DXF the user picks. Cancel returns null. This does not open a plan. */
+    importDxf(): Promise<IpcResult<{ name: string; text: string }> | null>;
     recent(): Promise<FileRef[]>;
     onOpenRequest(listener: (file: FileRef) => void): Unsubscribe;
   };

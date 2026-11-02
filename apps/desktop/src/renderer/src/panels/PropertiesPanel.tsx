@@ -275,6 +275,17 @@ export function PropertiesPanel() {
   }
 
   const only = elements[0];
+  if (elements.length === 1 && only?.kind === 'cad') {
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Imported drawing</h3>
+        <p className="panel-hint">{only.name ?? 'DXF'}. {only.prims.length} items. This is a reference, so it does not become walls.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'room') {
     return (
       <div className="panel properties-panel">

@@ -1,4 +1,4 @@
-import { loadDocument, materialsCsv, materialsList, planDxf, planGlb, serializeDocument, sheetPdf } from '@framewright/core';
+import { loadDocument, materialsCsv, materialsList, parseDxf, planDxf, planGlb, serializeDocument, sheetPdf } from '@framewright/core';
 import type { FileHandle, FileRef, IpcResult, OpenedFile } from '../../../shared/ipc';
 import { blankDocument, documentTitle, getAppVersion, history, markSaved, replaceDocument, useDocument } from './store';
 
@@ -59,6 +59,23 @@ export async function exportDxf(): Promise<void> {
   const result = await window.fw.file.exportDxf(`${documentTitle(state)} plan`, planDxf(state.doc, state.activeLevelId));
   if (result === null) return;
   if (!result.ok) await window.fw.app.showMessage({ type: 'error', message: 'The drawing could not be saved.', detail: result.error });
+}
+
+/** Reads a DXF onto the active level as a reference drawing. The lines do not become walls. */
+export async function importDxf(): Promise<void> {
+  const opened = await window.fw.file.importDxf();
+  if (opened === null) return;
+  if (!opened.ok) {
+    await window.fw.app.showMessage({ type: 'error', message: 'The DXF could not be imported.', detail: opened.error });
+    return;
+  }
+  const parsed = parseDxf(opened.value.text);
+  if (!parsed.ok) {
+    await window.fw.app.showMessage({ type: 'error', message: 'The DXF could not be imported.', detail: parsed.error });
+    return;
+  }
+  const result = history.dispatch('cad.import', { levelId: useDocument.getState().activeLevelId, name: opened.value.name, prims: parsed.prims });
+  if (!result.ok) await window.fw.app.showMessage({ type: 'error', message: 'The DXF could not be imported.', detail: result.error });
 }
 
 /** Writes the 3D model. The plan file and its saved state stay as they are. */

@@ -57,6 +57,15 @@ function levelBounds(doc: PlanDocument, levelId: Id, geometry: Map<Id, WallGeome
     for (const footing of el.footings) points.push(...footing);
   }
   for (const el of Object.values(doc.elements)) if (el.kind === 'stair' && el.levelId === levelId) points.push(...stairCorners(el));
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'cad' || el.levelId !== levelId) continue;
+    for (const prim of el.prims) {
+      if (prim.t === 'line') points.push(prim.a, prim.b);
+      else if (prim.t === 'polyline') points.push(...prim.pts);
+      else if (prim.t === 'text') points.push(prim.p);
+      else points.push(prim.c);
+    }
+  }
   return boundsOf(points);
 }
 
@@ -108,7 +117,10 @@ export function PlanView() {
     drawGrid(ctx2d, view, shown.settings.gridSpacing);
     drawDisplayList(ctx2d, view, buildPlanDisplayList(shown, activeLevelId, { geometry }), new Set(selection));
     const studs = frameLevel(shown, activeLevelId, geometry).reduce((n, wall) => n + wall.members.filter((member) => member.kind === 'stud' || member.kind === 'king').length, 0);
-    if (wrapRef.current) wrapRef.current.dataset.studCount = String(studs);
+    if (wrapRef.current) {
+      wrapRef.current.dataset.studCount = String(studs);
+      wrapRef.current.dataset.cadCount = String(Object.values(shown.elements).filter((el) => el.kind === 'cad' && el.levelId === activeLevelId).length);
+    }
     for (const id of selection) {
       const g = geometry.get(id);
       if (g) drawOutline(ctx2d, view, g.footprint);

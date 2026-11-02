@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
 import {
   IpcChannel,
@@ -298,6 +298,20 @@ export class DocumentServices {
         return { ok: true, value: { path } } satisfies IpcResult<{ path: string }>;
       } catch (error) {
         return { ok: false, error: `Could not save the file: ${errorMessage(error)}` } satisfies IpcResult<never>;
+      }
+    });
+    handle(IpcChannel.fileImportDxf, async (win) => {
+      const result = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: DXF_FILTERS });
+      const path = result.filePaths[0];
+      if (result.canceled || !path) return null;
+      try {
+        const info = await stat(path);
+        if (info.size > MAX_PLAN_BYTES) return { ok: false, error: 'The DXF is too large.' } satisfies IpcResult<never>;
+        const text = await readFile(path, 'utf8');
+        const stem = basename(path, extname(path));
+        return { ok: true, value: { name: stem, text } } satisfies IpcResult<{ name: string; text: string }>;
+      } catch (error) {
+        return { ok: false, error: `Could not read the file: ${errorMessage(error)}` } satisfies IpcResult<never>;
       }
     });
     handle(IpcChannel.recentList, () => this.recentRefs());

@@ -71,6 +71,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       { label: 'New Plan', accelerator: 'CmdOrCtrl+N', click: () => ctx.send({ type: 'file.new' }) },
       { label: 'Open…', accelerator: 'CmdOrCtrl+O', click: () => ctx.send({ type: 'file.open' }) },
       { label: 'Open Recent', submenu: recentSubmenu(ctx) },
+      { label: 'Import DXF…', click: () => ctx.send({ type: 'file.importDxf' }) },
       sep,
       { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => ctx.send({ type: 'file.save' }) },
       { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => ctx.send({ type: 'file.saveAs' }) },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AppInfo, MenuCommand, RecoveryEntry } from '../../../shared/ipc';
-import { newPlan, openHandle, openPlan, restoreRecovered, save, saveAndClose, saveAs, exportDxf, exportGlb, exportMaterials, exportSheet } from '../document/file-actions';
+import { newPlan, openHandle, openPlan, restoreRecovered, save, saveAndClose, saveAs, exportDxf, exportGlb, exportMaterials, exportSheet, importDxf } from '../document/file-actions';
 import { history, setAppVersion } from '../document/store';
 import { deleteSelection, isEditable, selectAll, buildFoundation, buildGable, buildHip } from '../editor/actions';
 import { setTool } from '../editor/store';
@@ -42,6 +42,8 @@ function handleMenu(command: MenuCommand): void {
       return void exportDxf();
     case 'file.exportGlb':
       return void exportGlb();
+    case 'file.importDxf':
+      return void importDxf();
     case 'file.saveAndClose':
       return void saveAndClose();
     case 'edit.undo':
