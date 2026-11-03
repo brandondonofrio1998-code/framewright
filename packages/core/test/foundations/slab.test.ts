@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, buildPlanDisplayList, foundationsOnLevel, pointInPolygon, pointInsideMesh, slabOnLevel, FLOOR_FINISH, FOOTING_DEPTH, FOOTING_WIDTH, SLAB_THICKNESS, STEM_THICKNESS } from '../../src';
+import { buildLevelMeshes, buildPlanDisplayList, floorJoists, foundationsOnLevel, materialsList, pointInPolygon, pointInsideMesh, slabOnLevel, studCenters, FLOOR_FINISH, FOOTING_DEPTH, FOOTING_WIDTH, SLAB_THICKNESS, STEM_THICKNESS } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -114,5 +114,37 @@ describe('slab foundations', () => {
     expect(pointInsideMesh(parts, [120, 72, floorBottom - 48])).toBe(false);
     expect(pointInsideMesh(parts, [120, -1, floorBottom - 48])).toBe(true);
     expect(pointInsideMesh(parts, [120, 72, floorBottom - 96 - 1])).toBe(true);
+    const short = ctx.history.dispatch('foundation.setClearance', { id: foundation.id, clearance: 4 });
+    if (!short.ok) throw new Error(short.error);
+    expect(floorJoists(foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!, floorBottom)).toHaveLength(0);
+  });
+
+  it('spans a rectangular basement with 2x10 joists', () => {
+    const ctx = room([p(0, 0), p(240, 0), p(240, 144), p(0, 144)]);
+    const built = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId });
+    if (!built.ok) throw new Error(built.error);
+    const foundation = foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!;
+    const opened = ctx.history.dispatch('foundation.setClearance', { id: foundation.id, clearance: 96 });
+    if (!opened.ok) throw new Error(opened.error);
+    const floorBottom = ctx.history.doc.levels[ctx.baseLevelId]!.elevation - FLOOR_FINISH;
+    const current = foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!;
+    const joists = floorJoists(current, floorBottom);
+    const xs = current.polygon.map((pt) => pt.x);
+    const ys = current.polygon.map((pt) => pt.y);
+    const spanX = Math.max(...xs) - Math.min(...xs);
+    const spanY = Math.max(...ys) - Math.min(...ys);
+    const span = Math.min(spanX, spanY);
+    const run = Math.max(spanX, spanY);
+    expect(joists).toHaveLength(studCenters(run).length);
+    expect(joists[0]!.z1 - joists[0]!.z0).toBeCloseTo(9.25, 5);
+    expect(joists[0]!.length).toBeCloseTo(span + 16, 3);
+    const parts = buildLevelMeshes(ctx.history.doc, ctx.baseLevelId).filter((part) => part.elementId === foundation.id);
+    const minX = Math.min(...xs);
+    const midY = (Math.min(...ys) + Math.max(...ys)) / 2;
+    expect(pointInsideMesh(parts, [minX + 0.4, midY, floorBottom - 2])).toBe(true);
+    expect(pointInsideMesh(parts, [minX + 8, midY, floorBottom - 2])).toBe(false);
+    const lines = materialsList(ctx.history.doc);
+    const row = lines.find((line) => line.name === 'Floor joists');
+    expect(row?.quantity).toBeCloseTo((joists.length * joists[0]!.length) / 12, 3);
   });
 });

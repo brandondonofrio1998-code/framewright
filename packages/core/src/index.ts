@@ -29,6 +29,7 @@ export * from './roofs/gable';
 export * from './roofs/hip';
 export * from './roofs/outline';
 export * from './foundations/slab';
+export * from './foundations/joists';
 export * from './stairs/straight';
 export * from './takeoff/materials';
 export * from './sheets/layout';

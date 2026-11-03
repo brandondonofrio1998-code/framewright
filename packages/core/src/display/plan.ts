@@ -1,7 +1,8 @@
 import { distance } from '../geometry/vec2';
 import { objectPrims } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
-import { foundationsOnLevel } from '../foundations/slab';
+import { floorJoists } from '../foundations/joists';
+import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { handrail, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
 import type { Cad, Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
@@ -124,6 +125,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
         { t: 'polyline', pts: foundation.polygon, closed: true, pen: 'foundation' },
         ...foundation.footings.map((footing): Prim => ({ t: 'polyline', pts: footing, closed: true, pen: 'foundation' })),
         ...(foundation.stems ?? []).map((stem): Prim => ({ t: 'polyline', pts: stem, closed: true, pen: 'foundation' })),
+        ...floorJoists(foundation, (doc.levels[levelId]?.elevation ?? 0) - FLOOR_FINISH).map((joist): Prim => ({ t: 'polyline', pts: joist.polygon, closed: true, pen: 'wall.layer' })),
       ],
     });
   }

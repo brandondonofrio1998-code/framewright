@@ -4,7 +4,8 @@ import { frameLevel } from '../framing/members';
 import { defaultWallHeight } from '../model/levels';
 import type { PlanDocument, Stair, Vec2 } from '../model/schema';
 import { openingsOnWall, wallLength } from '../openings/openings';
-import { foundationsOnLevel } from '../foundations/slab';
+import { floorJoists } from '../foundations/joists';
+import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
@@ -75,6 +76,11 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Framing', 'Plates', plates / 12, 'lin ft');
     add('Framing', 'Headers', headers / 12, 'lin ft');
     add('Framing', 'Trimmers and cripples', extras, 'each');
+    let joists = 0;
+    for (const foundation of foundationsOnLevel(doc, levelId)) {
+      for (const joist of floorJoists(foundation, (level?.elevation ?? 0) - FLOOR_FINISH)) joists += joist.length;
+    }
+    add('Framing', 'Floor joists', joists / 12, 'lin ft');
 
     const arriving = Object.values(doc.elements).filter((el): el is Stair => el.kind === 'stair' && el.toLevelId === levelId);
     const leaving = stairsOnLevel(doc, levelId);

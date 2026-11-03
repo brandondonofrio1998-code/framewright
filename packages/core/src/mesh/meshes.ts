@@ -1,5 +1,6 @@
 import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
+import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
@@ -13,7 +14,7 @@ import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import { wallsOnLevel } from '../walls/graph';
 import { computeWallGeometry, type WallGeometry } from '../walls/joins';
 
-/** Finished floor thickness drawn under each room. Joists stay out until framing. */
+/** Finished floor thickness drawn under each room. Joists are separate, and only when the slab drops. */
 const FLOOR_THICKNESS = 0.75;
 const DOOR_THICKNESS = 1.375;
 const GLASS_THICKNESS = 0.25;
@@ -366,11 +367,19 @@ function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, par
       extrude(wall, stem, bottom, floorBottom + (foundation.stemRise ?? 0));
       push(parts, finish(wall, foundation.id, foundation.materialId, 'solid'));
     }
-    if (foundation.footingDepth < MIN_BAND) continue;
-    for (const footing of foundation.footings) {
+    if (foundation.footingDepth >= MIN_BAND) {
+      for (const footing of foundation.footings) {
+        const b = builder();
+        extrude(b, footing, bottom - foundation.footingDepth, bottom);
+        push(parts, finish(b, foundation.id, foundation.materialId, 'solid'));
+      }
+    }
+    const joists = floorJoists(foundation, floorBottom);
+    if (joists.length > 0) {
+      const lumber = Object.values(doc.materials).find((material) => material.category === 'framing')?.id ?? null;
       const b = builder();
-      extrude(b, footing, bottom - foundation.footingDepth, bottom);
-      push(parts, finish(b, foundation.id, foundation.materialId, 'solid'));
+      for (const joist of joists) extrude(b, joist.polygon, joist.z0, joist.z1);
+      push(parts, finish(b, foundation.id, lumber, 'solid'));
     }
   }
 }

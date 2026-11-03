@@ -375,6 +375,8 @@ test('drops the slab to leave a basement under the floor', async ({ electronApp,
   const plan = await savePlan(electronApp, userData, 'basement');
   const foundations = ofKind(plan, 'foundation') as unknown as { clearance?: number }[];
   expect(foundations[0]?.clearance).toBe(96);
+  await window.locator('.dv-default-tab-content', { hasText: 'Materials' }).click();
+  await expect(window.locator('.materials-panel').getByRole('row', { name: /Floor joists/ })).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
 
