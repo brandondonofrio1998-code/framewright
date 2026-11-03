@@ -1,5 +1,5 @@
 import { add, normalize, perp, scale, sub } from '../geometry/vec2';
-import type { PlanDocument, Stair, Vec2 } from '../model/schema';
+import type { PlanDocument, Stair, Vec2, Vec3 } from '../model/schema';
 
 /** IRC 2021 R311.7.5.1, maximum riser. */
 export const IRC_MAX_RISER = 7.75;
@@ -14,6 +14,11 @@ export const IRC_MAX_FLIGHT = 151;
 
 export const TREAD_THICKNESS = 1;
 export const RISER_THICKNESS = 0.75;
+/** IRC 2021 R311.7.8: a rail is required at four or more risers, 34 to 38 inches above the nosing. */
+export const HANDRAIL_MIN_RISERS = 4;
+export const HANDRAIL_HEIGHT = 36;
+/** Square rail, 1.5 inches. Its perimeter is 6 inches, inside the graspable range. */
+export const HANDRAIL_SIZE = 1.5;
 
 export interface FlightLayout {
   risers: number;
@@ -78,4 +83,26 @@ export function unitDir(dir: Vec2): Vec2 | null {
 
 export function stairsOnLevel(doc: PlanDocument, levelId: string): Stair[] {
   return Object.values(doc.elements).filter((el): el is Stair => el.kind === 'stair' && el.levelId === levelId);
+}
+
+export interface Handrail {
+  /** Bottom end, above the first nosing. */
+  a: Vec3;
+  /** Top end, above the upper floor. */
+  b: Vec3;
+}
+
+/**
+ * One handrail on the left of the flight. Its center is 36 inches vertically above the line of nosings,
+ * and its outer face is flush with the side of the stair. A flight of fewer than four risers has none.
+ */
+export function handrail(stair: Pick<Stair, 'start' | 'dir' | 'run' | 'width' | 'risers' | 'riser'>, elevation: number): Handrail | null {
+  if (stair.risers < HANDRAIL_MIN_RISERS) return null;
+  const side = scale(perp(stair.dir), stair.width / 2 - HANDRAIL_SIZE / 2);
+  const origin = add(stair.start, side);
+  const end = add(origin, scale(stair.dir, stair.run));
+  return {
+    a: { x: origin.x, y: origin.y, z: elevation + stair.riser + HANDRAIL_HEIGHT },
+    b: { x: end.x, y: end.y, z: elevation + stair.risers * stair.riser + HANDRAIL_HEIGHT },
+  };
 }

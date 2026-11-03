@@ -7,7 +7,7 @@ import { openingsOnWall, wallLength } from '../openings/openings';
 import { foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
-import { stairCorners, stairsOnLevel } from '../stairs/straight';
+import { handrail, stairCorners, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
 import { computeWallGeometry } from '../walls/joins';
@@ -105,8 +105,14 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Foundation', 'Concrete', concrete / 46656, 'cu yd');
 
     let treads = 0;
-    for (const stair of stairsOnLevel(doc, levelId)) treads += Math.max(0, stair.risers - 1);
+    let rail = 0;
+    for (const stair of stairsOnLevel(doc, levelId)) {
+      treads += Math.max(0, stair.risers - 1);
+      const bar = handrail(stair, level?.elevation ?? 0);
+      if (bar) rail += Math.hypot(bar.b.x - bar.a.x, bar.b.y - bar.a.y, bar.b.z - bar.a.z);
+    }
     add('Stairs', 'Stair treads', treads, 'each');
+    add('Stairs', 'Handrail', rail / 12, 'lin ft');
   }
 
   for (const el of Object.values(doc.elements)) {

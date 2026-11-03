@@ -1,11 +1,11 @@
 import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
-import { RISER_THICKNESS, TREAD_THICKNESS, runRect, stairCorners, stairsOnLevel } from '../stairs/straight';
+import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, runRect, stairCorners, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
-import type { Id, Opening, PlanDocument, Stair, Vec2 } from '../model/schema';
+import type { Id, Opening, PlanDocument, Stair, Vec2, Vec3 } from '../model/schema';
 import { defaultWallHeight } from '../model/levels';
 import { openingFrame } from '../display/openings';
 import { openingSpan, openingsOnWall } from '../openings/openings';
@@ -295,7 +295,51 @@ function stairSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: M
       extrude(b, runRect(stair.start, stair.dir, stair.width, s, s + RISER_THICKNESS), elevation + (k - 1) * stair.riser, elevation + k * stair.riser);
       push(parts, finish(b, stair.id, lumber, 'solid'));
     }
+    const rail = handrail(stair, elevation);
+    if (rail) {
+      const b = builder();
+      addRail(b, rail.a, rail.b, perp(stair.dir), HANDRAIL_SIZE);
+      push(parts, finish(b, stair.id, lumber, 'solid'));
+    }
   }
+}
+
+function addRail(b: Builder, a: Vec3, c: Vec3, side: Vec2, size: number): void {
+  const dx = c.x - a.x;
+  const dy = c.y - a.y;
+  const dz = c.z - a.z;
+  const len = Math.hypot(dx, dy, dz);
+  if (len < 1e-6) return;
+  const d = { x: dx / len, y: dy / len, z: dz / len };
+  const ux = -d.z * side.y;
+  const uy = d.z * side.x;
+  const uz = d.x * side.y - d.y * side.x;
+  const ulen = Math.hypot(ux, uy, uz);
+  if (ulen < 1e-8) return;
+  const u = { x: ux / ulen, y: uy / ulen, z: uz / ulen };
+  const s = size / 2;
+  const at = (p: Vec3, hs: number, us: number): Vec3 => ({
+    x: p.x + side.x * hs + u.x * us,
+    y: p.y + side.y * hs + u.y * us,
+    z: p.z + u.z * us,
+  });
+  const ends = [a, c].map((p) => [at(p, s, s), at(p, -s, s), at(p, -s, -s), at(p, s, -s)]);
+  const [start, finishEnd] = ends as [Vec3[], Vec3[]];
+  const face = (p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, n: Vec3) => {
+    const i = b.positions.length / 3;
+    for (const p of [p0, p1, p2, p3]) {
+      b.positions.push(p.x, p.y, p.z);
+      b.normals.push(n.x, n.y, n.z);
+      b.uvs.push(0, 0);
+    }
+    b.indices.push(i, i + 1, i + 2, i, i + 2, i + 3);
+  };
+  face(start[0]!, start[1]!, finishEnd[1]!, finishEnd[0]!, { x: u.x, y: u.y, z: u.z });
+  face(start[2]!, start[3]!, finishEnd[3]!, finishEnd[2]!, { x: -u.x, y: -u.y, z: -u.z });
+  face(start[3]!, start[0]!, finishEnd[0]!, finishEnd[3]!, { x: side.x, y: side.y, z: 0 });
+  face(start[1]!, start[2]!, finishEnd[2]!, finishEnd[1]!, { x: -side.x, y: -side.y, z: 0 });
+  face(start[3]!, start[2]!, start[1]!, start[0]!, { x: -d.x, y: -d.y, z: -d.z });
+  face(finishEnd[0]!, finishEnd[1]!, finishEnd[2]!, finishEnd[3]!, d);
 }
 
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {

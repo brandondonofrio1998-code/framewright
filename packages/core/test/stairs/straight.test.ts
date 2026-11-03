@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, layoutFlight, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
+import { buildLevelMeshes, handrail, layoutFlight, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, HANDRAIL_HEIGHT, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -67,8 +67,11 @@ describe('straight stairs', () => {
     const zs = buildLevelMeshes(ctx.history.doc, ctx.baseLevelId)
       .filter((part) => part.elementId === stair.id)
       .flatMap((part) => [...part.positions].filter((_, i) => i % 3 === 2));
-    expect(Math.max(...zs)).toBeCloseTo(elevation + stair.risers * stair.riser, 3);
+    const top = elevation + stair.risers * stair.riser;
+    const stepZs = zs.filter((z) => z <= top + 1);
+    expect(Math.max(...stepZs)).toBeCloseTo(top, 3);
     expect(Math.min(...zs)).toBeCloseTo(elevation, 3);
+    expect(Math.max(...zs)).toBeGreaterThan(top + 30);
     ctx.history.dispatch('level.delete', { id: upperId });
     expect(stairsOnLevel(ctx.history.doc, ctx.baseLevelId)).toHaveLength(0);
   });
@@ -98,5 +101,16 @@ describe('straight stairs', () => {
     expect(pointInsideMesh(ceiling, [beside[0], beside[1], lower.elevation + lower.ceilingHeight - 0.1])).toBe(true);
     expect(pointInsideMesh(floor, [inWell[0], inWell[1], upper.elevation - 0.3])).toBe(false);
     expect(pointInsideMesh(floor, [beside[0], beside[1], upper.elevation - 0.3])).toBe(true);
+  });
+
+  it('puts one handrail 36 inches above the nosings, on the left', () => {
+    const flight = { start: p(0, 0), dir: { x: 1, y: 0 }, run: 140, width: 36, risers: 15, riser: 7 };
+    const rail = handrail(flight, 10);
+    if (!rail) throw new Error('missing rail');
+    expect(rail.a.z).toBeCloseTo(10 + 7 + HANDRAIL_HEIGHT, 5);
+    expect(rail.b.z).toBeCloseTo(10 + 15 * 7 + HANDRAIL_HEIGHT, 5);
+    expect(rail.a.y).toBeCloseTo(18 - 0.75, 5);
+    expect(rail.b.x).toBeCloseTo(140, 5);
+    expect(handrail({ ...flight, risers: 3 }, 0)).toBeNull();
   });
 });

@@ -2,7 +2,7 @@ import { distance } from '../geometry/vec2';
 import { objectPrims } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { foundationsOnLevel } from '../foundations/slab';
-import { stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
+import { handrail, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
 import type { Cad, Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
@@ -128,12 +128,14 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     });
   }
   for (const stair of stairsOnLevel(doc, levelId)) {
+    const rail = handrail(stair, 0);
     items.push({
       elementId: stair.id,
       layer: 'objects',
       prims: [
         { t: 'polyline', pts: stairCorners(stair), closed: true, pen: 'stair' },
         ...stairTreadLines(stair).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'stair' })),
+        ...(rail ? [{ t: 'line' as const, a: { x: rail.a.x, y: rail.a.y }, b: { x: rail.b.x, y: rail.b.y }, pen: 'stair' as const }] : []),
       ],
     });
   }
