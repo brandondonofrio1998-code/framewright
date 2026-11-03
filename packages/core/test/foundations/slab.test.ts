@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, buildPlanDisplayList, foundationsOnLevel, pointInPolygon, slabOnLevel, FLOOR_FINISH, FOOTING_DEPTH, FOOTING_WIDTH, SLAB_THICKNESS, STEM_THICKNESS } from '../../src';
+import { buildLevelMeshes, buildPlanDisplayList, foundationsOnLevel, pointInPolygon, pointInsideMesh, slabOnLevel, FLOOR_FINISH, FOOTING_DEPTH, FOOTING_WIDTH, SLAB_THICKNESS, STEM_THICKNESS } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -77,5 +77,24 @@ describe('slab foundations', () => {
     expect(Math.min(...zs)).toBeCloseTo(elevation - FLOOR_FINISH - SLAB_THICKNESS - FOOTING_DEPTH, 3);
     const outlines = buildPlanDisplayList(ctx.history.doc, ctx.baseLevelId).filter((item) => item.prims.some((prim) => prim.t === 'polyline' && prim.pen === 'foundation'));
     expect(outlines).toHaveLength(1);
+  });
+
+  it('raises the stem above the floor', () => {
+    const ctx = room([p(0, 0), p(240, 0), p(240, 144), p(0, 144)]);
+    const built = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId });
+    if (!built.ok) throw new Error(built.error);
+    const foundation = foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!;
+    const raised = ctx.history.dispatch('foundation.setRise', { id: foundation.id, stemRise: 24 });
+    if (!raised.ok) throw new Error(raised.error);
+    const elevation = ctx.history.doc.levels[ctx.baseLevelId]!.elevation;
+    const top = elevation - FLOOR_FINISH;
+    const parts = buildLevelMeshes(ctx.history.doc, ctx.baseLevelId).filter((part) => part.elementId === foundation.id);
+    const zs = parts.flatMap((part) => [...part.positions].filter((_, i) => i % 3 === 2));
+    expect(Math.max(...zs)).toBeCloseTo(top + 24, 3);
+    expect(Math.min(...zs)).toBeCloseTo(top - SLAB_THICKNESS - FOOTING_DEPTH, 3);
+    expect(pointInsideMesh(parts, [120, -1, top + 12])).toBe(true);
+    expect(pointInsideMesh(parts, [120, 40, top + 12])).toBe(false);
+    const tooTall = ctx.history.dispatch('foundation.setRise', { id: foundation.id, stemRise: 200 });
+    expect(tooTall.ok).toBe(false);
   });
 });

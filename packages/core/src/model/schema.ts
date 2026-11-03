@@ -281,6 +281,8 @@ export const FoundationSchema = z.object({
   footingDepth: z.number().nonnegative().max(48),
   /** Stem wall thickness, inches, measured in from the outside face. Absent on a foundation saved before stem walls. */
   stemThickness: z.number().positive().max(16).optional(),
+  /** Inches the stem continues above the slab. Absent or 0 keeps the top at the underside of the floor. */
+  stemRise: z.number().nonnegative().max(144).optional(),
   materialId: IdSchema,
   /** One quad per exterior wall. */
   footings: z.array(z.array(Vec2Schema).min(3).max(8)).max(128),

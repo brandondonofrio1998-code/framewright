@@ -93,7 +93,7 @@ export function createSelectTool(): Tool {
       } else if (!selection.includes(hit.id)) {
         ctx.setSelection([hit.id]);
       }
-      const target = hit.kind === 'wall' ? 'walls' : hit.kind === 'dimension' ? 'dimension' : hit.kind === 'object' ? 'object' : hit.kind === 'room' || hit.kind === 'cad' ? 'room' : 'opening';
+      const target = hit.kind === 'wall' ? 'walls' : hit.kind === 'dimension' ? 'dimension' : hit.kind === 'object' ? 'object' : hit.kind === 'room' || hit.kind === 'cad' || hit.kind === 'foundation' ? 'room' : 'opening';
       drag = { kind: 'pressing', start: e, target, id: hit.id };
       ctx.redraw();
     },

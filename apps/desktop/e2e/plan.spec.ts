@@ -346,6 +346,22 @@ test('builds a slab and footing under the room', async ({ electronApp, window, u
   expect(consoleErrors).toEqual([]);
 });
 
+test('raises the stem wall above the floor', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Foundation', exact: true }).click();
+  await window.getByRole('button', { name: 'Select Objects' }).click();
+  await clickAt(window, { x: 0, y: ROOM.y0 - 7 });
+  const rise = window.getByLabel('Above the floor');
+  await expect(rise).toBeVisible();
+  await rise.fill(`2'`);
+  await rise.press('Enter');
+  await expect(rise).toHaveValue(`2'-0"`);
+  const plan = await savePlan(electronApp, userData, 'stem-rise');
+  const foundations = ofKind(plan, 'foundation') as unknown as { stemRise?: number }[];
+  expect(foundations[0]?.stemRise).toBe(24);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('builds a straight stair up to the level above', async ({ electronApp, window, userData, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.locator('.dv-tab', { hasText: 'Levels' }).click();

@@ -361,7 +361,7 @@ function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, par
     push(parts, finish(slab, foundation.id, foundation.materialId, 'solid'));
     for (const stem of foundation.stems ?? []) {
       const wall = builder();
-      extrude(wall, stem, bottom, top);
+      extrude(wall, stem, bottom, top + (foundation.stemRise ?? 0));
       push(parts, finish(wall, foundation.id, foundation.materialId, 'solid'));
     }
     if (foundation.footingDepth < MIN_BAND) continue;

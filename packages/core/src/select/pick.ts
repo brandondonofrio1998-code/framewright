@@ -5,12 +5,13 @@ import { openingOutline } from '../display/openings';
 import { dimensionsOnLevel, resolveDimensionEnd } from '../display/plan';
 import { cross, distance, pointInPolygon, projectOnSegment, sub, type Bounds } from '../geometry/vec2';
 import type { Cad, Id, PlanDocument, Vec2 } from '../model/schema';
+import { foundationsOnLevel } from '../foundations/slab';
 import { openingsOnLevel } from '../openings/openings';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation';
   id: Id;
 }
 
@@ -90,6 +91,14 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
   for (const geom of geometry.values()) {
     const d = pointInPolygon(p, geom.footprint) ? 0 : Math.max(0, projectOnSegment(p, geom.a, geom.b).distance - geom.thickness / 2);
     consider({ kind: 'wall', id: geom.wallId }, d);
+  }
+  const onWall = [...geometry.values()].some((geom) => pointInPolygon(p, geom.footprint));
+  if (!onWall) {
+    for (const foundation of foundationsOnLevel(doc, levelId)) {
+      for (const poly of [...foundation.footings, ...(foundation.stems ?? [])]) {
+        if (pointInPolygon(p, poly)) consider({ kind: 'foundation', id: foundation.id }, 0);
+      }
+    }
   }
   if (best.picked) return best.picked;
   for (const el of Object.values(doc.elements)) {

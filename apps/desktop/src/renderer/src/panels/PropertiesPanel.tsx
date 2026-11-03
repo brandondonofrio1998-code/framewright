@@ -338,6 +338,15 @@ export function PropertiesPanel() {
           <dd>
             <span className="field-readonly">{only.stemThickness === undefined ? 'None' : formatLength(only.stemThickness, format)}</span>
           </dd>
+          <dt>Above the floor</dt>
+          <dd>
+            <LengthInput
+              label="Above the floor"
+              value={only.stemRise ?? 0}
+              format={format}
+              onCommit={(v) => errorOf(dispatch('foundation.setRise', { id: only.id, stemRise: v }))}
+            />
+          </dd>
           <dt>Footing</dt>
           <dd>
             <span className="field-readonly">
@@ -345,7 +354,7 @@ export function PropertiesPanel() {
             </span>
           </dd>
         </dl>
-        <p className="panel-hint">A slab inside an 8 inch stem wall, on a footing under the exterior walls. Build it again after the walls change.</p>
+        <p className="panel-hint">The stem can continue above the floor. Build the foundation again after the walls change.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

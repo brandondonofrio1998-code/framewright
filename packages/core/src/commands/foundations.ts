@@ -43,7 +43,20 @@ export const buildFoundation = defineCommand<BuildFoundation, Id[]>({
   },
 });
 
+export const setStemRise = defineCommand<{ id: Id; stemRise: number }, Id>({
+  label: () => 'Stem Height',
+  run: (doc, { id, stemRise }) => {
+    const el = doc.elements[id];
+    if (el?.kind !== 'foundation') throw new CommandError('That foundation is gone.');
+    if (!(stemRise >= 0) || stemRise > 144) throw new CommandError('The stem can rise from 0 to 12 feet above the floor.');
+    if (stemRise <= 1e-6) delete el.stemRise;
+    else el.stemRise = stemRise;
+    return id;
+  },
+});
+
 export const foundationCommands = {
   'foundation.build': buildFoundation,
+  'foundation.setRise': setStemRise,
 };
 export type FoundationCommands = typeof foundationCommands;

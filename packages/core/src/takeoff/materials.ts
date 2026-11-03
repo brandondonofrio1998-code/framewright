@@ -99,7 +99,7 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     let concrete = 0;
     for (const foundation of foundationsOnLevel(doc, levelId)) {
       concrete += Math.abs(polygonArea(foundation.polygon)) * foundation.thickness;
-      for (const stem of foundation.stems ?? []) concrete += Math.abs(polygonArea(stem)) * foundation.thickness;
+      for (const stem of foundation.stems ?? []) concrete += Math.abs(polygonArea(stem)) * (foundation.thickness + (foundation.stemRise ?? 0));
       for (const footing of foundation.footings) concrete += Math.abs(polygonArea(footing)) * foundation.footingDepth;
     }
     add('Foundation', 'Concrete', concrete / 46656, 'cu yd');
