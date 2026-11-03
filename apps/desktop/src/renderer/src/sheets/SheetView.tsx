@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { boundsOf, buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, fitDrawing, layoutSheet, pocheFill, type DisplayItem, type SheetLayout, type Vec2 } from '@framewright/core';
+import { SHEET_SCALES, boundsOf, buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, fitDrawing, layoutSheet, pocheFill, type DisplayItem, type SheetLayout, type Vec2 } from '@framewright/core';
 import { useAppearance } from '../app/appearance';
-import { useDocument } from '../document/store';
+import { dispatch, useDocument } from '../document/store';
 import { drawDisplayList } from '../plan/render';
 import { Viewport } from '../plan/viewport';
 
@@ -172,6 +172,27 @@ export function SheetView() {
 
   return (
     <div className="sheet-view" ref={wrapRef} data-testid="sheet-view" data-scale={layout.scaleLabel} data-schedule={layout.scheduleRows.map((row) => row.mark).join(' ')} data-elevation={layout.elevation ? 'Front' : ''} data-section={layout.section ? 'Section' : ''}>
+      <div className="elevation-bar">
+        <label className="section-cut">
+          Sheet scale
+          <select
+            aria-label="Sheet scale"
+            className="status-select"
+            value={doc.settings.sheetScale ?? ''}
+            onChange={(event) => {
+              const value = event.target.value;
+              dispatch('settings.update', { sheetScale: value === '' ? null : Number(value) });
+            }}
+          >
+            <option value="">Auto</option>
+            {SHEET_SCALES.map((scale) => (
+              <option key={scale.modelPerPaper} value={scale.modelPerPaper}>
+                {scale.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       <canvas ref={canvasRef} className="sheet-canvas" />
     </div>
   );

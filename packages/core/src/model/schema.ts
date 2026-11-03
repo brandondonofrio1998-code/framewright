@@ -30,6 +30,8 @@ export const LengthFormatSchema = z.discriminatedUnion('system', [
 export const SettingsSchema = z.object({
   lengthFormat: LengthFormatSchema,
   gridSpacing: PositiveLength,
+  /** Model inches per paper inch for the sheet plan. Absent means the sheet picks the largest scale that fits. */
+  sheetScale: z.number().positive().max(192).optional(),
 });
 export type ProjectSettings = z.infer<typeof SettingsSchema>;
 

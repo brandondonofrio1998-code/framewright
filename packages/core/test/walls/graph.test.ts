@@ -215,7 +215,9 @@ describe('wall graph commands', () => {
           const walls = s.walls();
           const nodes = s.nodes();
           if (act.kind === 'draw') {
-            if (act.a.x !== act.b.x || act.a.y !== act.b.y) s.draw([act.a, act.b]);
+            if (act.a.x !== act.b.x || act.a.y !== act.b.y) {
+              s.history.dispatch('wall.draw', { levelId: s.baseLevelId, typeId: s.exterior, points: [act.a, act.b] });
+            }
           } else if (act.kind === 'move' && walls.length > 0) {
             s.history.dispatch('wall.move', { wallIds: [walls[act.pick % walls.length]!.id], delta: p(act.dx - 96, act.dy - 96) });
           } else if (act.kind === 'node' && nodes.length > 0) {

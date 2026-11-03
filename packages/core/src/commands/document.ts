@@ -2,6 +2,7 @@ import type { Draft } from 'immer';
 import { newLevel } from '../model/defaults';
 import { restackLevels } from '../model/levels';
 import { LengthFormatSchema, type Id, type Level, type PlanDocument, type ProjectSettings } from '../model/schema';
+import { SHEET_SCALES } from '../sheets/layout';
 import { CommandError, defineCommand } from './history';
 
 const MAX_LENGTH = 100_000;
@@ -43,8 +44,8 @@ export const renameDocument = defineCommand<{ title: string }>({
   },
 });
 
-export const updateSettings = defineCommand<Partial<ProjectSettings>>({
-  label: (p) => (p.lengthFormat ? 'Change Units' : 'Change Settings'),
+export const updateSettings = defineCommand<Partial<Omit<ProjectSettings, 'sheetScale'>> & { sheetScale?: number | null }>({
+  label: (p) => (p.sheetScale !== undefined ? 'Sheet Scale' : p.lengthFormat ? 'Change Units' : 'Change Settings'),
   run: (doc, changes) => {
     if (changes.lengthFormat !== undefined) {
       const parsed = LengthFormatSchema.safeParse(changes.lengthFormat);
@@ -52,6 +53,14 @@ export const updateSettings = defineCommand<Partial<ProjectSettings>>({
       doc.settings.lengthFormat = parsed.data;
     }
     if (changes.gridSpacing !== undefined) doc.settings.gridSpacing = checkLength(changes.gridSpacing, 'Grid spacing');
+    if (changes.sheetScale !== undefined) {
+      if (changes.sheetScale === null) delete doc.settings.sheetScale;
+      else {
+        const scale = SHEET_SCALES.find((item) => item.modelPerPaper === changes.sheetScale);
+        if (!scale) throw new CommandError('That sheet scale is not a standard architectural scale.');
+        doc.settings.sheetScale = scale.modelPerPaper;
+      }
+    }
   },
 });
 

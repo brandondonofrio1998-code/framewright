@@ -14,7 +14,7 @@ const SCHEDULE_WIDTH = 8;
 const ELEVATION_HEIGHT = 6.5;
 
 /** Model inches represented by one paper inch, and the label printed in the title block. Largest drawing first. */
-const SCALES: { modelPerPaper: number; label: string }[] = [
+export const SHEET_SCALES: { modelPerPaper: number; label: string }[] = [
   { modelPerPaper: 4, label: '3" = 1\'-0"' },
   { modelPerPaper: 8, label: '1 1/2" = 1\'-0"' },
   { modelPerPaper: 12, label: '1" = 1\'-0"' },
@@ -76,7 +76,8 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
   };
   const schedule: PaperRect | null = scheduleW > 0 ? { x: border.x + viewport.w, y: viewport.y, w: scheduleW, h: viewport.h } : null;
   const bounds = itemBounds(buildPlanDisplayList(doc, levelId));
-  const chosen = fitDrawing(bounds, viewport);
+  const auto = fitDrawing(bounds, viewport);
+  const picked = SHEET_SCALES.find((scale) => scale.modelPerPaper === doc.settings.sheetScale);
   const level = doc.levels[levelId];
   const date = /^\d{4}-\d{2}-\d{2}/.test(doc.meta.modified) ? doc.meta.modified.slice(0, 10) : '';
   return {
@@ -85,9 +86,9 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
     border,
     title,
     viewport,
-    modelPerPaper: chosen.modelPerPaper,
-    scaleLabel: chosen.scaleLabel,
-    center: chosen.center,
+    modelPerPaper: picked?.modelPerPaper ?? auto.modelPerPaper,
+    scaleLabel: picked?.label ?? auto.scaleLabel,
+    center: auto.center,
     schedule,
     scheduleRows: rows,
     elevation,
@@ -102,8 +103,8 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
 export function fitDrawing(bounds: { minX: number; minY: number; maxX: number; maxY: number } | null, frame: PaperRect): { modelPerPaper: number; scaleLabel: string; center: Vec2 } {
   const pad = 12;
   const chosen = bounds
-    ? (SCALES.find((scale) => scale.modelPerPaper >= Math.max((Math.max(bounds.maxX - bounds.minX, 24) + pad * 2) / frame.w, (Math.max(bounds.maxY - bounds.minY, 24) + pad * 2) / frame.h) - 1e-6) ??
-      SCALES[SCALES.length - 1]!)
+    ? (SHEET_SCALES.find((scale) => scale.modelPerPaper >= Math.max((Math.max(bounds.maxX - bounds.minX, 24) + pad * 2) / frame.w, (Math.max(bounds.maxY - bounds.minY, 24) + pad * 2) / frame.h) - 1e-6) ??
+      SHEET_SCALES[SHEET_SCALES.length - 1]!)
     : { modelPerPaper: 48, label: '1/4" = 1\'-0"' };
   return {
     modelPerPaper: chosen.modelPerPaper,

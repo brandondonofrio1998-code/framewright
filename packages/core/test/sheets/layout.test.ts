@@ -17,6 +17,13 @@ describe('sheet layout', () => {
     expect(sheet.titleText).toBe('Untitled');
     expect(sheet.levelName).toBe('Level 1');
     expect(sheet.scaleLabel).toBe('1/4" = 1\'-0"');
+    const chosen = ctx.history.dispatch('settings.update', { sheetScale: 24 });
+    if (!chosen.ok) throw new Error(chosen.error);
+    expect(layoutSheet(ctx.history.doc, ctx.baseLevelId).scaleLabel).toBe('1/2" = 1\'-0"');
+    const cleared = ctx.history.dispatch('settings.update', { sheetScale: null });
+    if (!cleared.ok) throw new Error(cleared.error);
+    expect(layoutSheet(ctx.history.doc, ctx.baseLevelId).scaleLabel).toBe('1/4" = 1\'-0"');
+    expect(ctx.history.dispatch('settings.update', { sheetScale: 7 }).ok).toBe(false);
     expect(sheet.schedule).toBeNull();
     expect(sheet.elevation).toBeNull();
     expect(sheet.section).toBeNull();
