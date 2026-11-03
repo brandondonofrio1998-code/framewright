@@ -21,7 +21,7 @@ A file is a Framewright plan when its top-level object has `"format": "framewrig
 | `format` | Always `"framewright-plan"` |
 | `schemaVersion` | Integer, currently `2` |
 | `meta` | `id`, `title`, `created` and `modified` (ISO 8601), and `appVersion` of the app that last saved |
-| `settings` | `lengthFormat` (display units and precision) and `gridSpacing` |
+| `settings` | `lengthFormat` (display units and precision), `gridSpacing`, and optional `sheetScale` (model inches per paper inch; omitted means the sheet chooses) |
 | `levels` | Map of level id to `{ id, name, elevation, ceilingHeight, floorDepth, ceilingFinish }` |
 | `levelOrder` | Level ids from the bottom level up; at least one |
 | `wallTypes` | Map of wall type id to `{ id, name, layers[], coreIndex }`. Layers run from the wall's left side to its right (relative to its start and end points), each `{ materialId, thickness, fn }` |
