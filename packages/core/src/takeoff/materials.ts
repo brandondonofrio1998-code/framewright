@@ -7,7 +7,7 @@ import { openingsOnWall, wallLength } from '../openings/openings';
 import { foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
-import { handrail, stairCorners, stairsOnLevel } from '../stairs/straight';
+import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
 import { computeWallGeometry } from '../walls/joins';
@@ -107,9 +107,11 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     let treads = 0;
     let rail = 0;
     for (const stair of stairsOnLevel(doc, levelId)) {
-      treads += Math.max(0, stair.risers - 1);
-      const bar = handrail(stair, level?.elevation ?? 0);
-      if (bar) rail += Math.hypot(bar.b.x - bar.a.x, bar.b.y - bar.a.y, bar.b.z - bar.a.z);
+      for (const flight of placedFlights(stair)) {
+        treads += Math.max(0, flight.risers - 1);
+        const bar = handrail(flight, (level?.elevation ?? 0) + flight.rise0);
+        if (bar) rail += Math.hypot(bar.b.x - bar.a.x, bar.b.y - bar.a.y, bar.b.z - bar.a.z);
+      }
     }
     add('Stairs', 'Stair treads', treads, 'each');
     add('Stairs', 'Handrail', rail / 12, 'lin ft');
@@ -137,6 +139,8 @@ export function materialsCsv(list: readonly TakeoffLine[]): string {
 /** Area of a room face after each stair footprint is removed. */
 function openArea(polygon: Vec2[], stairs: readonly Stair[]): number {
   let pieces = [polygon];
-  for (const stair of stairs) pieces = pieces.flatMap((piece) => subtractConvex(piece, stairCorners(stair)));
+  for (const stair of stairs) {
+    for (const hole of stairOpenings(stair)) pieces = pieces.flatMap((piece) => subtractConvex(piece, hole));
+  }
   return pieces.reduce((sum, piece) => sum + Math.abs(polygonArea(piece)), 0);
 }

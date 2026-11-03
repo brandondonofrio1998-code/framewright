@@ -310,6 +310,19 @@ export const StairSchema = z.object({
   riser: z.number().positive().max(7.75),
   /** Equal tread depth, inches. At least 10, at most 10 feet. */
   tread: z.number().min(10).max(120),
+  /**
+   * Second flight of an L stair. Absent on a straight flight.
+   * The landing is a square of `width` between the flights.
+   */
+  landing: z
+    .object({
+      /** Unit vector of the second flight. Perpendicular to `dir`. */
+      dir: Vec2Schema,
+      run: z.number().positive().max(600),
+      risers: z.number().int().min(2).max(38),
+      tread: z.number().min(10).max(120),
+    })
+    .optional(),
 });
 export type Stair = z.infer<typeof StairSchema>;
 

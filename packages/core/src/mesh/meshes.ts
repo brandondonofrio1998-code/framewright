@@ -1,7 +1,7 @@
 import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
-import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, runRect, stairCorners, stairsOnLevel } from '../stairs/straight';
+import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
@@ -283,22 +283,32 @@ function objectSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: 
 function stairSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   const lumber = Object.values(doc.materials).find((material) => material.category === 'framing')?.id ?? null;
   for (const stair of stairsOnLevel(doc, levelId)) {
-    const treads = stair.risers - 1;
-    for (let k = 1; k <= treads; k++) {
-      const b = builder();
-      extrude(b, runRect(stair.start, stair.dir, stair.width, (k - 1) * stair.tread, k * stair.tread), elevation + k * stair.riser - TREAD_THICKNESS, elevation + k * stair.riser);
-      push(parts, finish(b, stair.id, lumber, 'solid'));
+    for (const flight of placedFlights(stair)) {
+      const base = elevation + flight.rise0;
+      const treads = flight.risers - 1;
+      for (let k = 1; k <= treads; k++) {
+        const b = builder();
+        extrude(b, runRect(flight.start, flight.dir, flight.width, (k - 1) * flight.tread, k * flight.tread), base + k * flight.riser - TREAD_THICKNESS, base + k * flight.riser);
+        push(parts, finish(b, stair.id, lumber, 'solid'));
+      }
+      for (let k = 1; k <= flight.risers; k++) {
+        const s = (k - 1) * flight.tread;
+        const b = builder();
+        extrude(b, runRect(flight.start, flight.dir, flight.width, s, s + RISER_THICKNESS), base + (k - 1) * flight.riser, base + k * flight.riser);
+        push(parts, finish(b, stair.id, lumber, 'solid'));
+      }
+      const rail = handrail(flight, base);
+      if (rail) {
+        const b = builder();
+        addRail(b, rail.a, rail.b, perp(flight.dir), HANDRAIL_SIZE);
+        push(parts, finish(b, stair.id, lumber, 'solid'));
+      }
     }
-    for (let k = 1; k <= stair.risers; k++) {
-      const s = (k - 1) * stair.tread;
+    const landing = landingPolygon(stair);
+    if (landing) {
+      const top = elevation + stair.risers * stair.riser;
       const b = builder();
-      extrude(b, runRect(stair.start, stair.dir, stair.width, s, s + RISER_THICKNESS), elevation + (k - 1) * stair.riser, elevation + k * stair.riser);
-      push(parts, finish(b, stair.id, lumber, 'solid'));
-    }
-    const rail = handrail(stair, elevation);
-    if (rail) {
-      const b = builder();
-      addRail(b, rail.a, rail.b, perp(stair.dir), HANDRAIL_SIZE);
+      extrude(b, landing, top - TREAD_THICKNESS, top);
       push(parts, finish(b, stair.id, lumber, 'solid'));
     }
   }
@@ -397,7 +407,9 @@ function ceilingSolids(doc: PlanDocument, levelId: Id, elevation: number, ceilin
 /** The polygon with each stair footprint removed. */
 function openingPieces(polygon: Vec2[], stairs: readonly Stair[]): Vec2[][] {
   let pieces = [polygon];
-  for (const stair of stairs) pieces = pieces.flatMap((piece) => subtractConvex(piece, stairCorners(stair)));
+  for (const stair of stairs) {
+    for (const hole of stairOpenings(stair)) pieces = pieces.flatMap((piece) => subtractConvex(piece, hole));
+  }
   return pieces;
 }
 

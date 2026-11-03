@@ -2,7 +2,7 @@ import { distance } from '../geometry/vec2';
 import { objectPrims } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { foundationsOnLevel } from '../foundations/slab';
-import { handrail, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
+import { handrail, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
 import type { Cad, Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
@@ -128,24 +128,23 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     });
   }
   for (const stair of stairsOnLevel(doc, levelId)) {
-    const rail = handrail(stair, 0);
-    items.push({
-      elementId: stair.id,
-      layer: 'objects',
-      prims: [
-        { t: 'polyline', pts: stairCorners(stair), closed: true, pen: 'stair' },
-        ...stairTreadLines(stair).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'stair' })),
-        ...(rail ? [{ t: 'line' as const, a: { x: rail.a.x, y: rail.a.y }, b: { x: rail.b.x, y: rail.b.y }, pen: 'stair' as const }] : []),
-      ],
-    });
+    const prims: Prim[] = [];
+    for (const flight of placedFlights(stair)) {
+      prims.push({ t: 'polyline', pts: stairCorners(flight), closed: true, pen: 'stair' });
+      prims.push(...stairTreadLines(flight).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'stair' })));
+      const rail = handrail(flight, flight.rise0);
+      if (rail) prims.push({ t: 'line', a: { x: rail.a.x, y: rail.a.y }, b: { x: rail.b.x, y: rail.b.y }, pen: 'stair' });
+    }
+    const landing = landingPolygon(stair);
+    if (landing) prims.push({ t: 'polyline', pts: landing, closed: true, pen: 'stair' });
+    items.push({ elementId: stair.id, layer: 'objects', prims });
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'stair' || el.toLevelId !== levelId || el.levelId === levelId) continue;
-    items.push({
-      elementId: el.id,
-      layer: 'objects',
-      prims: [{ t: 'polyline', pts: stairCorners(el), closed: true, pen: 'stair' }],
-    });
+    const prims: Prim[] = placedFlights(el).map((flight) => ({ t: 'polyline' as const, pts: stairCorners(flight), closed: true, pen: 'stair' as const }));
+    const landing = landingPolygon(el);
+    if (landing) prims.push({ t: 'polyline', pts: landing, closed: true, pen: 'stair' });
+    items.push({ elementId: el.id, layer: 'objects', prims });
   }
 
   for (const el of Object.values(doc.elements)) {

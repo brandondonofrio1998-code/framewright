@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, handrail, layoutFlight, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, HANDRAIL_HEIGHT, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
+import { buildLevelMeshes, handrail, landingPolygon, layoutFlight, placedFlights, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, HANDRAIL_HEIGHT, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -112,5 +112,32 @@ describe('straight stairs', () => {
     expect(rail.a.y).toBeCloseTo(18 - 0.75, 5);
     expect(rail.b.x).toBeCloseTo(140, 5);
     expect(handrail({ ...flight, risers: 3 }, 0)).toBeNull();
+  });
+
+  it('builds an L stair with a square landing and two flights', () => {
+    const ctx = withUpper();
+    const lower = ctx.history.doc.levels[ctx.baseLevelId]!;
+    const upper = ctx.history.doc.levels[ctx.history.doc.levelOrder[1]!]!;
+    const built = ctx.history.dispatch('stair.create', {
+      levelId: ctx.baseLevelId,
+      start: p(0, 0),
+      corner: p(120, 0),
+      end: p(120, 100),
+    });
+    if (!built.ok) throw new Error(built.error);
+    const stair = stairsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!;
+    expect(stair.landing).toBeDefined();
+    expect(stair.dir.x).toBeCloseTo(1, 5);
+    expect(stair.landing!.dir.y).toBeCloseTo(1, 5);
+    expect(stair.riser * (stair.risers + stair.landing!.risers)).toBeCloseTo(upper.elevation - lower.elevation, 5);
+    expect(stair.tread).toBeGreaterThanOrEqual(IRC_MIN_TREAD);
+    expect(stair.landing!.tread).toBeGreaterThanOrEqual(IRC_MIN_TREAD);
+    const landing = landingPolygon(stair);
+    if (!landing) throw new Error('missing landing');
+    expect(Math.hypot(landing[1]!.x - landing[0]!.x, landing[1]!.y - landing[0]!.y)).toBeCloseTo(36, 3);
+    const flights = placedFlights(stair);
+    expect(flights).toHaveLength(2);
+    expect(flights[1]!.rise0).toBeCloseTo(stair.risers * stair.riser, 5);
+    expect(pointInPolygon(p(120, 0), landing)).toBe(true);
   });
 });

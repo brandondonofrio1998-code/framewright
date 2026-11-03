@@ -1,5 +1,5 @@
 import { objectFootprint } from '../catalog/symbols';
-import { stairCorners, stairsOnLevel } from '../stairs/straight';
+import { landingPolygon, placedFlights, stairCorners, stairsOnLevel } from '../stairs/straight';
 import { dimensionLine } from '../display/display-list';
 import { openingOutline } from '../display/openings';
 import { dimensionsOnLevel, resolveDimensionEnd } from '../display/plan';
@@ -81,7 +81,11 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
     consider({ kind: 'object', id: el.id }, distanceToPolygon(p, objectFootprint(doc, el)));
   }
   if (best.picked) return best.picked;
-  for (const stair of stairsOnLevel(doc, levelId)) consider({ kind: 'stair', id: stair.id }, distanceToPolygon(p, stairCorners(stair)));
+  for (const stair of stairsOnLevel(doc, levelId)) {
+    for (const flight of placedFlights(stair)) consider({ kind: 'stair', id: stair.id }, distanceToPolygon(p, stairCorners(flight)));
+    const landing = landingPolygon(stair);
+    if (landing) consider({ kind: 'stair', id: stair.id }, distanceToPolygon(p, landing));
+  }
   if (best.picked) return best.picked;
   for (const geom of geometry.values()) {
     const d = pointInPolygon(p, geom.footprint) ? 0 : Math.max(0, projectOnSegment(p, geom.a, geom.b).distance - geom.thickness / 2);
@@ -139,7 +143,10 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
     const geom = geometry.get(o.wallId);
     if (geom && openingOutline(geom, o).every((p) => inside(p, box))) ids.push(o.id);
   }
-  for (const stair of stairsOnLevel(doc, levelId)) if (stairCorners(stair).every((p) => inside(p, box))) ids.push(stair.id);
+  for (const stair of stairsOnLevel(doc, levelId)) {
+    const points = [...placedFlights(stair).flatMap((flight) => stairCorners(flight)), ...(landingPolygon(stair) ?? [])];
+    if (points.every((p) => inside(p, box))) ids.push(stair.id);
+  }
   for (const el of Object.values(doc.elements)) {
     if (el.kind === 'cad' && el.levelId === levelId && cadPoints(el).every((p) => inside(p, box))) ids.push(el.id);
   }

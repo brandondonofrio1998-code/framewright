@@ -106,3 +106,117 @@ export function handrail(stair: Pick<Stair, 'start' | 'dir' | 'run' | 'width' | 
     b: { x: end.x, y: end.y, z: elevation + stair.risers * stair.riser + HANDRAIL_HEIGHT },
   };
 }
+
+export interface PlacedFlight {
+  start: Vec2;
+  dir: Vec2;
+  run: number;
+  width: number;
+  risers: number;
+  riser: number;
+  tread: number;
+  /** Height of this flight's floor above the lower floor. */
+  rise0: number;
+}
+
+/** The straight flight, or the two flights of an L stair. */
+export function placedFlights(stair: Stair): PlacedFlight[] {
+  const first: PlacedFlight = {
+    start: stair.start,
+    dir: stair.dir,
+    run: stair.run,
+    width: stair.width,
+    risers: stair.risers,
+    riser: stair.riser,
+    tread: stair.tread,
+    rise0: 0,
+  };
+  if (!stair.landing) return [first];
+  return [
+    first,
+    {
+      start: add(add(stair.start, scale(stair.dir, stair.run + stair.width / 2)), scale(stair.landing.dir, stair.width / 2)),
+      dir: stair.landing.dir,
+      run: stair.landing.run,
+      width: stair.width,
+      risers: stair.landing.risers,
+      riser: stair.riser,
+      tread: stair.landing.tread,
+      rise0: stair.risers * stair.riser,
+    },
+  ];
+}
+
+/** The landing between the flights of an L stair, or null for a straight flight. */
+export function landingPolygon(stair: Stair): Vec2[] | null {
+  if (!stair.landing) return null;
+  const center = add(stair.start, scale(stair.dir, stair.run + stair.width / 2));
+  const half = stair.width / 2;
+  const d = scale(stair.dir, half);
+  const t = scale(stair.landing.dir, half);
+  return [add(center, add(scale(d, -1), scale(t, -1))), add(center, add(d, scale(t, -1))), add(center, add(d, t)), add(center, add(scale(d, -1), t))];
+}
+
+/** Footprints to cut out of the ceiling and the floor above: each flight, and the landing. */
+export function stairOpenings(stair: Stair): Vec2[][] {
+  const flights = placedFlights(stair).map((flight) => stairCorners(flight));
+  const landing = landingPolygon(stair);
+  return landing ? [...flights, landing] : flights;
+}
+
+export interface TurnLayout {
+  riser: number;
+  first: { risers: number; tread: number };
+  second: { risers: number; tread: number; dir: Vec2 };
+}
+
+/** How many risers a run can hold: treads stay between 10 inches and 10 feet. */
+function riserRange(run: number): { min: number; max: number } | null {
+  const max = Math.floor(run / IRC_MIN_TREAD) + 1;
+  const min = Math.max(2, Math.ceil(run / 120 - 1e-9) + 1);
+  return max >= min ? { min, max } : null;
+}
+
+function splitRisers(total: number, a: { min: number; max: number }, b: { min: number; max: number }): { n1: number; n2: number } | null {
+  if (a.min + b.min > total || a.max + b.max < total) return null;
+  let n1 = Math.round((total * a.max) / (a.max + b.max));
+  n1 = Math.min(a.max, Math.max(a.min, n1));
+  let n2 = total - n1;
+  if (n2 > b.max) {
+    n1 -= n2 - b.max;
+    n2 = b.max;
+  }
+  if (n2 < b.min) {
+    n1 -= b.min - n2;
+    n2 = b.min;
+  }
+  if (n1 < a.min || n1 > a.max || n2 < b.min || n2 > b.max) return null;
+  return { n1, n2 };
+}
+
+/**
+ * An L stair: two flights and a square landing of `width`. `run1` and `run2` are the tread runs,
+ * not counting the landing. The second flight is perpendicular to the first.
+ */
+export function layoutTurn(totalRise: number, ceilingHeight: number, run1: number, run2: number, turn: Vec2): { ok: true; layout: TurnLayout } | { ok: false; error: string } {
+  if (!(totalRise > 0)) return { ok: false, error: 'The upper floor is not above this one.' };
+  if (totalRise > IRC_MAX_FLIGHT) return { ok: false, error: 'This flight rises more than 12 feet 7 inches. IRC 2021 wants a landing.' };
+  if (ceilingHeight < IRC_MIN_HEADROOM) return { ok: false, error: 'The ceiling is lower than the 6 foot 8 inch headroom.' };
+  const risers = Math.ceil((totalRise - 1e-6) / IRC_MAX_RISER);
+  if (risers < 4) return { ok: false, error: 'An L stair needs at least four risers.' };
+  const riser = totalRise / risers;
+  if (ceilingHeight - riser < IRC_MIN_HEADROOM - 1e-6) return { ok: false, error: 'The ceiling is too low for a 6 foot 8 inch headroom over the first step.' };
+  const first = riserRange(run1);
+  const second = riserRange(run2);
+  if (!first || !second) return { ok: false, error: 'Each flight needs at least one 10 inch tread before the landing.' };
+  const split = splitRisers(risers, first, second);
+  if (!split) return { ok: false, error: 'These runs are too short for the rise. Lengthen a flight or the landing will not fit.' };
+  return {
+    ok: true,
+    layout: {
+      riser,
+      first: { risers: split.n1, tread: run1 / (split.n1 - 1) },
+      second: { risers: split.n2, tread: run2 / (split.n2 - 1), dir: turn },
+    },
+  };
+}

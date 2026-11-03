@@ -61,10 +61,12 @@ async function undoRedo(app: ElectronApplication, kind: 'Undo' | 'Redo'): Promis
   await clickMenu(app, ['Edit', item!.label.replace(/&(&?)/g, '$1')]);
 }
 
-async function clickAt(window: Page, p: Vec2): Promise<void> {
+async function clickAt(window: Page, p: Vec2, shift = false): Promise<void> {
   const s = await screenOf(window, p);
   await window.mouse.move(s.x, s.y);
+  if (shift) await window.keyboard.down('Shift');
   await window.mouse.click(s.x, s.y);
+  if (shift) await window.keyboard.up('Shift');
 }
 
 async function dragFrom(window: Page, from: Vec2, to: Vec2): Promise<void> {
@@ -360,6 +362,23 @@ test('builds a straight stair up to the level above', async ({ electronApp, wind
   expect(stairs[0]!.riser).toBeLessThanOrEqual(7.75);
   expect(stairs[0]!.tread).toBeGreaterThanOrEqual(10);
   expect(stairs[0]!.width).toBe(36);
+  expect(consoleErrors).toEqual([]);
+});
+
+test('builds an L stair with a landing', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.locator('.dv-tab', { hasText: 'Levels' }).click();
+  await window.getByRole('button', { name: 'Add Level Above' }).click();
+  await window.getByRole('button', { name: 'Make Level 1 the active level' }).click();
+  await window.getByRole('button', { name: 'Stairs', exact: true }).click();
+  await clickAt(window, { x: -80, y: -30 });
+  await clickAt(window, { x: 40, y: -30 }, true);
+  await clickAt(window, { x: 40, y: 50 });
+  const plan = await savePlan(electronApp, userData, 'l-stair');
+  const stairs = ofKind(plan, 'stair') as unknown as { landing?: { dir: Vec2; risers: number } }[];
+  expect(stairs).toHaveLength(1);
+  expect(stairs[0]?.landing?.dir.y).toBeGreaterThan(0.9);
+  expect(stairs[0]?.landing?.risers).toBeGreaterThan(1);
   expect(consoleErrors).toEqual([]);
 });
 
