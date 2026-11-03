@@ -1,5 +1,6 @@
 import { serializeDocument } from '@framewright/core';
 import type { DocState } from '../../../shared/ipc';
+import { useAppearance } from '../app/appearance';
 import { documentTitle, useDocument, type DocumentState } from './store';
 
 function docStateOf(state: DocumentState): DocState {
@@ -10,6 +11,8 @@ function docStateOf(state: DocumentState): DocState {
     handle: state.file?.handle ?? null,
     undoLabel: state.undoLabel,
     redoLabel: state.redoLabel,
+    dark: useAppearance.getState().dark,
+    hiddenLayers: useAppearance.getState().hidden,
   };
 }
 
@@ -25,6 +28,7 @@ export function startDocumentSync(autosaveIntervalMs: number): () => void {
   };
   push(useDocument.getState());
   const unsubscribe = useDocument.subscribe(push);
+  const unwatchAppearance = useAppearance.subscribe(() => push(useDocument.getState()));
 
   let autosavedRevision = -1;
   const autosave = () => {
@@ -47,6 +51,7 @@ export function startDocumentSync(autosaveIntervalMs: number): () => void {
 
   return () => {
     unsubscribe();
+    unwatchAppearance();
     window.clearInterval(timer);
     window.removeEventListener('blur', autosave);
   };

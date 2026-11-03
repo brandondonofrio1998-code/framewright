@@ -20,6 +20,7 @@ import type { ToolId } from '../../../shared/ipc';
 import { history, useDocument } from '../document/store';
 import { deleteSelection } from '../editor/actions';
 import { notify, setSelection, setTool, useEditor } from '../editor/store';
+import { useAppearance } from '../app/appearance';
 import { createBreakTool } from '../tools/break-tool';
 import { createDimensionTool } from '../tools/dimension-tool';
 import { createTextTool } from '../tools/text-tool';
@@ -30,7 +31,7 @@ import { createSelectTool } from '../tools/select-tool';
 import type { PlanPointer, SnapRequest, Tool, ToolContext } from '../tools/types';
 import { createWallTool } from '../tools/wall-tool';
 import { LengthEntry, type LengthEntryState } from './LengthEntry';
-import { drawBox, drawDisplayList, drawGrid, drawHandle, drawLine, drawOutline, drawSnapGlyph } from './render';
+import { canvasBackground, drawBox, drawDisplayList, drawGrid, drawHandle, drawLine, drawOutline, drawSnapGlyph } from './render';
 import { Viewport } from './viewport';
 
 const SNAP_TOLERANCE_PX = 10;
@@ -107,7 +108,7 @@ export function PlanView() {
     if (!canvas || !ctx2d || !view || !toolCtx) return;
     const dpr = window.devicePixelRatio || 1;
     ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx2d.fillStyle = '#ffffff';
+    ctx2d.fillStyle = canvasBackground();
     ctx2d.fillRect(0, 0, view.width, view.height);
 
     const { doc: committed, activeLevelId } = useDocument.getState();
@@ -116,8 +117,9 @@ export function PlanView() {
     const shown = tool.preview?.(committed, toolCtx) ?? committed;
     const geometry = shown === committed ? geometryOf(committed, activeLevelId) : computeWallGeometry(shown, activeLevelId);
 
+    const list = buildPlanDisplayList(shown, activeLevelId, { geometry }).filter((item) => !useAppearance.getState().hidden.includes(item.layer));
     drawGrid(ctx2d, view, shown.settings.gridSpacing);
-    drawDisplayList(ctx2d, view, buildPlanDisplayList(shown, activeLevelId, { geometry }), new Set(selection));
+    drawDisplayList(ctx2d, view, list, new Set(selection));
     const studs = frameLevel(shown, activeLevelId, geometry).reduce((n, wall) => n + wall.members.filter((member) => member.kind === 'stud' || member.kind === 'king').length, 0);
     if (wrapRef.current) {
       wrapRef.current.dataset.studCount = String(studs);
@@ -235,6 +237,7 @@ export function PlanView() {
       }
       if (state.tool !== prev.tool || state.selection !== prev.selection || state.snaps !== prev.snaps) redraw();
     });
+    const offAppearance = useAppearance.subscribe(() => redraw());
     const offMenu = window.fw.menu.onCommand((command) => {
       const view = viewRef.current;
       if (!view) return;
@@ -249,6 +252,7 @@ export function PlanView() {
       offDoc();
       offHistory();
       offEditor();
+      offAppearance();
       offMenu();
     };
   }, [activeTool, fit, redraw, tools]);

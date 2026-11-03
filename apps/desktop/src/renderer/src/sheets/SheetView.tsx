@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { boundsOf, buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, fitDrawing, layoutSheet, pocheFill, type DisplayItem, type SheetLayout, type Vec2 } from '@framewright/core';
+import { useAppearance } from '../app/appearance';
 import { useDocument } from '../document/store';
 import { drawDisplayList } from '../plan/render';
 import { Viewport } from '../plan/viewport';
@@ -34,7 +35,7 @@ export function SheetView() {
     const height = wrap.clientHeight;
     if (width < 2 || height < 2) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = '#e4e7ec';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--fw-chrome').trim() || '#e4e7ec';
     ctx.fillRect(0, 0, width, height);
     const pad = 16;
     const fit = Math.min((width - pad * 2) / layout.width, (height - pad * 2) / layout.height);
@@ -166,6 +167,8 @@ export function SheetView() {
   useEffect(() => {
     redraw();
   }, [redraw]);
+
+  useEffect(() => useAppearance.subscribe(() => redraw()), [redraw]);
 
   return (
     <div className="sheet-view" ref={wrapRef} data-testid="sheet-view" data-scale={layout.scaleLabel} data-schedule={layout.scheduleRows.map((row) => row.mark).join(' ')} data-elevation={layout.elevation ? 'Front' : ''} data-section={layout.section ? 'Section' : ''}>

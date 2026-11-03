@@ -112,15 +112,14 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
   }
   for (const roof of roofsOnLevel(doc, levelId)) {
     items.push({
-      elementId: roof.id,
-      layer: 'objects',
+      layer: 'roof',
       prims: [{ t: 'polyline', pts: roof.polygon, closed: true, pen: 'roof' }],
     });
   }
   for (const foundation of foundationsOnLevel(doc, levelId)) {
     items.push({
       elementId: foundation.id,
-      layer: 'objects',
+      layer: 'foundation',
       prims: [
         { t: 'polyline', pts: foundation.polygon, closed: true, pen: 'foundation' },
         ...foundation.footings.map((footing): Prim => ({ t: 'polyline', pts: footing, closed: true, pen: 'foundation' })),
@@ -139,14 +138,14 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     }
     const landing = landingPolygon(stair);
     if (landing) prims.push({ t: 'polyline', pts: landing, closed: true, pen: 'stair' });
-    items.push({ elementId: stair.id, layer: 'objects', prims });
+    items.push({ elementId: stair.id, layer: 'stairs', prims });
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'stair' || el.toLevelId !== levelId || el.levelId === levelId) continue;
     const prims: Prim[] = placedFlights(el).map((flight) => ({ t: 'polyline' as const, pts: stairCorners(flight), closed: true, pen: 'stair' as const }));
     const landing = landingPolygon(el);
     if (landing) prims.push({ t: 'polyline', pts: landing, closed: true, pen: 'stair' });
-    items.push({ elementId: el.id, layer: 'objects', prims });
+    items.push({ elementId: el.id, layer: 'stairs', prims });
   }
 
   for (const el of Object.values(doc.elements)) {
@@ -155,7 +154,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'text' || el.levelId !== levelId) continue;
-    items.push({ elementId: el.id, layer: 'objects', prims: [{ t: 'text', p: el.p, s: el.text, size: el.size, rot: 0, align: 'left' }] });
+    items.push({ elementId: el.id, layer: 'text', prims: [{ t: 'text', p: el.p, s: el.text, size: el.size, rot: 0, align: 'left' }] });
   }
 
   const format = doc.settings.lengthFormat;

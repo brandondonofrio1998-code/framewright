@@ -29,7 +29,7 @@ describe('plan DXF', () => {
     const dxf = planDxf(ctx.history.doc, ctx.baseLevelId);
     expect(dxf).toContain('AC1015');
     expect(dxf).toContain('$INSUNITS');
-    for (const layer of ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions']) expect(dxf).toContain(layer);
+    for (const layer of ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs']) expect(dxf).toContain(layer);
     expect(entities(dxf)).toEqual([]);
     expect(dxf.trimEnd().endsWith('EOF')).toBe(true);
   });

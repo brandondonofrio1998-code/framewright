@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { boundsOf, buildPlanMeshes, buildSection, ELEVATION_FACINGS, pocheFill, type ElevationFacing, type Vec2 } from '@framewright/core';
 import { useDocument } from '../document/store';
-import { drawDisplayList, drawGrid } from '../plan/render';
+import { useAppearance } from '../app/appearance';
+import { canvasBackground, drawDisplayList, drawGrid } from '../plan/render';
 import { Viewport } from '../plan/viewport';
 
 const ZOOM_STEP = 1.25;
@@ -48,7 +49,7 @@ export function SectionView() {
     if (!canvas || !ctx || !view) return;
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = canvasBackground();
     ctx.fillRect(0, 0, view.width, view.height);
     drawGrid(ctx, view, doc.settings.gridSpacing);
     drawDisplayList(ctx, view, items);
@@ -113,6 +114,8 @@ export function SectionView() {
     canvas.addEventListener('wheel', onWheel, { passive: false });
     return () => canvas.removeEventListener('wheel', onWheel);
   }, [redraw]);
+
+  useEffect(() => useAppearance.subscribe(() => redraw()), [redraw]);
 
   useEffect(
     () =>

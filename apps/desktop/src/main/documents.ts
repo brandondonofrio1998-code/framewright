@@ -139,13 +139,14 @@ export class DocumentServices {
     const state = this.windows.get(win);
     if (!state) return;
     const labelsChanged = state.doc?.undoLabel !== doc.undoLabel || state.doc?.redoLabel !== doc.redoLabel;
+    const appearanceChanged = state.doc?.dark !== doc.dark || (state.doc?.hiddenLayers ?? []).join() !== doc.hiddenLayers.join();
     state.doc = doc;
     win.setTitle(`${doc.title}${doc.dirty && process.platform !== 'darwin' ? ' *' : ''} — ${this.opts.appName}`);
     if (process.platform === 'darwin') {
       win.setDocumentEdited(doc.dirty);
       win.setRepresentedFilename(this.handles.resolve(doc.handle) ?? '');
     }
-    if (labelsChanged) this.opts.onMenuStateChanged();
+    if (labelsChanged || appearanceChanged) this.opts.onMenuStateChanged();
   }
 
   private async readPlan(path: string): Promise<IpcResult<OpenedFile>> {

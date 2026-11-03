@@ -15,6 +15,23 @@
   color-scheme: light;
 }
 
+:root[data-theme='dark'] {
+  --fw-ink: #e7e4df;
+  --fw-ink-muted: #a8a29e;
+  --fw-chrome: #1c1f24;
+  --fw-chrome-raised: #262a31;
+  --fw-chrome-sunken: #15181c;
+  --fw-border: #3a4048;
+  --fw-canvas: #121418;
+  --fw-accent: #3cb8c4;
+  --fw-accent-soft: #16383c;
+  color-scheme: dark;
+}
+
+:root[data-theme='dark'] .view-3d {
+  background: #1c1f24;
+}
+
 * {
   box-sizing: border-box;
 }

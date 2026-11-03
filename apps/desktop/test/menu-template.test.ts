@@ -167,6 +167,20 @@ describe('menu template', () => {
     expect(send).toHaveBeenLastCalledWith({ type: 'view.zoomIn' });
   });
 
+  it('toggles dark mode and a plan layer from the View menu', () => {
+    const { template, send } = build('win32');
+    const view = submenu(top(template, 'View'));
+    const dark = find(view, 'Dark Mode');
+    expect(dark).toMatchObject({ type: 'checkbox', checked: false });
+    click(dark);
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.toggleDark' });
+    const layers = find(view, 'Layers');
+    const walls = find(submenu(layers), 'Walls');
+    expect(walls).toMatchObject({ type: 'checkbox', checked: true });
+    click(walls);
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.layer', layer: 'walls' });
+  });
+
   it('only exposes reload/devtools when dev tools are enabled', () => {
     const roles = (devTools: boolean) => submenu(top(build('win32', EMPTY_MENU_STATE, devTools).template, 'View')).map((i) => i.role);
     expect(roles(false)).not.toContain('toggleDevTools');

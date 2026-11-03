@@ -120,7 +120,13 @@ function createMainWindow(): BrowserWindow {
 async function refreshMenu(): Promise<void> {
   if (!services) return;
   const doc = services.docStateFor(BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]);
-  installMenu({ undoLabel: doc?.undoLabel ?? null, redoLabel: doc?.redoLabel ?? null, recent: await services.recentRefs() });
+  installMenu({
+    undoLabel: doc?.undoLabel ?? null,
+    redoLabel: doc?.redoLabel ?? null,
+    recent: await services.recentRefs(),
+    dark: doc?.dark ?? false,
+    hiddenLayers: doc?.hiddenLayers ?? [],
+  });
 }
 
 function installMenu(state: MenuState): void {

@@ -22,6 +22,7 @@ import {
   type Vec2,
 } from '@framewright/core';
 import { dispatch } from '../document/store';
+import { layerVisible } from '../app/appearance';
 import { objectSpotAt, type ObjectSpot } from './object-placement';
 import { openingClearances, openingSpotAt, type OpeningSpot } from './opening-placement';
 import type { Overlay, PlanPointer, Tool, ToolContext } from './types';
@@ -82,7 +83,7 @@ export function createSelectTool(): Tool {
       }
 
       const hit = pickElement(doc, ctx.levelId(), ctx.geometry(), e.model, ctx.view.model(PICK_TOLERANCE_PX));
-      if (!hit) {
+      if (!hit || !layerVisible(doc, hit.id)) {
         if (!e.shift) ctx.setSelection([]);
         drag = { kind: 'box', start: e.model, end: e.model, additive: e.shift };
         ctx.redraw();
@@ -247,7 +248,7 @@ export function createSelectTool(): Tool {
             maxX: Math.max(current.start.x, current.end.x),
             maxY: Math.max(current.start.y, current.end.y),
           };
-          const ids = elementsInBox(ctx.doc(), ctx.levelId(), ctx.geometry(), box);
+          const ids = elementsInBox(ctx.doc(), ctx.levelId(), ctx.geometry(), box).filter((id) => layerVisible(ctx.doc(), id));
           ctx.setSelection(current.additive ? [...new Set([...ctx.selection(), ...ids])] : ids);
           break;
         }

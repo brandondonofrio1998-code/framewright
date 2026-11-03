@@ -3,6 +3,7 @@ import type { AppInfo, MenuCommand, RecoveryEntry } from '../../../shared/ipc';
 import { newPlan, openHandle, openPlan, restoreRecovered, save, saveAndClose, saveAs, exportDxf, exportGlb, exportMaterials, exportSheet, importDxf } from '../document/file-actions';
 import { history, setAppVersion } from '../document/store';
 import { deleteSelection, isEditable, selectAll, buildFoundation, buildGable, buildHip } from '../editor/actions';
+import { useAppearance } from './appearance';
 import { setTool } from '../editor/store';
 import { startDocumentSync } from '../document/sync';
 import { RecoveryDialog } from './RecoveryDialog';
@@ -66,6 +67,12 @@ function handleMenu(command: MenuCommand): void {
     case 'view.fit':
     case 'view.zoomIn':
     case 'view.zoomOut':
+      return;
+    case 'view.toggleDark':
+      useAppearance.getState().toggleDark();
+      return;
+    case 'view.layer':
+      useAppearance.getState().toggleLayer(command.layer);
       return;
   }
 }

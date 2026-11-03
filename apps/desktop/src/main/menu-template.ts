@@ -5,9 +5,11 @@ export interface MenuState {
   undoLabel: string | null;
   redoLabel: string | null;
   recent: FileRef[];
+  dark: boolean;
+  hiddenLayers: string[];
 }
 
-export const EMPTY_MENU_STATE: MenuState = { undoLabel: null, redoLabel: null, recent: [] };
+export const EMPTY_MENU_STATE: MenuState = { undoLabel: null, redoLabel: null, recent: [], dark: false, hiddenLayers: [] };
 
 export interface MenuContext {
   platform: Platform;
@@ -148,6 +150,30 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       { label: 'Section', click: () => ctx.send({ type: 'view.showSection' }) },
       sep,
       { label: 'Reset Layout', click: () => ctx.send({ type: 'view.resetLayout' }) },
+      sep,
+      { label: 'Dark Mode', type: 'checkbox', checked: ctx.state.dark, click: () => ctx.send({ type: 'view.toggleDark' }) },
+      {
+        label: 'Layers',
+        submenu: (
+          [
+            ['walls', 'Walls'],
+            ['openings', 'Openings'],
+            ['objects', 'Objects'],
+            ['rooms', 'Rooms'],
+            ['dimensions', 'Dimensions'],
+            ['text', 'Text'],
+            ['roof', 'Roof'],
+            ['foundation', 'Foundation'],
+            ['stairs', 'Stairs'],
+            ['reference', 'Reference'],
+          ] as const
+        ).map(([id, name]): MenuItemConstructorOptions => ({
+          label: name,
+          type: 'checkbox',
+          checked: !ctx.state.hiddenLayers.includes(id),
+          click: () => ctx.send({ type: 'view.layer', layer: id }),
+        })),
+      },
       sep,
       { role: 'togglefullscreen' },
       ...(ctx.devTools

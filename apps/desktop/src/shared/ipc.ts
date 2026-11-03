@@ -76,6 +76,8 @@ export interface DocState {
   handle: FileHandle | null;
   undoLabel: string | null;
   redoLabel: string | null;
+  dark: boolean;
+  hiddenLayers: string[];
 }
 
 export type DiscardChoice = 'save' | 'discard' | 'cancel';
@@ -107,6 +109,8 @@ export type MenuCommand =
   | { type: 'build.hip' }
   | { type: 'foundation.build' }
   | { type: 'view.resetLayout' }
+  | { type: 'view.toggleDark' }
+  | { type: 'view.layer'; layer: string }
   | { type: 'view.fit' }
   | { type: 'view.zoomIn' }
   | { type: 'view.zoomOut' }
@@ -134,6 +138,7 @@ const SIMPLE_COMMANDS = new Set([
   'edit.delete',
   'edit.selectAll',
   'view.resetLayout',
+  'view.toggleDark',
   'view.fit',
   'view.zoomIn',
   'view.zoomOut',
@@ -150,6 +155,7 @@ export function isMenuCommand(value: unknown): value is MenuCommand {
   const { type, handle, tool } = value as { type?: unknown; handle?: unknown; tool?: unknown };
   if (type === 'file.openHandle') return typeof handle === 'string';
   if (type === 'tool.activate') return (TOOL_IDS as readonly unknown[]).includes(tool);
+  if (type === 'view.layer') return typeof (value as { layer?: unknown }).layer === 'string';
   if (type === 'view.show3d') {
     const mode = (value as { mode?: unknown }).mode;
     return mode === 'orbit' || mode === 'walk';

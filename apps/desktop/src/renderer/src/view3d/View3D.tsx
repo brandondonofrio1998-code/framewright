@@ -33,6 +33,7 @@ import {
   type Vec3,
   type WalkPose,
 } from '@framewright/core';
+import { useAppearance } from '../app/appearance';
 import { dispatch, setActiveLevel, useDocument } from '../document/store';
 import { notify } from '../editor/store';
 import { TEXTURE_URLS } from './textures';
@@ -390,6 +391,7 @@ function Scene({
   rootRef,
   textured,
   onTextured,
+  dark,
 }: {
   doc: PlanDocument;
   parts: MeshPart[];
@@ -401,6 +403,7 @@ function Scene({
   rootRef: RefObject<HTMLDivElement | null>;
   textured: number;
   onTextured: (count: number) => void;
+  dark: boolean;
 }) {
   const groups = useMemo(() => {
     const flat: { part: MeshPart; color: string }[] = [];
@@ -422,7 +425,7 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={['#e4e7ec']} />
+      <color attach="background" args={[dark ? '#1c1f24' : '#e4e7ec']} />
       <ambientLight intensity={0.55} />
       <hemisphereLight args={['#f4f7fb', '#d9cbb8', 0.4]} />
       <directionalLight position={[180, -120, 260]} intensity={1.15} />
@@ -449,6 +452,7 @@ export function View3D() {
   const mode = useView3d((s) => s.mode);
   const camerasOpen = useView3d((s) => s.camerasOpen);
   const recall = useView3d((s) => s.recall);
+  const dark = useAppearance((s) => s.dark);
   const rootRef = useRef<HTMLDivElement>(null);
   const placedRef = useRef(false);
   const liveRef = useRef<LiveView>({ eye: { x: 0, y: -10, z: 66 }, target: { x: 0, y: 0, z: 66 } });
@@ -487,6 +491,7 @@ export function View3D() {
             rootRef={rootRef}
             textured={textured}
             onTextured={setShownTextures}
+            dark={dark}
           />
         </Suspense>
       </Canvas>

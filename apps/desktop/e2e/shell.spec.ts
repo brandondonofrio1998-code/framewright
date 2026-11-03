@@ -1,4 +1,4 @@
-import { blockedRequests, expect, test } from './fixtures';
+import { blockedRequests, clickMenu, expect, test } from './fixtures';
 
 test('opens the workspace with toolbar, docked panels and status bar', async ({ window, consoleErrors }) => {
   await expect(window).toHaveTitle('Framewright');
@@ -11,6 +11,16 @@ test('opens the workspace with toolbar, docked panels and status bar', async ({ 
   await expect(window.getByTestId('status-tool')).toBeVisible();
   expect(consoleErrors).toEqual([]);
   await window.screenshot({ path: test.info().outputPath('workspace.png') });
+});
+
+test('dark mode and hiding walls are view choices', async ({ electronApp, window, consoleErrors }) => {
+  await clickMenu(electronApp, ['View', 'Dark Mode']);
+  await expect.poll(() => window.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
+  await clickMenu(electronApp, ['View', 'Layers', 'Walls']);
+  await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');
+  await clickMenu(electronApp, ['View', 'Dark Mode']);
+  await expect.poll(() => window.evaluate(() => document.documentElement.dataset.theme)).toBe('light');
+  expect(consoleErrors).toEqual([]);
 });
 
 test('renderer is sandboxed and only sees the preload API', async ({ window }) => {

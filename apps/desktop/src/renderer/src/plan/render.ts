@@ -36,8 +36,40 @@ const GRID_MINOR = '#efedea';
 const GRID_MAJOR = '#e2dfdb';
 const AXIS = '#d4d0ca';
 
+let canvasDark = false;
+
+export function setCanvasDark(next: boolean): void {
+  canvasDark = next;
+}
+
+export function canvasBackground(): string {
+  return canvasDark ? '#121418' : '#ffffff';
+}
+
+const DARK_INK: Record<PenId, string> = {
+  'wall.face': '#e7e4df',
+  'wall.layer': '#a39e97',
+  dimension: '#d5d0c8',
+  reference: '#6f6a64',
+  opening: '#e7e4df',
+  'opening.swing': '#b7b1a8',
+  'opening.hidden': '#b7b1a8',
+  object: '#e7e4df',
+  'object.detail': '#b7b1a8',
+  'object.hidden': '#b7b1a8',
+  roof: '#d2b48c',
+  foundation: '#b7c4bc',
+  stair: '#c5d0e0',
+};
+
+function penOf(pen: PenStyle | PenId): PenStyle {
+  if (typeof pen !== 'string') return pen;
+  const style = PENS[pen];
+  return canvasDark ? { ...style, color: DARK_INK[pen] } : style;
+}
+
 function applyPen(ctx: CanvasRenderingContext2D, pen: PenStyle | PenId, override?: string) {
-  const style = typeof pen === 'string' ? PENS[pen] : pen;
+  const style = penOf(pen);
   ctx.lineWidth = style.width;
   ctx.strokeStyle = override ?? style.color;
   ctx.setLineDash(style.dash ?? []);
@@ -54,10 +86,12 @@ function path(ctx: CanvasRenderingContext2D, view: Viewport, pts: readonly Vec2[
 
 export function drawGrid(ctx: CanvasRenderingContext2D, view: Viewport, spacing: number): void {
   const bounds = view.visibleBounds();
-  const levels = [
-    { step: spacing, color: GRID_MINOR },
-    { step: spacing * 10, color: GRID_MAJOR },
-  ];
+    const minor = canvasDark ? '#2a2e34' : GRID_MINOR;
+    const major = canvasDark ? '#343a42' : GRID_MAJOR;
+    const levels = [
+      { step: spacing, color: minor },
+      { step: spacing * 10, color: major },
+    ];
   for (const { step, color } of levels) {
     if (step * view.scale < 8) continue;
     ctx.beginPath();
@@ -80,7 +114,7 @@ export function drawGrid(ctx: CanvasRenderingContext2D, view: Viewport, spacing:
   ctx.lineTo(Math.round(origin.x) + 0.5, view.height);
   ctx.moveTo(0, Math.round(origin.y) + 0.5);
   ctx.lineTo(view.width, Math.round(origin.y) + 0.5);
-  applyPen(ctx, { width: 1, color: AXIS });
+  applyPen(ctx, { width: 1, color: canvasDark ? '#3e4650' : AXIS });
   ctx.stroke();
 }
 
@@ -139,7 +173,7 @@ export function drawDisplayList(ctx: CanvasRenderingContext2D, view: Viewport, i
           break;
         }
         case 'text':
-          drawText(ctx, view, prim, color ?? PENS.dimension.color);
+          drawText(ctx, view, prim, color ?? penOf('dimension').color);
           break;
         case 'poly':
           break;
@@ -167,7 +201,7 @@ export function drawLine(ctx: CanvasRenderingContext2D, view: Viewport, a: Vec2,
 export function drawHandle(ctx: CanvasRenderingContext2D, view: Viewport, p: Vec2): void {
   const s = view.toScreen(p);
   ctx.setLineDash([]);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = canvasBackground();
   ctx.strokeStyle = ACCENT;
   ctx.lineWidth = 1.5;
   ctx.fillRect(s.x - 4, s.y - 4, 8, 8);
