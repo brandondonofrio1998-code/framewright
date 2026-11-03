@@ -532,6 +532,9 @@ test('places doors and windows on walls, refusing overlaps', async ({ electronAp
   await expect(window.getByTestId('status-notice')).toHaveText('Openings on the same wall cannot overlap.');
   plan = await savePlan(electronApp, userData, 'refused');
   expect(openings(plan)).toHaveLength(2);
+  await window.locator('.dv-default-tab-content', { hasText: 'Sheet' }).click();
+  await expect(window.getByTestId('sheet-view')).toHaveAttribute('data-schedule', /D1/);
+  await expect(window.getByTestId('sheet-view')).toHaveAttribute('data-schedule', /W1/);
   expect(consoleErrors).toEqual([]);
   await window.screenshot({ path: test.info().outputPath('openings.png') });
 });

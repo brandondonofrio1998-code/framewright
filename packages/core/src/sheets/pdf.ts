@@ -70,6 +70,21 @@ export async function sheetPdf(doc: PlanDocument, levelId: Id): Promise<Uint8Arr
   page.drawText(layout.levelName, { x: (layout.title.x + layout.title.w / 2) * PT - levelWidth / 2, y: baseline, size: 12, font, color: ink });
   const right = `${layout.scaleLabel}    Sheet 1    ${layout.date}`;
   page.drawText(right, { x: (layout.title.x + layout.title.w) * PT - 10 - font.widthOfTextAtSize(right, 12), y: baseline, size: 12, font, color: ink });
+  if (layout.schedule) {
+    const box = layout.schedule;
+    page.drawLine({
+      start: { x: box.x * PT, y: box.y * PT },
+      end: { x: box.x * PT, y: (box.y + box.h) * PT },
+      thickness: 0.8,
+      color: ink,
+    });
+    page.drawText('Openings', { x: box.x * PT + 8, y: (box.y + box.h - 0.32) * PT, size: 9, font, color: ink });
+    layout.scheduleRows.forEach((row, index) => {
+      const y = (box.y + box.h - 0.62 - index * 0.32) * PT;
+      if (y < box.y * PT + 4) return;
+      page.drawText(`${row.mark}  ${row.size}  ${row.style}  ${row.count}`, { x: box.x * PT + 8, y, size: 8, font, color: ink });
+    });
+  }
 
   const vx = layout.viewport.x * PT;
   const vy = layout.viewport.y * PT;

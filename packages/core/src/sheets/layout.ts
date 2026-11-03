@@ -1,12 +1,15 @@
 import { buildPlanDisplayList } from '../display/plan';
 import type { DisplayItem } from '../display/display-list';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
+import { openingSchedule, type ScheduleRow } from '../schedules/openings';
 
 /** ARCH D, landscape, in inches. */
 export const SHEET_WIDTH = 36;
 export const SHEET_HEIGHT = 24;
 const MARGIN = 0.5;
 const TITLE_HEIGHT = 1.5;
+/** Paper inches kept for the opening schedule when the level has a door or a window. */
+const SCHEDULE_WIDTH = 8;
 
 /** Model inches represented by one paper inch, and the label printed in the title block. Largest drawing first. */
 const SCALES: { modelPerPaper: number; label: string }[] = [
@@ -40,6 +43,9 @@ export interface SheetLayout {
   scaleLabel: string;
   /** Model point drawn at the center of the viewport. */
   center: Vec2;
+  /** Opening schedule, to the right of the plan. Null when the level has no doors or windows. */
+  schedule: PaperRect | null;
+  scheduleRows: ScheduleRow[];
   titleText: string;
   levelName: string;
   date: string;
@@ -49,7 +55,15 @@ export interface SheetLayout {
 export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
   const border: PaperRect = { x: MARGIN, y: MARGIN, w: SHEET_WIDTH - MARGIN * 2, h: SHEET_HEIGHT - MARGIN * 2 };
   const title: PaperRect = { x: border.x, y: border.y, w: border.w, h: TITLE_HEIGHT };
-  const viewport: PaperRect = { x: border.x, y: border.y + TITLE_HEIGHT, w: border.w, h: border.h - TITLE_HEIGHT };
+  const rows = openingSchedule(doc, levelId);
+  const scheduleW = rows.length > 0 ? SCHEDULE_WIDTH : 0;
+  const viewport: PaperRect = {
+    x: border.x,
+    y: border.y + TITLE_HEIGHT,
+    w: border.w - scheduleW,
+    h: border.h - TITLE_HEIGHT,
+  };
+  const schedule: PaperRect | null = scheduleW > 0 ? { x: border.x + viewport.w, y: viewport.y, w: scheduleW, h: viewport.h } : null;
   const bounds = itemBounds(buildPlanDisplayList(doc, levelId));
   const pad = 12;
   const chosen = bounds
@@ -67,6 +81,8 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
     modelPerPaper: chosen.modelPerPaper,
     scaleLabel: chosen.label,
     center: bounds ? { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 } : { x: 0, y: 0 },
+    schedule,
+    scheduleRows: rows,
     titleText: doc.meta.title.trim() || 'Untitled',
     levelName: level?.name ?? '',
     date,

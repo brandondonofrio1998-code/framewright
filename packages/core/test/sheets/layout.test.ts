@@ -17,6 +17,7 @@ describe('sheet layout', () => {
     expect(sheet.titleText).toBe('Untitled');
     expect(sheet.levelName).toBe('Level 1');
     expect(sheet.scaleLabel).toBe('1/4" = 1\'-0"');
+    expect(sheet.schedule).toBeNull();
   });
 
   it('picks a standard scale that fits a room', () => {

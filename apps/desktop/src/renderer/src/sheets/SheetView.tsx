@@ -58,6 +58,22 @@ export function SheetView() {
     ctx.fillText(layout.levelName, mid.x + (layout.title.w * fit) / 2, mid.y);
     ctx.textAlign = 'right';
     ctx.fillText(`${layout.scaleLabel}    Sheet 1    ${layout.date}`, mid.x + layout.title.w * fit - 10, mid.y);
+    if (layout.schedule) {
+      const box = layout.schedule;
+      const top = paper({ x: box.x, y: box.y + box.h });
+      ctx.beginPath();
+      ctx.moveTo(top.x, top.y);
+      ctx.lineTo(top.x, top.y + box.h * fit);
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.font = `${Math.max(9, 0.14 * fit)}px system-ui, sans-serif`;
+      ctx.fillText('Openings', top.x + 8, top.y + 0.28 * fit);
+      layout.scheduleRows.forEach((row, index) => {
+        const y = top.y + (0.62 + index * 0.32) * fit;
+        if (y > top.y + box.h * fit - 0.2 * fit) return;
+        ctx.fillText(`${row.mark}  ${row.size}  ${row.style}  ${row.count}`, top.x + 8, y);
+      });
+    }
 
     const viewTop = paper({ x: layout.viewport.x, y: layout.viewport.y + layout.viewport.h });
     const viewW = layout.viewport.w * fit;
@@ -100,7 +116,7 @@ export function SheetView() {
   }, [redraw]);
 
   return (
-    <div className="sheet-view" ref={wrapRef} data-testid="sheet-view" data-scale={layout.scaleLabel}>
+    <div className="sheet-view" ref={wrapRef} data-testid="sheet-view" data-scale={layout.scaleLabel} data-schedule={layout.scheduleRows.map((row) => row.mark).join(' ')}>
       <canvas ref={canvasRef} className="sheet-canvas" />
     </div>
   );

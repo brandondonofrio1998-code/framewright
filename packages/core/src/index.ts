@@ -34,6 +34,7 @@ export * from './foundations/joists';
 export * from './stairs/straight';
 export * from './takeoff/materials';
 export * from './sheets/layout';
+export * from './schedules/openings';
 export * from './sheets/pdf';
 export * from './export/dxf';
 export * from './export/dxf-import';
