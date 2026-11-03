@@ -21,10 +21,13 @@ import {
   stroke,
   type PDFPage,
 } from 'pdf-lib';
+import { buildElevation } from '../elevate/elevation';
+import { buildPlanMeshes } from '../mesh/meshes';
+import { boundsOf } from '../geometry/vec2';
 import { buildPlanDisplayList } from '../display/plan';
 import type { FillId, PenId } from '../display/display-list';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
-import { layoutSheet, SHEET_HEIGHT, SHEET_WIDTH, type PaperRect, type SheetLayout } from './layout';
+import { fitDrawing, layoutSheet, SHEET_HEIGHT, SHEET_WIDTH, type PaperRect, type SheetLayout } from './layout';
 
 const PT = 72;
 
@@ -86,6 +89,19 @@ export async function sheetPdf(doc: PlanDocument, levelId: Id): Promise<Uint8Arr
     });
   }
 
+  drawModel(page, layout, items, font, ink);
+  if (layout.elevation) {
+    const lines = buildElevation(buildPlanMeshes(doc), 'front');
+    const points = lines.flatMap((item) => item.prims.flatMap((prim) => (prim.t === 'line' ? [prim.a, prim.b] : [])));
+    const fitted = fitDrawing(boundsOf(points), layout.elevation);
+    const view: SheetLayout = { ...layout, viewport: layout.elevation, modelPerPaper: fitted.modelPerPaper, center: fitted.center, scaleLabel: fitted.scaleLabel };
+    drawModel(page, view, lines, font, ink);
+    page.drawText(`Front    ${fitted.scaleLabel}`, { x: layout.elevation.x * PT + 8, y: (layout.elevation.y + layout.elevation.h - 0.32) * PT, size: 9, font, color: ink });
+  }
+  return pdf.save();
+}
+
+function drawModel(page: PDFPage, layout: SheetLayout, items: ReturnType<typeof buildPlanDisplayList>, font: Awaited<ReturnType<PDFDocument['embedFont']>>, ink: ReturnType<typeof rgb>): void {
   const vx = layout.viewport.x * PT;
   const vy = layout.viewport.y * PT;
   page.pushOperators(pushGraphicsState(), rectangle(vx, vy, layout.viewport.w * PT, layout.viewport.h * PT), clip(), endPath());
@@ -127,7 +143,6 @@ export async function sheetPdf(doc: PlanDocument, levelId: Id): Promise<Uint8Arr
     }
   }
   page.pushOperators(popGraphicsState());
-  return pdf.save();
 }
 
 function modelPoint(layout: SheetLayout, point: Vec2): Vec2 {

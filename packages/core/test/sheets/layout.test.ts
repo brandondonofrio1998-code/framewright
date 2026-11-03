@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
-import { buildPlanDisplayList, layoutSheet, sheetPdf, SHEET_HEIGHT, SHEET_WIDTH } from '../../src';
+import { buildElevation, buildPlanDisplayList, buildPlanMeshes, boundsOf, fitDrawing, layoutSheet, sheetPdf, SHEET_HEIGHT, SHEET_WIDTH } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -18,6 +18,7 @@ describe('sheet layout', () => {
     expect(sheet.levelName).toBe('Level 1');
     expect(sheet.scaleLabel).toBe('1/4" = 1\'-0"');
     expect(sheet.schedule).toBeNull();
+    expect(sheet.elevation).toBeNull();
   });
 
   it('picks a standard scale that fits a room', () => {
@@ -52,6 +53,16 @@ describe('sheet layout', () => {
     expect(sheet.center.x).toBeGreaterThan(100);
     expect(sheet.center.x).toBeLessThan(140);
     expect(sheet.scaleLabel).toMatch(/=\s*1'-0"/);
+    expect(sheet.elevation).not.toBeNull();
+    expect(sheet.viewport.y).toBeGreaterThanOrEqual(sheet.elevation!.y + sheet.elevation!.h - 0.01);
+    const lines = buildElevation(buildPlanMeshes(ctx.history.doc), 'front');
+    const points = lines.flatMap((item) => item.prims.flatMap((prim) => (prim.t === 'line' ? [prim.a, prim.b] : [])));
+    const fitted = fitDrawing(boundsOf(points), sheet.elevation!);
+    const width = (boundsOf(points)!.maxX - boundsOf(points)!.minX) / fitted.modelPerPaper;
+    const height = (boundsOf(points)!.maxY - boundsOf(points)!.minY) / fitted.modelPerPaper;
+    expect(width).toBeLessThanOrEqual(sheet.elevation!.w);
+    expect(height).toBeLessThanOrEqual(sheet.elevation!.h);
+    expect(lines.some((item) => item.prims.length > 0)).toBe(true);
   });
 
   it('writes a one-page PDF the size of the sheet', async () => {

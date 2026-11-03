@@ -10,6 +10,8 @@ const MARGIN = 0.5;
 const TITLE_HEIGHT = 1.5;
 /** Paper inches kept for the opening schedule when the level has a door or a window. */
 const SCHEDULE_WIDTH = 8;
+/** Paper inches for the front elevation when the plan has walls. */
+const ELEVATION_HEIGHT = 6.5;
 
 /** Model inches represented by one paper inch, and the label printed in the title block. Largest drawing first. */
 const SCALES: { modelPerPaper: number; label: string }[] = [
@@ -46,6 +48,8 @@ export interface SheetLayout {
   /** Opening schedule, to the right of the plan. Null when the level has no doors or windows. */
   schedule: PaperRect | null;
   scheduleRows: ScheduleRow[];
+  /** Front elevation, above the title block. Null when the plan has no walls. */
+  elevation: PaperRect | null;
   titleText: string;
   levelName: string;
   date: string;
@@ -57,19 +61,18 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
   const title: PaperRect = { x: border.x, y: border.y, w: border.w, h: TITLE_HEIGHT };
   const rows = openingSchedule(doc, levelId);
   const scheduleW = rows.length > 0 ? SCHEDULE_WIDTH : 0;
+  const hasWalls = Object.values(doc.elements).some((el) => el.kind === 'wall');
+  const elevationH = hasWalls ? ELEVATION_HEIGHT : 0;
+  const elevation: PaperRect | null = elevationH > 0 ? { x: border.x, y: border.y + TITLE_HEIGHT, w: border.w, h: elevationH } : null;
   const viewport: PaperRect = {
     x: border.x,
-    y: border.y + TITLE_HEIGHT,
+    y: border.y + TITLE_HEIGHT + elevationH,
     w: border.w - scheduleW,
-    h: border.h - TITLE_HEIGHT,
+    h: border.h - TITLE_HEIGHT - elevationH,
   };
   const schedule: PaperRect | null = scheduleW > 0 ? { x: border.x + viewport.w, y: viewport.y, w: scheduleW, h: viewport.h } : null;
   const bounds = itemBounds(buildPlanDisplayList(doc, levelId));
-  const pad = 12;
-  const chosen = bounds
-    ? (SCALES.find((scale) => scale.modelPerPaper >= Math.max((Math.max(bounds.maxX - bounds.minX, 24) + pad * 2) / viewport.w, (Math.max(bounds.maxY - bounds.minY, 24) + pad * 2) / viewport.h) - 1e-6) ??
-      SCALES[SCALES.length - 1]!)
-    : { modelPerPaper: 48, label: '1/4" = 1\'-0"' };
+  const chosen = fitDrawing(bounds, viewport);
   const level = doc.levels[levelId];
   const date = /^\d{4}-\d{2}-\d{2}/.test(doc.meta.modified) ? doc.meta.modified.slice(0, 10) : '';
   return {
@@ -79,13 +82,28 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
     title,
     viewport,
     modelPerPaper: chosen.modelPerPaper,
-    scaleLabel: chosen.label,
-    center: bounds ? { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 } : { x: 0, y: 0 },
+    scaleLabel: chosen.scaleLabel,
+    center: chosen.center,
     schedule,
     scheduleRows: rows,
+    elevation,
     titleText: doc.meta.title.trim() || 'Untitled',
     levelName: level?.name ?? '',
     date,
+  };
+}
+
+/** The largest standard scale that fits `bounds` in `frame`, and the point drawn at the frame's center. */
+export function fitDrawing(bounds: { minX: number; minY: number; maxX: number; maxY: number } | null, frame: PaperRect): { modelPerPaper: number; scaleLabel: string; center: Vec2 } {
+  const pad = 12;
+  const chosen = bounds
+    ? (SCALES.find((scale) => scale.modelPerPaper >= Math.max((Math.max(bounds.maxX - bounds.minX, 24) + pad * 2) / frame.w, (Math.max(bounds.maxY - bounds.minY, 24) + pad * 2) / frame.h) - 1e-6) ??
+      SCALES[SCALES.length - 1]!)
+    : { modelPerPaper: 48, label: '1/4" = 1\'-0"' };
+  return {
+    modelPerPaper: chosen.modelPerPaper,
+    scaleLabel: chosen.label,
+    center: bounds ? { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 } : { x: 0, y: 0 },
   };
 }
 
