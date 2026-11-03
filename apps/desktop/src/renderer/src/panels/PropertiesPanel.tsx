@@ -363,7 +363,7 @@ export function PropertiesPanel() {
             </span>
           </dd>
         </dl>
-        <p className="panel-hint">The stem can continue above the floor, and the slab can drop to leave a basement under it. A deep enough rectangular basement gets 2x10 joists. Build the foundation again after the walls change.</p>
+        <p className="panel-hint">The stem can continue above the floor, and the slab can drop to leave a basement under it. A deep enough rectangle or L gets 2x10 joists. Build the foundation again after the walls change.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

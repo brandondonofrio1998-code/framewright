@@ -147,4 +147,24 @@ describe('slab foundations', () => {
     const row = lines.find((line) => line.name === 'Floor joists');
     expect(row?.quantity).toBeCloseTo((joists.length * joists[0]!.length) / 12, 3);
   });
+
+  it('joists both bays of an L-shaped basement', () => {
+    const ctx = room([p(0, 0), p(200, 0), p(200, 80), p(80, 80), p(80, 160), p(0, 160)]);
+    const built = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId });
+    if (!built.ok) throw new Error(built.error);
+    const opened = ctx.history.dispatch('foundation.setClearance', { id: foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!.id, clearance: 96 });
+    if (!opened.ok) throw new Error(opened.error);
+    const foundation = foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!;
+    const floorBottom = ctx.history.doc.levels[ctx.baseLevelId]!.elevation - FLOOR_FINISH;
+    const joists = floorJoists(foundation, floorBottom);
+    const center = (pts: { x: number; y: number }[]) => ({
+      x: pts.reduce((sum, pt) => sum + pt.x, 0) / pts.length,
+      y: pts.reduce((sum, pt) => sum + pt.y, 0) / pts.length,
+    });
+    const centers = joists.map((joist) => center(joist.polygon));
+    expect(centers.some((c) => c.y < 70)).toBe(true);
+    expect(centers.some((c) => c.y > 100 && c.x < 70)).toBe(true);
+    expect(centers.some((c) => c.x > 120 && c.y > 100)).toBe(false);
+    expect(pointInPolygon(p(150, 120), foundation.polygon)).toBe(false);
+  });
 });
