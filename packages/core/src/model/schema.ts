@@ -271,7 +271,7 @@ export type RoofPlane = z.infer<typeof RoofPlaneSchema>;
 export const FoundationSchema = z.object({
   ...elementBase,
   kind: z.literal('foundation'),
-  /** Outside face of the outline, counter-clockwise in plan. */
+  /** The slab, counter-clockwise in plan. Its edge is the inside face of the stem wall. */
   polygon: z.array(Vec2Schema).min(3).max(128),
   /** Slab thickness, inches. The top meets the underside of the drawn floor. */
   thickness: z.number().positive().max(24),
@@ -279,9 +279,13 @@ export const FoundationSchema = z.object({
   footingWidth: z.number().positive().max(48),
   /** Footing depth below the bottom of the slab. */
   footingDepth: z.number().nonnegative().max(48),
+  /** Stem wall thickness, inches, measured in from the outside face. Absent on a foundation saved before stem walls. */
+  stemThickness: z.number().positive().max(16).optional(),
   materialId: IdSchema,
   /** One quad per exterior wall. */
   footings: z.array(z.array(Vec2Schema).min(3).max(8)).max(128),
+  /** One quad per exterior wall. The outside edge is the wall's outside face. Absent on an older foundation. */
+  stems: z.array(z.array(Vec2Schema).min(3).max(8)).max(128).optional(),
   /** Walls this foundation was built from. */
   generatedFrom: z.array(IdSchema).max(128),
 });

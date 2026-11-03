@@ -123,6 +123,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
       prims: [
         { t: 'polyline', pts: foundation.polygon, closed: true, pen: 'foundation' },
         ...foundation.footings.map((footing): Prim => ({ t: 'polyline', pts: footing, closed: true, pen: 'foundation' })),
+        ...(foundation.stems ?? []).map((stem): Prim => ({ t: 'polyline', pts: stem, closed: true, pen: 'foundation' })),
       ],
     });
   }

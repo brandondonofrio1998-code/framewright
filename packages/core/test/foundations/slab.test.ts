@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, buildPlanDisplayList, foundationsOnLevel, pointInPolygon, slabOnLevel, FLOOR_FINISH, FOOTING_DEPTH, FOOTING_WIDTH, SLAB_THICKNESS } from '../../src';
+import { buildLevelMeshes, buildPlanDisplayList, foundationsOnLevel, pointInPolygon, slabOnLevel, FLOOR_FINISH, FOOTING_DEPTH, FOOTING_WIDTH, SLAB_THICKNESS, STEM_THICKNESS } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -21,7 +21,7 @@ describe('slab foundations', () => {
     expect(slabOnLevel(ctx.history.doc, ctx.baseLevelId).ok).toBe(false);
   });
 
-  it('puts a slab on the outside face and a footing past it', () => {
+  it('puts the slab inside an 8 inch stem wall, on a footing', () => {
     const ctx = room([p(0, 0), p(240, 0), p(240, 144), p(0, 144)]);
     const built = slabOnLevel(ctx.history.doc, ctx.baseLevelId);
     if (!built.ok) throw new Error(built.error);
@@ -29,10 +29,13 @@ describe('slab foundations', () => {
     const slab = built.slabs[0]!;
     expect(slab.polygon).toHaveLength(4);
     expect(slab.footings).toHaveLength(4);
+    expect(slab.stems).toHaveLength(4);
     expect(slab.thickness).toBe(SLAB_THICKNESS);
+    expect(slab.stemThickness).toBe(STEM_THICKNESS);
     expect(pointInPolygon(p(120, 72), slab.polygon)).toBe(true);
-    expect(pointInPolygon(p(-3, -3), slab.polygon)).toBe(true);
-    expect(pointInPolygon(p(-6, -6), slab.polygon)).toBe(false);
+    expect(pointInPolygon(p(-3, -3), slab.polygon)).toBe(false);
+    expect(slab.stems.some((stem) => pointInPolygon(p(-3, -3), stem))).toBe(true);
+    expect(slab.stems.some((stem) => pointInPolygon(p(-6, -6), stem))).toBe(false);
     expect(slab.footings.some((footing) => pointInPolygon(p(-7, 72), footing))).toBe(true);
   });
 
@@ -43,6 +46,7 @@ describe('slab foundations', () => {
     const [foundation] = foundationsOnLevel(ctx.history.doc, ctx.baseLevelId);
     expect(foundation?.polygon).toHaveLength(6);
     expect(foundation?.footings).toHaveLength(6);
+    expect(foundation?.stems).toHaveLength(6);
     expect(foundation?.footingWidth).toBe(FOOTING_WIDTH);
     expect(Object.values(ctx.history.doc.materials).some((material) => material.name === 'Concrete')).toBe(true);
   });
