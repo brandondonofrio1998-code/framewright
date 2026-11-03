@@ -7,7 +7,7 @@ export interface CreateStair {
   levelId: Id;
   start: Vec2;
   end: Vec2;
-  /** Walking-line center of the landing. Shift-click in the tool. Makes an L stair. */
+  /** Point on the first walking line at the middle of the landing. Shift-click in the tool. */
   corner?: Vec2;
   width?: number;
 }
@@ -52,9 +52,12 @@ export const createStair = defineCommand<CreateStair, Id>({
     const offset = sub(end, corner);
     const across = dot(offset, perp(toCorner));
     const along = dot(offset, toCorner);
-    if (Math.abs(across) < 1 || Math.abs(along) > Math.abs(across) * 0.35) throw new CommandError('The second flight has to turn 90 degrees.');
-    const turn = scale(perp(toCorner), across > 0 ? 1 : -1);
-    const run2 = Math.abs(across) - flightWidth / 2;
+    const lTurn = Math.abs(across) >= 1 && Math.abs(along) <= Math.abs(across) * 0.35;
+    const uTurn = along < -flightWidth / 2 && Math.abs(across) <= Math.abs(along) * 0.5;
+    if (!lTurn && !uTurn) throw new CommandError('The second flight has to turn 90 or 180 degrees.');
+    const side: 1 | -1 = across < -1 ? -1 : 1;
+    const turn = lTurn ? scale(perp(toCorner), across > 0 ? 1 : -1) : scale(toCorner, -1);
+    const run2 = (lTurn ? Math.abs(across) : Math.abs(along)) - flightWidth / 2;
     const built = layoutTurn(upper.elevation - lower.elevation, lower.ceilingHeight, run1, run2, turn);
     if (!built.ok) throw new CommandError(built.error);
     const stair: Stair = {
@@ -74,6 +77,7 @@ export const createStair = defineCommand<CreateStair, Id>({
         run: run2,
         risers: built.layout.second.risers,
         tread: Math.max(built.layout.second.tread, 10),
+        ...(uTurn ? { side } : {}),
       },
     };
     doc.elements[id] = stair;

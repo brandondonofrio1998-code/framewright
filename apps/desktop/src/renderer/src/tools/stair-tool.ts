@@ -29,7 +29,7 @@ export function createStairTool(): Tool {
         ctx.notify('Click the top. Shift-click to turn the stair.');
       } else if (!corner && e.shift) {
         corner = p;
-        ctx.notify('Click the top of the second flight.');
+        ctx.notify('Click the top of the second flight. Turn 90 degrees for an L, or back for a U.');
       } else {
         const result = dispatch('stair.create', { levelId: ctx.levelId(), start, end: p, ...(corner ? { corner } : {}) });
         ctx.notify(result.ok ? null : result.error);

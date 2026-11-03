@@ -140,4 +140,51 @@ describe('straight stairs', () => {
     expect(flights[1]!.rise0).toBeCloseTo(stair.risers * stair.riser, 5);
     expect(pointInPolygon(p(120, 0), landing)).toBe(true);
   });
+
+  it('builds a U stair that returns beside the first flight', () => {
+    const ctx = withUpper();
+    const upperId = ctx.history.doc.levelOrder[1]!;
+    const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
+    for (const levelId of [ctx.baseLevelId, upperId]) {
+      const drawn = ctx.history.dispatch('wall.draw', {
+        levelId,
+        typeId,
+        points: [p(0, 0), p(240, 0), p(240, 144), p(0, 144)],
+        closed: true,
+      });
+      if (!drawn.ok) throw new Error(drawn.error);
+    }
+    const lower = ctx.history.doc.levels[ctx.baseLevelId]!;
+    const upper = ctx.history.doc.levels[upperId]!;
+    const built = ctx.history.dispatch('stair.create', {
+      levelId: ctx.baseLevelId,
+      start: p(20, 40),
+      corner: p(160, 40),
+      end: p(40, 44),
+    });
+    if (!built.ok) throw new Error(built.error);
+    const stair = stairsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!;
+    expect(stair.landing?.side).toBe(1);
+    expect(stair.landing!.dir.x).toBeCloseTo(-1, 5);
+    expect(stair.riser * (stair.risers + stair.landing!.risers)).toBeCloseTo(upper.elevation - lower.elevation, 5);
+    const landing = landingPolygon(stair);
+    if (!landing) throw new Error('missing landing');
+    const along = Math.hypot(landing[1]!.x - landing[0]!.x, landing[1]!.y - landing[0]!.y);
+    const across = Math.hypot(landing[2]!.x - landing[1]!.x, landing[2]!.y - landing[1]!.y);
+    expect(along).toBeCloseTo(36, 3);
+    expect(across).toBeCloseTo(72, 3);
+    const flights = placedFlights(stair);
+    expect(flights[1]!.dir.x).toBeCloseTo(-1, 5);
+    expect(flights[1]!.start.y).toBeCloseTo(76, 3);
+    const floor = buildLevelMeshes(ctx.history.doc, upperId).filter((part) => part.role === 'floor');
+    expect(pointInsideMesh(floor, [120, 76, upper.elevation - 0.3])).toBe(false);
+    expect(pointInsideMesh(floor, [200, 100, upper.elevation - 0.3])).toBe(true);
+    const diagonal = ctx.history.dispatch('stair.create', {
+      levelId: ctx.baseLevelId,
+      start: p(20, 100),
+      corner: p(160, 100),
+      end: p(90, 160),
+    });
+    expect(diagonal.ok).toBe(false);
+  });
 });

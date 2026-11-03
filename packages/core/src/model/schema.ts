@@ -311,16 +311,18 @@ export const StairSchema = z.object({
   /** Equal tread depth, inches. At least 10, at most 10 feet. */
   tread: z.number().min(10).max(120),
   /**
-   * Second flight of an L stair. Absent on a straight flight.
-   * The landing is a square of `width` between the flights.
+   * Second flight of an L or U stair. Absent on a straight flight.
+   * An L landing is a square of `width`. A U landing is `width` deep and twice that across.
    */
   landing: z
     .object({
-      /** Unit vector of the second flight. Perpendicular to `dir`. */
+      /** Unit vector of the second flight. Perpendicular to `dir` for an L, opposite `dir` for a U. */
       dir: Vec2Schema,
       run: z.number().positive().max(600),
       risers: z.number().int().min(2).max(38),
       tread: z.number().min(10).max(120),
+      /** Which side the return flight sits on. 1 is left of `dir`. Present only on a U stair. */
+      side: z.union([z.literal(1), z.literal(-1)]).optional(),
     })
     .optional(),
 });
