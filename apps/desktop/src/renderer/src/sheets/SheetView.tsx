@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { SHEET_SCALES, boundsOf, buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, fitDrawing, layoutSheet, pocheFill, type DisplayItem, type SheetLayout, type Vec2 } from '@framewright/core';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SHEET_SCALES, boundsOf, buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, fitDrawing, layoutElevationSheet, layoutSheet, pocheFill, type DisplayItem, type SheetLayout, type Vec2 } from '@framewright/core';
 import { useAppearance } from '../app/appearance';
 import { dispatch, useDocument } from '../document/store';
 import { drawDisplayList } from '../plan/render';
@@ -12,9 +12,13 @@ export function SheetView() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
-  const layout = useMemo(() => layoutSheet(doc, levelId), [doc, levelId]);
+  const [requested, setRequested] = useState(1);
+  const planLayout = useMemo(() => layoutSheet(doc, levelId), [doc, levelId]);
+  const elevations = useMemo(() => layoutElevationSheet(doc, levelId), [doc, levelId]);
+  const page = requested === 2 && elevations ? 2 : 1;
+  const layout = page === 2 && elevations ? elevations : planLayout;
   const items = useMemo(() => buildPlanDisplayList(doc, levelId), [doc, levelId]);
-  const model = useMemo(() => (layout.elevation ? buildPlanMeshes(doc) : []), [doc, layout.elevation]);
+  const model = useMemo(() => (planLayout.elevation ? buildPlanMeshes(doc) : []), [doc, planLayout.elevation]);
   const elevationItems = useMemo(() => (layout.elevation ? buildElevation(model, 'front') : []), [model, layout.elevation]);
   const sectionItems = useMemo(
     () =>
@@ -67,7 +71,7 @@ export function SheetView() {
     ctx.textAlign = 'center';
     ctx.fillText(layout.levelName, mid.x + (layout.title.w * fit) / 2, mid.y);
     ctx.textAlign = 'right';
-    ctx.fillText(`${layout.scaleLabel}    Sheet 1    ${layout.date}`, mid.x + layout.title.w * fit - 10, mid.y);
+    ctx.fillText(layout.panels.length > 0 ? `Sheet ${layout.sheetNumber}    ${layout.date}` : `${layout.scaleLabel}    Sheet ${layout.sheetNumber}    ${layout.date}`, mid.x + layout.title.w * fit - 10, mid.y);
     if (layout.schedule) {
       const box = layout.schedule;
       const top = paper({ x: box.x, y: box.y + box.h });
@@ -88,18 +92,20 @@ export function SheetView() {
     const viewTop = paper({ x: layout.viewport.x, y: layout.viewport.y + layout.viewport.h });
     const viewW = layout.viewport.w * fit;
     const viewH = layout.viewport.h * fit;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(viewTop.x, viewTop.y, viewW, viewH);
-    ctx.clip();
-    ctx.translate(viewTop.x, viewTop.y);
-    const view = new Viewport();
-    view.width = viewW;
-    view.height = viewH;
-    view.center = layout.center;
-    view.scale = fit / layout.modelPerPaper;
-    drawDisplayList(ctx, view, items);
-    ctx.restore();
+    if (layout.panels.length === 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(viewTop.x, viewTop.y, viewW, viewH);
+      ctx.clip();
+      ctx.translate(viewTop.x, viewTop.y);
+      const view = new Viewport();
+      view.width = viewW;
+      view.height = viewH;
+      view.center = layout.center;
+      view.scale = fit / layout.modelPerPaper;
+      drawDisplayList(ctx, view, items);
+      ctx.restore();
+    }
 
     const pointsOf = (band: readonly DisplayItem[]) =>
       band.flatMap((item) =>
@@ -143,7 +149,14 @@ export function SheetView() {
       ctx.stroke();
       drawBand(layout.section, sectionItems, 'Section');
     }
-  }, [elevationItems, items, layout, sectionItems]);
+    for (const panel of layout.panels) {
+      const band =
+        panel.kind === 'elevation'
+          ? buildElevation(model, panel.facing)
+          : buildSection(model, panel.facing, 0.5, (part) => pocheFill(part.role, part.materialId ? (doc.materials[part.materialId]?.category ?? null) : null));
+      drawBand(panel.frame, band, panel.label);
+    }
+  }, [doc, elevationItems, items, layout, model, sectionItems]);
 
   const redraw = useCallback(() => {
     if (!frameRef.current) frameRef.current = requestAnimationFrame(draw);
@@ -171,8 +184,17 @@ export function SheetView() {
   useEffect(() => useAppearance.subscribe(() => redraw()), [redraw]);
 
   return (
-    <div className="sheet-view" ref={wrapRef} data-testid="sheet-view" data-scale={layout.scaleLabel} data-schedule={layout.scheduleRows.map((row) => row.mark).join(' ')} data-elevation={layout.elevation ? 'Front' : ''} data-section={layout.section ? 'Section' : ''}>
+    <div className="sheet-view" ref={wrapRef} data-testid="sheet-view" data-scale={layout.scaleLabel} data-sheet={layout.sheetNumber} data-views={layout.panels.map((panel) => panel.label).join(' ')} data-schedule={layout.scheduleRows.map((row) => row.mark).join(' ')} data-elevation={layout.elevation ? 'Front' : ''} data-section={layout.section ? 'Section' : ''}>
       <div className="elevation-bar">
+        {planLayout.sheetCount > 1 && (
+          <label className="section-cut">
+            Sheet
+            <select aria-label="Sheet" className="status-select" value={String(page)} onChange={(event) => setRequested(Number(event.target.value))}>
+              <option value="1">1 Plan</option>
+              <option value="2">2 Elevations</option>
+            </select>
+          </label>
+        )}
         <label className="section-cut">
           Sheet scale
           <select

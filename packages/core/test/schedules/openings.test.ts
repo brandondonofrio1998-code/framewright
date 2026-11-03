@@ -44,14 +44,14 @@ describe('opening schedule', () => {
     expect(sheet.viewport.x + sheet.viewport.w).toBeCloseTo(sheet.schedule!.x, 3);
   });
 
-  it('still writes one sheet when the schedule column is present', async () => {
+  it('writes both sheets when the schedule column is present', async () => {
     const { ctx, wallId } = room();
     const placed = ctx.history.dispatch('opening.place', { kind: 'door', wallId, t: 80, width: 36, height: 80, side: 'left', hinge: 'start', style: 'hinged' });
     if (!placed.ok) throw new Error(placed.error);
     const bytes = await sheetPdf(ctx.history.doc, ctx.baseLevelId);
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
     const pdf = await PDFDocument.load(bytes);
-    expect(pdf.getPageCount()).toBe(1);
+    expect(pdf.getPageCount()).toBe(2);
     expect(pdf.getPage(0).getWidth()).toBeCloseTo(36 * 72, 3);
   });
 });

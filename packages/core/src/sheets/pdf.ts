@@ -28,7 +28,7 @@ import { boundsOf } from '../geometry/vec2';
 import { buildPlanDisplayList } from '../display/plan';
 import type { FillId, PenId } from '../display/display-list';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
-import { fitDrawing, layoutSheet, SHEET_HEIGHT, SHEET_WIDTH, type PaperRect, type SheetLayout } from './layout';
+import { fitDrawing, layoutElevationSheet, layoutSheet, SHEET_HEIGHT, SHEET_WIDTH, type PaperRect, type SheetLayout } from './layout';
 
 const PT = 72;
 
@@ -72,7 +72,7 @@ export async function sheetPdf(doc: PlanDocument, levelId: Id): Promise<Uint8Arr
   page.drawText(layout.titleText, { x: layout.title.x * PT + 10, y: baseline, size: 12, font, color: ink });
   const levelWidth = font.widthOfTextAtSize(layout.levelName, 12);
   page.drawText(layout.levelName, { x: (layout.title.x + layout.title.w / 2) * PT - levelWidth / 2, y: baseline, size: 12, font, color: ink });
-  const right = `${layout.scaleLabel}    Sheet 1    ${layout.date}`;
+  const right = `${layout.scaleLabel}    Sheet ${layout.sheetNumber}    ${layout.date}`;
   page.drawText(right, { x: (layout.title.x + layout.title.w) * PT - 10 - font.widthOfTextAtSize(right, 12), y: baseline, size: 12, font, color: ink });
   if (layout.schedule) {
     const box = layout.schedule;
@@ -113,6 +113,31 @@ export async function sheetPdf(doc: PlanDocument, levelId: Id): Promise<Uint8Arr
       color: ink,
     });
     page.drawText(`Section    ${fitted.scaleLabel}`, { x: layout.section.x * PT + 8, y: (layout.section.y + layout.section.h - 0.32) * PT, size: 9, font, color: ink });
+  }
+  const second = layoutElevationSheet(doc, levelId);
+  if (second) {
+    const page2 = pdf.addPage([SHEET_WIDTH * PT, SHEET_HEIGHT * PT]);
+    page2.drawRectangle({ x: 0, y: 0, width: second.width * PT, height: second.height * PT, color: rgb(1, 1, 1), borderColor: ink, borderWidth: 1 });
+    strokeRect(page2, second.border, 1.25, ink);
+    const top = (second.title.y + second.title.h) * PT;
+    page2.drawLine({ start: { x: second.title.x * PT, y: top }, end: { x: (second.title.x + second.title.w) * PT, y: top }, thickness: 0.8, color: ink });
+    const base = (second.title.y + second.title.h / 2 - 0.06) * PT;
+    page2.drawText(second.titleText, { x: second.title.x * PT + 10, y: base, size: 12, font, color: ink });
+    const nameWidth = font.widthOfTextAtSize(second.levelName, 12);
+    page2.drawText(second.levelName, { x: (second.title.x + second.title.w / 2) * PT - nameWidth / 2, y: base, size: 12, font, color: ink });
+    const caption = `Sheet ${second.sheetNumber}    ${second.date}`;
+    page2.drawText(caption, { x: (second.title.x + second.title.w) * PT - 10 - font.widthOfTextAtSize(caption, 12), y: base, size: 12, font, color: ink });
+    for (const panel of second.panels) {
+      const drawing =
+        panel.kind === 'elevation'
+          ? buildElevation(parts, panel.facing)
+          : buildSection(parts, panel.facing, 0.5, (part) => pocheFill(part.role, part.materialId ? (doc.materials[part.materialId]?.category ?? null) : null));
+      const points = drawing.flatMap((item) => item.prims.flatMap((prim) => (prim.t === 'line' ? [prim.a, prim.b] : prim.t === 'poly' ? prim.rings.flat() : [])));
+      const fitted = fitDrawing(boundsOf(points), panel.frame);
+      const view: SheetLayout = { ...second, viewport: panel.frame, modelPerPaper: fitted.modelPerPaper, center: fitted.center, scaleLabel: fitted.scaleLabel };
+      drawModel(page2, view, drawing, font, ink);
+      page2.drawText(`${panel.label}    ${fitted.scaleLabel}`, { x: panel.frame.x * PT + 8, y: (panel.frame.y + panel.frame.h - 0.32) * PT, size: 9, font, color: ink });
+    }
   }
   return pdf.save();
 }

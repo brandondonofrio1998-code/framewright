@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
-import { buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, boundsOf, fitDrawing, layoutSheet, pocheFill, sheetPdf, SHEET_HEIGHT, SHEET_WIDTH } from '../../src';
+import { buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, boundsOf, fitDrawing, layoutElevationSheet, layoutSheet, pocheFill, sheetPdf, SHEET_HEIGHT, SHEET_WIDTH } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -27,6 +27,8 @@ describe('sheet layout', () => {
     expect(sheet.schedule).toBeNull();
     expect(sheet.elevation).toBeNull();
     expect(sheet.section).toBeNull();
+    expect(sheet.sheetCount).toBe(1);
+    expect(layoutElevationSheet(ctx.history.doc, ctx.baseLevelId)).toBeNull();
   });
 
   it('picks a standard scale that fits a room', () => {
@@ -81,9 +83,13 @@ describe('sheet layout', () => {
     expect((cutBounds.maxX - cutBounds.minX) / cutFit.modelPerPaper).toBeLessThanOrEqual(sheet.section!.w);
     expect((cutBounds.maxY - cutBounds.minY) / cutFit.modelPerPaper).toBeLessThanOrEqual(sheet.section!.h);
     expect(cut.some((item) => item.prims.some((prim) => prim.t === 'poly'))).toBe(true);
+    expect(sheet.sheetCount).toBe(2);
+    const second = layoutElevationSheet(ctx.history.doc, ctx.baseLevelId);
+    expect(second?.panels.map((panel) => panel.label)).toEqual(['Back', 'Left', 'Right', 'Section']);
+    expect(second?.sheetNumber).toBe(2);
   });
 
-  it('writes a one-page PDF the size of the sheet', async () => {
+  it('writes both ARCH D pages when the plan has walls', async () => {
     const ctx = testHistory();
     const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
     const drawn = ctx.history.dispatch('wall.draw', {
@@ -97,10 +103,11 @@ describe('sheet layout', () => {
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
     expect(bytes.byteLength).toBeGreaterThan(1500);
     const pdf = await PDFDocument.load(bytes);
-    expect(pdf.getPageCount()).toBe(1);
+    expect(pdf.getPageCount()).toBe(2);
     const page = pdf.getPage(0);
     expect(page.getWidth()).toBeCloseTo(SHEET_WIDTH * 72, 3);
     expect(page.getHeight()).toBeCloseTo(SHEET_HEIGHT * 72, 3);
+    expect(pdf.getPage(1).getWidth()).toBeCloseTo(SHEET_WIDTH * 72, 3);
     expect(layoutSheet(ctx.history.doc, ctx.baseLevelId).scaleLabel.length).toBeGreaterThan(0);
   });
 });

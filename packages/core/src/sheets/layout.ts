@@ -1,5 +1,6 @@
 import { buildPlanDisplayList } from '../display/plan';
 import type { DisplayItem } from '../display/display-list';
+import type { ElevationFacing } from '../elevate/elevation';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
 import { openingSchedule, type ScheduleRow } from '../schedules/openings';
 
@@ -33,6 +34,13 @@ export interface PaperRect {
   h: number;
 }
 
+export interface SheetPanel {
+  label: string;
+  frame: PaperRect;
+  facing: ElevationFacing;
+  kind: 'elevation' | 'section';
+}
+
 /** One sheet of the plan. Paper coordinates are inches, origin at the bottom left, Y up. */
 export interface SheetLayout {
   width: number;
@@ -52,6 +60,10 @@ export interface SheetLayout {
   elevation: PaperRect | null;
   /** Section through the middle, the right half of that band. Null when the plan has no walls. */
   section: PaperRect | null;
+  /** Drawings on an elevations sheet. Empty on the plan sheet. */
+  panels: SheetPanel[];
+  sheetNumber: number;
+  sheetCount: number;
   titleText: string;
   levelName: string;
   date: string;
@@ -93,6 +105,50 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
     scheduleRows: rows,
     elevation,
     section,
+    panels: [],
+    sheetNumber: 1,
+    sheetCount: hasWalls ? 2 : 1,
+    titleText: doc.meta.title.trim() || 'Untitled',
+    levelName: level?.name ?? '',
+    date,
+  };
+}
+
+/** The second ARCH D sheet: back, left, and right elevations, plus a section from the left. Null when the plan has no walls. */
+export function layoutElevationSheet(doc: PlanDocument, levelId: Id): SheetLayout | null {
+  if (!Object.values(doc.elements).some((el) => el.kind === 'wall')) return null;
+  const border: PaperRect = { x: MARGIN, y: MARGIN, w: SHEET_WIDTH - MARGIN * 2, h: SHEET_HEIGHT - MARGIN * 2 };
+  const title: PaperRect = { x: border.x, y: border.y, w: border.w, h: TITLE_HEIGHT };
+  const area: PaperRect = { x: border.x, y: border.y + TITLE_HEIGHT, w: border.w, h: border.h - TITLE_HEIGHT };
+  const cell = (col: 0 | 1, row: 0 | 1): PaperRect => ({
+    x: area.x + col * (area.w / 2),
+    y: area.y + (1 - row) * (area.h / 2),
+    w: area.w / 2,
+    h: area.h / 2,
+  });
+  const level = doc.levels[levelId];
+  const date = /^\d{4}-\d{2}-\d{2}/.test(doc.meta.modified) ? doc.meta.modified.slice(0, 10) : '';
+  return {
+    width: SHEET_WIDTH,
+    height: SHEET_HEIGHT,
+    border,
+    title,
+    viewport: area,
+    modelPerPaper: 48,
+    scaleLabel: '1/4" = 1\'-0"',
+    center: { x: 0, y: 0 },
+    schedule: null,
+    scheduleRows: [],
+    elevation: null,
+    section: null,
+    panels: [
+      { label: 'Back', frame: cell(0, 0), facing: 'back', kind: 'elevation' },
+      { label: 'Left', frame: cell(1, 0), facing: 'left', kind: 'elevation' },
+      { label: 'Right', frame: cell(0, 1), facing: 'right', kind: 'elevation' },
+      { label: 'Section', frame: cell(1, 1), facing: 'left', kind: 'section' },
+    ],
+    sheetNumber: 2,
+    sheetCount: 2,
     titleText: doc.meta.title.trim() || 'Untitled',
     levelName: level?.name ?? '',
     date,

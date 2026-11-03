@@ -156,6 +156,9 @@ test('shows the room on an architectural sheet', async ({ electronApp, window, c
   await expect(view).toHaveAttribute('data-section', 'Section');
   await window.getByLabel('Sheet scale').selectOption('96');
   await expect(view).toHaveAttribute('data-scale', '1/8" = 1\'-0"');
+  await view.getByLabel('Sheet', { exact: true }).selectOption('2');
+  await expect(view).toHaveAttribute('data-sheet', '2');
+  await expect(view).toHaveAttribute('data-views', 'Back Left Right Section');
   const canvas = view.locator('canvas');
   await expect.poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(200);
   const dark = await canvas.evaluate((el: HTMLCanvasElement) => {
