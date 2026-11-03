@@ -317,7 +317,7 @@ export function PropertiesPanel() {
             <span className="field-readonly">{only.pitch} in 12</span>
           </dd>
         </dl>
-        <p className="panel-hint">One slope of the roof. Build the roof again after the walls change.</p>
+        <p className="panel-hint">One slope of the roof. It follows the walls while the room stays a rectangle.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>
@@ -334,6 +334,10 @@ export function PropertiesPanel() {
           <dd>
             <span className="field-readonly">{formatLength(only.thickness, format)}</span>
           </dd>
+          <dt>Stem wall</dt>
+          <dd>
+            <span className="field-readonly">{only.stemThickness === undefined ? 'None' : formatLength(only.stemThickness, format)}</span>
+          </dd>
           <dt>Footing</dt>
           <dd>
             <span className="field-readonly">
@@ -341,7 +345,7 @@ export function PropertiesPanel() {
             </span>
           </dd>
         </dl>
-        <p className="panel-hint">A slab under the outline, with a footing under the exterior walls. Build it again after the walls change.</p>
+        <p className="panel-hint">A slab inside an 8 inch stem wall, on a footing under the exterior walls. Build it again after the walls change.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

@@ -88,7 +88,7 @@ export function Toolbar() {
             }
             if (button.id === 'foundation') {
               return (
-                <button key={button.id} type="button" className="tool-button" aria-label={button.label} title="Build a slab and footing" onClick={() => buildFoundation()}>
+                <button key={button.id} type="button" className="tool-button" aria-label={button.label} title="Build a slab, stem wall, and footing" onClick={() => buildFoundation()}>
                   <Icon size={18} strokeWidth={1.75} aria-hidden />
                 </button>
               );
