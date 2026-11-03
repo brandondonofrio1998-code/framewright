@@ -153,6 +153,7 @@ test('shows the room on an architectural sheet', async ({ electronApp, window, c
   await expect(view).toBeVisible();
   await expect(view).toHaveAttribute('data-scale', /= 1'-0"/);
   await expect(view).toHaveAttribute('data-elevation', 'Front');
+  await expect(view).toHaveAttribute('data-section', 'Section');
   const canvas = view.locator('canvas');
   await expect.poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(200);
   const dark = await canvas.evaluate((el: HTMLCanvasElement) => {

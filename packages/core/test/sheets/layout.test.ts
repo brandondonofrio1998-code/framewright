@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
-import { buildElevation, buildPlanDisplayList, buildPlanMeshes, boundsOf, fitDrawing, layoutSheet, sheetPdf, SHEET_HEIGHT, SHEET_WIDTH } from '../../src';
+import { buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, boundsOf, fitDrawing, layoutSheet, pocheFill, sheetPdf, SHEET_HEIGHT, SHEET_WIDTH } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -19,6 +19,7 @@ describe('sheet layout', () => {
     expect(sheet.scaleLabel).toBe('1/4" = 1\'-0"');
     expect(sheet.schedule).toBeNull();
     expect(sheet.elevation).toBeNull();
+    expect(sheet.section).toBeNull();
   });
 
   it('picks a standard scale that fits a room', () => {
@@ -63,6 +64,16 @@ describe('sheet layout', () => {
     expect(width).toBeLessThanOrEqual(sheet.elevation!.w);
     expect(height).toBeLessThanOrEqual(sheet.elevation!.h);
     expect(lines.some((item) => item.prims.length > 0)).toBe(true);
+    expect(sheet.section).not.toBeNull();
+    expect(sheet.section!.x).toBeCloseTo(sheet.elevation!.x + sheet.elevation!.w, 3);
+    const parts = buildPlanMeshes(ctx.history.doc);
+    const cut = buildSection(parts, 'front', 0.5, (part) => pocheFill(part.role, part.materialId ? (ctx.history.doc.materials[part.materialId]?.category ?? null) : null));
+    const cutPoints = cut.flatMap((item) => item.prims.flatMap((prim) => (prim.t === 'line' ? [prim.a, prim.b] : prim.t === 'poly' ? prim.rings.flat() : [])));
+    const cutFit = fitDrawing(boundsOf(cutPoints), sheet.section!);
+    const cutBounds = boundsOf(cutPoints)!;
+    expect((cutBounds.maxX - cutBounds.minX) / cutFit.modelPerPaper).toBeLessThanOrEqual(sheet.section!.w);
+    expect((cutBounds.maxY - cutBounds.minY) / cutFit.modelPerPaper).toBeLessThanOrEqual(sheet.section!.h);
+    expect(cut.some((item) => item.prims.some((prim) => prim.t === 'poly'))).toBe(true);
   });
 
   it('writes a one-page PDF the size of the sheet', async () => {

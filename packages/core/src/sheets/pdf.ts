@@ -21,6 +21,7 @@ import {
   stroke,
   type PDFPage,
 } from 'pdf-lib';
+import { buildSection, pocheFill } from '../elevate/section';
 import { buildElevation } from '../elevate/elevation';
 import { buildPlanMeshes } from '../mesh/meshes';
 import { boundsOf } from '../geometry/vec2';
@@ -90,13 +91,28 @@ export async function sheetPdf(doc: PlanDocument, levelId: Id): Promise<Uint8Arr
   }
 
   drawModel(page, layout, items, font, ink);
+  const parts = layout.elevation ? buildPlanMeshes(doc) : [];
   if (layout.elevation) {
-    const lines = buildElevation(buildPlanMeshes(doc), 'front');
+    const lines = buildElevation(parts, 'front');
     const points = lines.flatMap((item) => item.prims.flatMap((prim) => (prim.t === 'line' ? [prim.a, prim.b] : [])));
     const fitted = fitDrawing(boundsOf(points), layout.elevation);
     const view: SheetLayout = { ...layout, viewport: layout.elevation, modelPerPaper: fitted.modelPerPaper, center: fitted.center, scaleLabel: fitted.scaleLabel };
     drawModel(page, view, lines, font, ink);
     page.drawText(`Front    ${fitted.scaleLabel}`, { x: layout.elevation.x * PT + 8, y: (layout.elevation.y + layout.elevation.h - 0.32) * PT, size: 9, font, color: ink });
+  }
+  if (layout.section) {
+    const cut = buildSection(parts, 'front', 0.5, (part) => pocheFill(part.role, part.materialId ? (doc.materials[part.materialId]?.category ?? null) : null));
+    const points = cut.flatMap((item) => item.prims.flatMap((prim) => (prim.t === 'line' ? [prim.a, prim.b] : prim.t === 'poly' ? prim.rings.flat() : [])));
+    const fitted = fitDrawing(boundsOf(points), layout.section);
+    const view: SheetLayout = { ...layout, viewport: layout.section, modelPerPaper: fitted.modelPerPaper, center: fitted.center, scaleLabel: fitted.scaleLabel };
+    drawModel(page, view, cut, font, ink);
+    page.drawLine({
+      start: { x: layout.section.x * PT, y: layout.section.y * PT },
+      end: { x: layout.section.x * PT, y: (layout.section.y + layout.section.h) * PT },
+      thickness: 0.6,
+      color: ink,
+    });
+    page.drawText(`Section    ${fitted.scaleLabel}`, { x: layout.section.x * PT + 8, y: (layout.section.y + layout.section.h - 0.32) * PT, size: 9, font, color: ink });
   }
   return pdf.save();
 }

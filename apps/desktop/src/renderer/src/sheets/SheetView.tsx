@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { boundsOf, buildElevation, buildPlanDisplayList, buildPlanMeshes, fitDrawing, layoutSheet, type SheetLayout, type Vec2 } from '@framewright/core';
+import { boundsOf, buildElevation, buildPlanDisplayList, buildPlanMeshes, buildSection, fitDrawing, layoutSheet, pocheFill, type DisplayItem, type SheetLayout, type Vec2 } from '@framewright/core';
 import { useDocument } from '../document/store';
 import { drawDisplayList } from '../plan/render';
 import { Viewport } from '../plan/viewport';
@@ -13,7 +13,15 @@ export function SheetView() {
   const frameRef = useRef(0);
   const layout = useMemo(() => layoutSheet(doc, levelId), [doc, levelId]);
   const items = useMemo(() => buildPlanDisplayList(doc, levelId), [doc, levelId]);
-  const elevationItems = useMemo(() => (layout.elevation ? buildElevation(buildPlanMeshes(doc), 'front') : []), [doc, layout.elevation]);
+  const model = useMemo(() => (layout.elevation ? buildPlanMeshes(doc) : []), [doc, layout.elevation]);
+  const elevationItems = useMemo(() => (layout.elevation ? buildElevation(model, 'front') : []), [model, layout.elevation]);
+  const sectionItems = useMemo(
+    () =>
+      layout.section
+        ? buildSection(model, 'front', 0.5, (part) => pocheFill(part.role, part.materialId ? (doc.materials[part.materialId]?.category ?? null) : null))
+        : [],
+    [doc, model, layout.section],
+  );
 
   const draw = useCallback(() => {
     frameRef.current = 0;
@@ -92,33 +100,49 @@ export function SheetView() {
     drawDisplayList(ctx, view, items);
     ctx.restore();
 
-    if (layout.elevation) {
-      const box = layout.elevation;
+    const pointsOf = (band: readonly DisplayItem[]) =>
+      band.flatMap((item) =>
+        item.prims.flatMap((prim) => {
+          if (prim.t === 'line') return [prim.a, prim.b];
+          if (prim.t === 'poly') return prim.rings.flat();
+          return [];
+        }),
+      );
+    const drawBand = (box: SheetLayout['border'], band: readonly DisplayItem[], label: string) => {
       const top = paper({ x: box.x, y: box.y + box.h });
       ctx.beginPath();
       ctx.moveTo(top.x, top.y);
       ctx.lineTo(top.x + box.w * fit, top.y);
       ctx.stroke();
-      const points = elevationItems.flatMap((item) => item.prims.flatMap((prim) => (prim.t === 'line' ? [prim.a, prim.b] : [])));
-      const fitted = fitDrawing(boundsOf(points), box);
+      const fitted = fitDrawing(boundsOf(pointsOf(band)), box);
       ctx.save();
       ctx.beginPath();
       ctx.rect(top.x, top.y, box.w * fit, box.h * fit);
       ctx.clip();
       ctx.translate(top.x, top.y);
-      const elevation = new Viewport();
-      elevation.width = box.w * fit;
-      elevation.height = box.h * fit;
-      elevation.center = fitted.center;
-      elevation.scale = fit / fitted.modelPerPaper;
-      drawDisplayList(ctx, elevation, elevationItems);
+      const drawing = new Viewport();
+      drawing.width = box.w * fit;
+      drawing.height = box.h * fit;
+      drawing.center = fitted.center;
+      drawing.scale = fit / fitted.modelPerPaper;
+      drawDisplayList(ctx, drawing, band);
       ctx.restore();
       ctx.fillStyle = '#1f2328';
       ctx.font = `${Math.max(9, 0.14 * fit)}px system-ui, sans-serif`;
       ctx.textAlign = 'left';
-      ctx.fillText(`Front    ${fitted.scaleLabel}`, top.x + 8, top.y + 0.28 * fit);
+      ctx.fillText(`${label}    ${fitted.scaleLabel}`, top.x + 8, top.y + 0.28 * fit);
+    };
+    if (layout.elevation) drawBand(layout.elevation, elevationItems, 'Front');
+    if (layout.section) {
+      const edge = paper({ x: layout.section.x, y: layout.section.y });
+      const top = paper({ x: layout.section.x, y: layout.section.y + layout.section.h });
+      ctx.beginPath();
+      ctx.moveTo(edge.x, edge.y);
+      ctx.lineTo(top.x, top.y);
+      ctx.stroke();
+      drawBand(layout.section, sectionItems, 'Section');
     }
-  }, [elevationItems, items, layout]);
+  }, [elevationItems, items, layout, sectionItems]);
 
   const redraw = useCallback(() => {
     if (!frameRef.current) frameRef.current = requestAnimationFrame(draw);
@@ -144,7 +168,7 @@ export function SheetView() {
   }, [redraw]);
 
   return (
-    <div className="sheet-view" ref={wrapRef} data-testid="sheet-view" data-scale={layout.scaleLabel} data-schedule={layout.scheduleRows.map((row) => row.mark).join(' ')} data-elevation={layout.elevation ? 'Front' : ''}>
+    <div className="sheet-view" ref={wrapRef} data-testid="sheet-view" data-scale={layout.scaleLabel} data-schedule={layout.scheduleRows.map((row) => row.mark).join(' ')} data-elevation={layout.elevation ? 'Front' : ''} data-section={layout.section ? 'Section' : ''}>
       <canvas ref={canvasRef} className="sheet-canvas" />
     </div>
   );

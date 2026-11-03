@@ -48,8 +48,10 @@ export interface SheetLayout {
   /** Opening schedule, to the right of the plan. Null when the level has no doors or windows. */
   schedule: PaperRect | null;
   scheduleRows: ScheduleRow[];
-  /** Front elevation, above the title block. Null when the plan has no walls. */
+  /** Front elevation, the left half of the band above the title block. Null when the plan has no walls. */
   elevation: PaperRect | null;
+  /** Section through the middle, the right half of that band. Null when the plan has no walls. */
+  section: PaperRect | null;
   titleText: string;
   levelName: string;
   date: string;
@@ -63,7 +65,9 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
   const scheduleW = rows.length > 0 ? SCHEDULE_WIDTH : 0;
   const hasWalls = Object.values(doc.elements).some((el) => el.kind === 'wall');
   const elevationH = hasWalls ? ELEVATION_HEIGHT : 0;
-  const elevation: PaperRect | null = elevationH > 0 ? { x: border.x, y: border.y + TITLE_HEIGHT, w: border.w, h: elevationH } : null;
+  const bandY = border.y + TITLE_HEIGHT;
+  const elevation: PaperRect | null = elevationH > 0 ? { x: border.x, y: bandY, w: border.w / 2, h: elevationH } : null;
+  const section: PaperRect | null = elevationH > 0 ? { x: border.x + border.w / 2, y: bandY, w: border.w / 2, h: elevationH } : null;
   const viewport: PaperRect = {
     x: border.x,
     y: border.y + TITLE_HEIGHT + elevationH,
@@ -87,6 +91,7 @@ export function layoutSheet(doc: PlanDocument, levelId: Id): SheetLayout {
     schedule,
     scheduleRows: rows,
     elevation,
+    section,
     titleText: doc.meta.title.trim() || 'Untitled',
     levelName: level?.name ?? '',
     date,
