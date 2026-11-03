@@ -24,8 +24,7 @@ type ToolButton =
   | { id: 'camera'; label: string; icon: LucideIcon }
   | { id: 'roof'; label: string; icon: LucideIcon }
   | { id: 'hip'; label: string; icon: LucideIcon }
-  | { id: 'foundation'; label: string; icon: LucideIcon }
-  | { id: string; label: string; icon: LucideIcon; availableIn: string };
+  | { id: 'foundation'; label: string; icon: LucideIcon };
 
 const TOOL_GROUPS: ToolButton[][] = [
   [{ id: 'select', icon: MousePointer2 }],
@@ -44,7 +43,7 @@ const TOOL_GROUPS: ToolButton[][] = [
   ],
   [
     { id: 'dimensions', icon: RulerDimensionLine },
-    { id: 'text', label: 'Text', icon: Type, availableIn: 'M7' },
+    { id: 'text', icon: Type },
   ],
   [{ id: 'camera', label: 'Camera Views', icon: Video }],
 ];
@@ -58,13 +57,6 @@ export function Toolbar() {
         <div className="toolbar-group" key={index}>
           {group.map((button) => {
             const Icon = button.icon;
-            if ('availableIn' in button) {
-              return (
-                <button key={button.id} type="button" className="tool-button" aria-label={button.label} title={`${button.label} (available in ${button.availableIn})`} disabled>
-                  <Icon size={18} strokeWidth={1.75} aria-hidden />
-                </button>
-              );
-            }
             if (button.id === 'camera') {
               return (
                 <button key={button.id} type="button" className="tool-button" aria-label={button.label} aria-pressed={camerasOpen} title={button.label} onClick={() => toggleCameras()}>

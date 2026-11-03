@@ -32,7 +32,8 @@ const HANDLE_TOLERANCE_PX = 7;
 
 type Drag =
   | { kind: 'none' }
-  | { kind: 'pressing'; start: PlanPointer; target: 'walls' | 'dimension' | 'opening' | 'object' | 'room'; id: Id }
+  | { kind: 'pressing'; start: PlanPointer; target: 'walls' | 'dimension' | 'opening' | 'object' | 'room' | 'text'; id: Id }
+  | { kind: 'text'; id: Id; origin: Vec2; from: Vec2; at: Vec2 }
   | { kind: 'opening'; id: Id; grab: number; spot: OpeningSpot | null }
   | { kind: 'object'; id: Id; mode: 'wall'; grab: number; rotation: number; cursor: Vec2; spot: ObjectSpot | null }
   | { kind: 'object'; id: Id; mode: 'free'; rotation: number; origin: Vec2; from: Vec2; at: Vec2 }
@@ -93,7 +94,7 @@ export function createSelectTool(): Tool {
       } else if (!selection.includes(hit.id)) {
         ctx.setSelection([hit.id]);
       }
-      const target = hit.kind === 'wall' ? 'walls' : hit.kind === 'dimension' ? 'dimension' : hit.kind === 'object' ? 'object' : hit.kind === 'room' || hit.kind === 'cad' || hit.kind === 'foundation' ? 'room' : 'opening';
+      const target = hit.kind === 'wall' ? 'walls' : hit.kind === 'dimension' ? 'dimension' : hit.kind === 'object' ? 'object' : hit.kind === 'text' ? 'text' : hit.kind === 'room' || hit.kind === 'cad' || hit.kind === 'foundation' ? 'room' : 'opening';
       drag = { kind: 'pressing', start: e, target, id: hit.id };
       ctx.redraw();
     },
@@ -103,7 +104,11 @@ export function createSelectTool(): Tool {
         case 'pressing': {
           if (distance(drag.start.screen, e.screen) < DRAG_THRESHOLD_PX) return;
           if (drag.target === 'room') return;
-          if (drag.target === 'object') {
+          if (drag.target === 'text') {
+            const note = doc.elements[drag.id];
+            if (note?.kind !== 'text') return;
+            drag = { kind: 'text', id: note.id, origin: note.p, from: drag.start.model, at: note.p };
+          } else if (drag.target === 'object') {
             const object = doc.elements[drag.id];
             if (object?.kind !== 'object') return;
             if (object.hostWallId !== undefined) {
@@ -179,6 +184,9 @@ export function createSelectTool(): Tool {
           ctx.notify(spot?.error ?? null);
           break;
         }
+        case 'text':
+          drag.at = add(drag.origin, sub(e.model, drag.from));
+          break;
         case 'object': {
           const object = doc.elements[drag.id];
           if (object?.kind !== 'object') return;
@@ -219,6 +227,9 @@ export function createSelectTool(): Tool {
             const { wallId, t, side } = current.spot;
             commit(dispatch('opening.move', { id: current.id, wallId, t, side }), ctx);
           }
+          break;
+        case 'text':
+          commit(dispatch('text.update', { id: current.id, p: current.at }), ctx);
           break;
         case 'object':
           if (current.mode === 'wall' && current.spot) {
@@ -276,6 +287,12 @@ export function createSelectTool(): Tool {
         return produce(doc, (draft) => {
           const n = draft.elements[d.nodeId];
           if (n?.kind === 'wallNode') n.p = d.to;
+        });
+      }
+      if (d.kind === 'text') {
+        return produce(doc, (draft) => {
+          const note = draft.elements[d.id];
+          if (note?.kind === 'text') note.p = d.at;
         });
       }
       if (d.kind === 'dimension') {

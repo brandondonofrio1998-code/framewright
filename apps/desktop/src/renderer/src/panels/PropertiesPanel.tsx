@@ -403,6 +403,27 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'text') {
+    const format = doc.settings.lengthFormat;
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Text</h3>
+        <dl className="level-fields">
+          <dt>Note</dt>
+          <dd>
+            <TextInput label="Note" value={only.text} onCommit={(text) => errorOf(dispatch('text.update', { id: only.id, text }))} />
+          </dd>
+          <dt>Height</dt>
+          <dd>
+            <LengthInput label="Text height" value={only.size} format={format} onCommit={(size) => errorOf(dispatch('text.update', { id: only.id, size }))} />
+          </dd>
+        </dl>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'dimension') {
     const a = resolveDimensionEnd(doc, only.a);
     const b = resolveDimensionEnd(doc, only.b);

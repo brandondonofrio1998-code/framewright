@@ -43,6 +43,7 @@ export const TOOL_LABELS: Record<ToolId, string> = {
   objects: 'Objects',
   dimensions: 'Dimensions',
   stairs: 'Stairs',
+  text: 'Text',
 };
 
 export function setTool(tool: ToolId): void {

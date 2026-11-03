@@ -11,7 +11,7 @@ import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text';
   id: Id;
 }
 
@@ -88,6 +88,10 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
     if (landing) consider({ kind: 'stair', id: stair.id }, distanceToPolygon(p, landing));
   }
   if (best.picked) return best.picked;
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'text' || el.levelId !== levelId) continue;
+    consider({ kind: 'text', id: el.id }, distance(p, el.p));
+  }
   for (const geom of geometry.values()) {
     const d = pointInPolygon(p, geom.footprint) ? 0 : Math.max(0, projectOnSegment(p, geom.a, geom.b).distance - geom.thickness / 2);
     consider({ kind: 'wall', id: geom.wallId }, d);
@@ -158,6 +162,7 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind === 'cad' && el.levelId === levelId && cadPoints(el).every((p) => inside(p, box))) ids.push(el.id);
+    if (el.kind === 'text' && el.levelId === levelId && inside(el.p, box)) ids.push(el.id);
   }
   for (const dim of dimensionsOnLevel(doc, levelId)) {
     const ends = [resolveDimensionEnd(doc, dim.a), resolveDimensionEnd(doc, dim.b)];

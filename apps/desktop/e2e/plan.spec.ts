@@ -743,6 +743,27 @@ test('shows the room in section', async ({ electronApp, window, consoleErrors })
   await window.screenshot({ path: test.info().outputPath('section.png') });
 });
 
+test('places a note and edits it', async ({ electronApp, window, userData, consoleErrors }) => {
+  await window.getByRole('button', { name: 'Text', exact: true }).click();
+  await expect(window.getByTestId('status-tool')).toHaveText('Text');
+  await clickAt(window, { x: 0, y: 0 });
+  await window.keyboard.type('Kitchen');
+  await window.keyboard.press('Enter');
+  const plan = await savePlan(electronApp, userData, 'note');
+  const notes = ofKind(plan, 'text') as unknown as { text: string; size: number }[];
+  expect(notes).toHaveLength(1);
+  expect(notes[0]?.text).toBe('Kitchen');
+  expect(notes[0]?.size).toBe(8);
+  const field = window.getByLabel('Note');
+  await field.fill('Pantry');
+  await field.press('Enter');
+  expect((ofKind(await savePlan(electronApp, userData, 'note-edited'), 'text') as unknown as { text: string }[])[0]?.text).toBe('Pantry');
+  await window.getByLabel('Plan view').focus();
+  await window.keyboard.press('Delete');
+  expect(ofKind(await savePlan(electronApp, userData, 'note-gone'), 'text')).toHaveLength(0);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('status bar shows the cursor position and snap toggles', async ({ window }) => {
   const s = await screenOf(window, { x: 36, y: 24 });
   await window.mouse.move(s.x, s.y);

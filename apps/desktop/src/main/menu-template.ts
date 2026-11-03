@@ -133,7 +133,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       { label: 'Foundation', click: () => ctx.send({ type: 'foundation.build' }) },
       sep,
       tool('Dimensions', 'dimensions'),
-      pending('Text'),
+      tool('Text', 'text'),
     ],
   };
 

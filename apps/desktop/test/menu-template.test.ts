@@ -120,11 +120,12 @@ describe('menu template', () => {
     expect(send).toHaveBeenLastCalledWith({ type: 'view.cameras' });
   });
 
-  it('keeps unbuilt features visible but disabled', () => {
-    const { template } = build('win32');
-    for (const name of ['Text']) {
-      expect(find(submenu(top(template, 'Build')), name)?.enabled).toBe(false);
-    }
+  it('activates the text tool', () => {
+    const { template, send } = build('win32');
+    const item = find(submenu(top(template, 'Build')), 'Text');
+    expect(item?.enabled).not.toBe(false);
+    click(item);
+    expect(send).toHaveBeenLastCalledWith({ type: 'tool.activate', tool: 'text' });
   });
 
   it('Build Roof asks for a gable', () => {

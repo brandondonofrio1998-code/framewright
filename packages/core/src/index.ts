@@ -9,6 +9,7 @@ export * from './commands/document';
 export * from './commands/walls';
 export * from './commands/openings';
 export * from './commands/registry';
+export { TEXT_SIZE } from './commands/text';
 export * from './openings/openings';
 export * from './rooms/rooms';
 export * from './catalog/starter';

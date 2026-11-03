@@ -353,6 +353,18 @@ export const CadSchema = z.object({
 });
 export type Cad = z.infer<typeof CadSchema>;
 
+/** A note on the plan. Letter height is in model inches. */
+export const TextSchema = z.object({
+  ...elementBase,
+  kind: z.literal('text'),
+  /** Anchor of the note. Letters grow up and to the right. */
+  p: Vec2Schema,
+  text: z.string().trim().min(1).max(250),
+  /** Letter height, inches. */
+  size: z.number().min(1).max(120),
+});
+export type TextNote = z.infer<typeof TextSchema>;
+
 export const ElementSchema = z.discriminatedUnion('kind', [
   WallNodeSchema,
   WallSchema,
@@ -366,6 +378,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   FoundationSchema,
   StairSchema,
   CadSchema,
+  TextSchema,
 ]);
 export type Element = z.infer<typeof ElementSchema>;
 export type ElementKind = Element['kind'];

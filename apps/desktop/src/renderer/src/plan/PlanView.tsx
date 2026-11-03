@@ -22,6 +22,7 @@ import { deleteSelection } from '../editor/actions';
 import { notify, setSelection, setTool, useEditor } from '../editor/store';
 import { createBreakTool } from '../tools/break-tool';
 import { createDimensionTool } from '../tools/dimension-tool';
+import { createTextTool } from '../tools/text-tool';
 import { createObjectTool } from '../tools/object-tool';
 import { createOpeningTool } from '../tools/opening-tool';
 import { createStairTool } from '../tools/stair-tool';
@@ -78,6 +79,7 @@ const createTools = (): Record<ToolId, Tool> => ({
   objects: createObjectTool(),
   dimensions: createDimensionTool(),
   stairs: createStairTool(),
+  text: createTextTool(),
 });
 
 const isLengthKey = (key: string) => /^[0-9.'"]$/.test(key);
@@ -320,6 +322,10 @@ export function PlanView() {
     if (!ctx) return;
     const tool = activeTool();
     if (e.key === ' ') {
+      if (tool.key?.(e.nativeEvent, ctx)) {
+        e.preventDefault();
+        return;
+      }
       spaceRef.current = true;
       e.preventDefault();
       return;

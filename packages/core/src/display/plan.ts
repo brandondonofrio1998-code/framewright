@@ -153,6 +153,10 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     if (el.kind !== 'cad' || el.levelId !== levelId) continue;
     items.push({ elementId: el.id, layer: 'reference', prims: cadReference(el) });
   }
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'text' || el.levelId !== levelId) continue;
+    items.push({ elementId: el.id, layer: 'objects', prims: [{ t: 'text', p: el.p, s: el.text, size: el.size, rot: 0, align: 'left' }] });
+  }
 
   const format = doc.settings.lengthFormat;
   for (const dim of dimensionsOnLevel(doc, levelId)) {
