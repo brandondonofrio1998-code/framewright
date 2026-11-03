@@ -60,7 +60,7 @@ Loading validates the whole file against the schema. A file that fails validatio
 
 ## Versioning
 
-- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, the `stair` kind, the `cad` kind, and the optional material `texture` were added at version 2 for that reason.
+- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, the `stair` kind, the `cad` kind, the `text` kind, and the optional material `texture` were added at version 2 for that reason.
 - Version 1 files upgrade to version 2 by adding `catalogDefs: {}`. The frozen fixture is `packages/core/test/fixtures/v1/two-levels.fwplan`.
 - Older files are upgraded on load, and open with unsaved changes, by a chain of migrations, one per version step (`MIGRATIONS` in `packages/core/src/file/format.ts`). Each migration has a frozen fixture file under `packages/core/test/fixtures/v<N>/`.
 - A file from a newer version of Framewright is not opened. The message tells the user to update rather than risk losing data the older app doesn't understand.
