@@ -137,6 +137,14 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
       ],
     });
   }
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'stair' || el.toLevelId !== levelId || el.levelId === levelId) continue;
+    items.push({
+      elementId: el.id,
+      layer: 'objects',
+      prims: [{ t: 'polyline', pts: stairCorners(el), closed: true, pen: 'stair' }],
+    });
+  }
 
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'cad' || el.levelId !== levelId) continue;

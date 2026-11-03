@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, layoutFlight, pointInPolygon, stairCorners, stairsOnLevel, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
+import { buildLevelMeshes, layoutFlight, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -71,5 +71,32 @@ describe('straight stairs', () => {
     expect(Math.min(...zs)).toBeCloseTo(elevation, 3);
     ctx.history.dispatch('level.delete', { id: upperId });
     expect(stairsOnLevel(ctx.history.doc, ctx.baseLevelId)).toHaveLength(0);
+  });
+
+  it('opens the ceiling below and the floor above to the stair footprint', () => {
+    const ctx = withUpper();
+    const upperId = ctx.history.doc.levelOrder[1]!;
+    const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
+    for (const levelId of [ctx.baseLevelId, upperId]) {
+      const drawn = ctx.history.dispatch('wall.draw', {
+        levelId,
+        typeId,
+        points: [p(0, 0), p(240, 0), p(240, 144), p(0, 144)],
+        closed: true,
+      });
+      if (!drawn.ok) throw new Error(drawn.error);
+    }
+    const built = ctx.history.dispatch('stair.create', { levelId: ctx.baseLevelId, start: p(60, 72), end: p(220, 72) });
+    if (!built.ok) throw new Error(built.error);
+    const lower = ctx.history.doc.levels[ctx.baseLevelId]!;
+    const upper = ctx.history.doc.levels[upperId]!;
+    const ceiling = buildLevelMeshes(ctx.history.doc, ctx.baseLevelId).filter((part) => part.role === 'ceiling');
+    const floor = buildLevelMeshes(ctx.history.doc, upperId).filter((part) => part.role === 'floor');
+    const inWell = [140, 72] as const;
+    const beside = [30, 30] as const;
+    expect(pointInsideMesh(ceiling, [inWell[0], inWell[1], lower.elevation + lower.ceilingHeight - 0.1])).toBe(false);
+    expect(pointInsideMesh(ceiling, [beside[0], beside[1], lower.elevation + lower.ceilingHeight - 0.1])).toBe(true);
+    expect(pointInsideMesh(floor, [inWell[0], inWell[1], upper.elevation - 0.3])).toBe(false);
+    expect(pointInsideMesh(floor, [beside[0], beside[1], upper.elevation - 0.3])).toBe(true);
   });
 });

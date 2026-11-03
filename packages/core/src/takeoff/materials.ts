@@ -1,12 +1,13 @@
 import { polygonArea } from '../geometry/vec2';
+import { subtractConvex } from '../geometry/polygon';
 import { frameLevel } from '../framing/members';
 import { defaultWallHeight } from '../model/levels';
-import type { PlanDocument } from '../model/schema';
+import type { PlanDocument, Stair, Vec2 } from '../model/schema';
 import { openingsOnWall, wallLength } from '../openings/openings';
 import { foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
-import { stairsOnLevel } from '../stairs/straight';
+import { stairCorners, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
 import { computeWallGeometry } from '../walls/joins';
@@ -75,12 +76,15 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Framing', 'Headers', headers / 12, 'lin ft');
     add('Framing', 'Trimmers and cripples', extras, 'each');
 
+    const arriving = Object.values(doc.elements).filter((el): el is Stair => el.kind === 'stair' && el.toLevelId === levelId);
+    const leaving = stairsOnLevel(doc, levelId);
     let floor = 0;
     let ceiling = 0;
     for (const room of roomsOnLevel(doc, levelId)) {
-      const area = roomFace(doc, room)?.area ?? 0;
-      floor += area;
-      if (level.ceilingFinish > 0) ceiling += area;
+      const face = roomFace(doc, room);
+      if (!face) continue;
+      floor += openArea(face.polygon, arriving);
+      if (level.ceilingFinish > 0) ceiling += openArea(face.polygon, leaving);
     }
     add('Floors', 'Finished floor', floor / 144, 'sq ft');
     const gypsum = Object.values(doc.materials).find((material) => material.category === 'drywall')?.name ?? 'Gypsum board 1/2"';
@@ -122,4 +126,11 @@ export function materialsCsv(list: readonly TakeoffLine[]): string {
   const cell = (value: string) => (/[",\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value);
   const rows = [['Category', 'Item', 'Quantity', 'Unit'], ...list.map((line) => [line.category, line.name, String(line.quantity), line.unit])];
   return rows.map((row) => row.map(cell).join(',')).join('\n');
+}
+
+/** Area of a room face after each stair footprint is removed. */
+function openArea(polygon: Vec2[], stairs: readonly Stair[]): number {
+  let pieces = [polygon];
+  for (const stair of stairs) pieces = pieces.flatMap((piece) => subtractConvex(piece, stairCorners(stair)));
+  return pieces.reduce((sum, piece) => sum + Math.abs(polygonArea(piece)), 0);
 }

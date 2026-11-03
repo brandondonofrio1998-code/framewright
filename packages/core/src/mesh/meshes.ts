@@ -1,11 +1,11 @@
 import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
-import { RISER_THICKNESS, TREAD_THICKNESS, runRect, stairsOnLevel } from '../stairs/straight';
+import { RISER_THICKNESS, TREAD_THICKNESS, runRect, stairCorners, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
-import { clipToSlab, triangulate } from '../geometry/polygon';
+import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
-import type { Id, Opening, PlanDocument, Vec2 } from '../model/schema';
+import type { Id, Opening, PlanDocument, Stair, Vec2 } from '../model/schema';
 import { defaultWallHeight } from '../model/levels';
 import { openingFrame } from '../display/openings';
 import { openingSpan, openingsOnWall } from '../openings/openings';
@@ -320,12 +320,15 @@ function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, par
 }
 
 function floorSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  const holes = Object.values(doc.elements).filter((el): el is Stair => el.kind === 'stair' && el.toLevelId === levelId);
   for (const room of roomsOnLevel(doc, levelId)) {
     const face = roomFace(doc, room);
     if (!face) continue;
-    const b = builder();
-    extrude(b, face.polygon, elevation - FLOOR_THICKNESS, elevation);
-    push(parts, finish(b, room.id, null, 'floor'));
+    for (const polygon of openingPieces(face.polygon, holes)) {
+      const b = builder();
+      extrude(b, polygon, elevation - FLOOR_THICKNESS, elevation);
+      push(parts, finish(b, room.id, null, 'floor'));
+    }
   }
 }
 
@@ -333,15 +336,25 @@ function floorSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: M
 function ceilingSolids(doc: PlanDocument, levelId: Id, elevation: number, ceilingHeight: number, finishThickness: number, parts: MeshPart[]): void {
   if (!(finishThickness > 0)) return;
   const drywall = Object.values(doc.materials).find((material) => material.category === 'drywall')?.id ?? null;
+  const holes = Object.values(doc.elements).filter((el): el is Stair => el.kind === 'stair' && el.levelId === levelId);
   for (const room of roomsOnLevel(doc, levelId)) {
     const face = roomFace(doc, room);
     if (!face) continue;
     const top = elevation + (room.ceilingHeight ?? ceilingHeight);
     if (top - finishThickness < elevation) continue;
-    const b = builder();
-    extrude(b, face.polygon, top - finishThickness, top);
-    push(parts, finish(b, room.id, drywall, 'ceiling'));
+    for (const polygon of openingPieces(face.polygon, holes)) {
+      const b = builder();
+      extrude(b, polygon, top - finishThickness, top);
+      push(parts, finish(b, room.id, drywall, 'ceiling'));
+    }
   }
+}
+
+/** The polygon with each stair footprint removed. */
+function openingPieces(polygon: Vec2[], stairs: readonly Stair[]): Vec2[][] {
+  let pieces = [polygon];
+  for (const stair of stairs) pieces = pieces.flatMap((piece) => subtractConvex(piece, stairCorners(stair)));
+  return pieces;
 }
 
 /** Solids for one level: wall layers with opening holes, floors, doors, glass, and catalog boxes. */

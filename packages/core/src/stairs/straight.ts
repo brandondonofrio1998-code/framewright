@@ -24,8 +24,8 @@ export interface FlightLayout {
 
 /**
  * Equal risers and treads for a straight flight. Risers stay at or under 7 3/4 inches and treads at or
- * over 10 inches. The ceiling must clear 6'8" at the first nosing; the floor opening that clearance
- * needs is not cut yet.
+ * over 10 inches. The ceiling must clear 6'8" at the first nosing. The floor above and the ceiling
+ * below are opened to this flight's footprint.
  */
 export function layoutFlight(totalRise: number, ceilingHeight: number, run: number): { ok: true; layout: FlightLayout } | { ok: false; error: string } {
   if (!(totalRise > 0)) return { ok: false, error: 'The upper floor is not above this one.' };

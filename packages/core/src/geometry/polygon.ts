@@ -47,6 +47,31 @@ export function triangulate(poly: readonly Vec2[]): number[] {
   return tris.length === (n - 2) * 3 ? tris : [];
 }
 
+/**
+ * `subject` with a convex `hole` removed, as one or more simple polygons.
+ * The pieces do not overlap. A hole that misses the subject leaves it unchanged.
+ */
+export function subtractConvex(subject: readonly Vec2[], hole: readonly Vec2[]): Vec2[][] {
+  if (subject.length < 3) return [];
+  if (hole.length < 3 || Math.abs(polygonArea(hole)) < 1) return [subject.slice()];
+  const cutter = polygonArea(hole) < 0 ? [...hole].reverse() : hole.slice();
+  let remainder = subject.slice();
+  const pieces: Vec2[][] = [];
+  for (let i = 0; i < cutter.length; i++) {
+    const a = cutter[i]!;
+    const b = cutter[(i + 1) % cutter.length]!;
+    const edge = sub(b, a);
+    const len = Math.hypot(edge.x, edge.y);
+    if (len < 1e-8) continue;
+    const inward = { x: -edge.y / len, y: edge.x / len };
+    const outside = clipHalfPlane(remainder, a, { x: -inward.x, y: -inward.y }, 0);
+    remainder = clipHalfPlane(remainder, a, inward, 0);
+    if (outside.length >= 3 && Math.abs(polygonArea(outside)) > 1) pieces.push(outside);
+    if (remainder.length < 3) break;
+  }
+  return pieces;
+}
+
 function pointInTriangle(p: Vec2, a: Vec2, b: Vec2, c: Vec2): boolean {
   const c0 = cross(sub(b, a), sub(p, a));
   const c1 = cross(sub(c, b), sub(p, b));
