@@ -55,8 +55,21 @@ export const setStemRise = defineCommand<{ id: Id; stemRise: number }, Id>({
   },
 });
 
+export const setClearance = defineCommand<{ id: Id; clearance: number }, Id>({
+  label: () => 'Basement Height',
+  run: (doc, { id, clearance }) => {
+    const el = doc.elements[id];
+    if (el?.kind !== 'foundation') throw new CommandError('That foundation is gone.');
+    if (!(clearance >= 0) || clearance > 144) throw new CommandError('The open height under the floor must be from 0 to 12 feet.');
+    if (clearance <= 1e-6) delete el.clearance;
+    else el.clearance = clearance;
+    return id;
+  },
+});
+
 export const foundationCommands = {
   'foundation.build': buildFoundation,
   'foundation.setRise': setStemRise,
+  'foundation.setClearance': setClearance,
 };
 export type FoundationCommands = typeof foundationCommands;

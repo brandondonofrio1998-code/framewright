@@ -353,15 +353,17 @@ function addRail(b: Builder, a: Vec3, c: Vec3, side: Vec2, size: number): void {
 }
 
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
-  const top = elevation - FLOOR_FINISH;
+  const floorBottom = elevation - FLOOR_FINISH;
   for (const foundation of foundationsOnLevel(doc, levelId)) {
-    const bottom = top - foundation.thickness;
+    const gap = foundation.clearance ?? 0;
+    const slabTop = floorBottom - gap;
+    const bottom = slabTop - foundation.thickness;
     const slab = builder();
-    extrude(slab, foundation.polygon, bottom, top);
+    extrude(slab, foundation.polygon, bottom, slabTop);
     push(parts, finish(slab, foundation.id, foundation.materialId, 'solid'));
     for (const stem of foundation.stems ?? []) {
       const wall = builder();
-      extrude(wall, stem, bottom, top + (foundation.stemRise ?? 0));
+      extrude(wall, stem, bottom, floorBottom + (foundation.stemRise ?? 0));
       push(parts, finish(wall, foundation.id, foundation.materialId, 'solid'));
     }
     if (foundation.footingDepth < MIN_BAND) continue;

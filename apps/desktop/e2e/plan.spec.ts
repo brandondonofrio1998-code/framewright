@@ -362,6 +362,22 @@ test('raises the stem wall above the floor', async ({ electronApp, window, userD
   expect(consoleErrors).toEqual([]);
 });
 
+test('drops the slab to leave a basement under the floor', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Foundation', exact: true }).click();
+  await window.getByRole('button', { name: 'Select Objects' }).click();
+  await clickAt(window, { x: 0, y: ROOM.y0 - 7 });
+  const gap = window.getByLabel('Under the floor');
+  await expect(gap).toBeVisible();
+  await gap.fill(`8'`);
+  await gap.press('Enter');
+  await expect(gap).toHaveValue(`8'-0"`);
+  const plan = await savePlan(electronApp, userData, 'basement');
+  const foundations = ofKind(plan, 'foundation') as unknown as { clearance?: number }[];
+  expect(foundations[0]?.clearance).toBe(96);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('builds a straight stair up to the level above', async ({ electronApp, window, userData, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.locator('.dv-tab', { hasText: 'Levels' }).click();

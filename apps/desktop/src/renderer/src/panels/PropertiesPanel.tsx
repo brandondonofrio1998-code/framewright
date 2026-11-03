@@ -347,6 +347,15 @@ export function PropertiesPanel() {
               onCommit={(v) => errorOf(dispatch('foundation.setRise', { id: only.id, stemRise: v }))}
             />
           </dd>
+          <dt>Under the floor</dt>
+          <dd>
+            <LengthInput
+              label="Under the floor"
+              value={only.clearance ?? 0}
+              format={format}
+              onCommit={(v) => errorOf(dispatch('foundation.setClearance', { id: only.id, clearance: v }))}
+            />
+          </dd>
           <dt>Footing</dt>
           <dd>
             <span className="field-readonly">
@@ -354,7 +363,7 @@ export function PropertiesPanel() {
             </span>
           </dd>
         </dl>
-        <p className="panel-hint">The stem can continue above the floor. Build the foundation again after the walls change.</p>
+        <p className="panel-hint">The stem can continue above the floor, and the slab can drop to leave a basement under it. Build the foundation again after the walls change.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

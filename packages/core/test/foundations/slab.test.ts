@@ -97,4 +97,22 @@ describe('slab foundations', () => {
     const tooTall = ctx.history.dispatch('foundation.setRise', { id: foundation.id, stemRise: 200 });
     expect(tooTall.ok).toBe(false);
   });
+
+  it('drops the slab to leave a basement under the floor', () => {
+    const ctx = room([p(0, 0), p(240, 0), p(240, 144), p(0, 144)]);
+    const built = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId });
+    if (!built.ok) throw new Error(built.error);
+    const foundation = foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!;
+    const opened = ctx.history.dispatch('foundation.setClearance', { id: foundation.id, clearance: 96 });
+    if (!opened.ok) throw new Error(opened.error);
+    const elevation = ctx.history.doc.levels[ctx.baseLevelId]!.elevation;
+    const floorBottom = elevation - FLOOR_FINISH;
+    const parts = buildLevelMeshes(ctx.history.doc, ctx.baseLevelId).filter((part) => part.elementId === foundation.id);
+    const zs = parts.flatMap((part) => [...part.positions].filter((_, i) => i % 3 === 2));
+    expect(Math.max(...zs)).toBeCloseTo(floorBottom, 3);
+    expect(Math.min(...zs)).toBeCloseTo(floorBottom - 96 - SLAB_THICKNESS - FOOTING_DEPTH, 3);
+    expect(pointInsideMesh(parts, [120, 72, floorBottom - 48])).toBe(false);
+    expect(pointInsideMesh(parts, [120, -1, floorBottom - 48])).toBe(true);
+    expect(pointInsideMesh(parts, [120, 72, floorBottom - 96 - 1])).toBe(true);
+  });
 });
