@@ -1,6 +1,7 @@
 import { cadCommands } from './cad';
 import { cameraCommands } from './cameras';
 import { catalogCommands } from './catalog';
+import { deckCommands } from './decks';
 import { documentCommands } from './document';
 import { foundationCommands } from './foundations';
 import { openingCommands } from './openings';
@@ -19,6 +20,7 @@ export const planCommands = {
   ...roofCommands,
   ...foundationCommands,
   ...stairCommands,
+  ...deckCommands,
   ...cadCommands,
   ...textCommands,
   ...layerCommands,

@@ -1,4 +1,5 @@
 import { objectFootprint } from '../catalog/symbols';
+import { deckPolygon, decksOnLevel } from '../decks/deck';
 import { landingPolygon, placedFlights, stairCorners, stairsOnLevel } from '../stairs/straight';
 import { dimensionLine } from '../display/display-list';
 import { openingOutline } from '../display/openings';
@@ -11,7 +12,7 @@ import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text' | 'deck';
   id: Id;
 }
 
@@ -87,6 +88,7 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
     const landing = landingPolygon(stair);
     if (landing) consider({ kind: 'stair', id: stair.id }, distanceToPolygon(p, landing));
   }
+  for (const deck of decksOnLevel(doc, levelId)) consider({ kind: 'deck', id: deck.id }, distanceToPolygon(p, deckPolygon(deck)));
   if (best.picked) return best.picked;
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'text' || el.levelId !== levelId) continue;
@@ -159,6 +161,9 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
   for (const stair of stairsOnLevel(doc, levelId)) {
     const points = [...placedFlights(stair).flatMap((flight) => stairCorners(flight)), ...(landingPolygon(stair) ?? [])];
     if (points.every((p) => inside(p, box))) ids.push(stair.id);
+  }
+  for (const deck of decksOnLevel(doc, levelId)) {
+    if (deckPolygon(deck).every((p) => inside(p, box))) ids.push(deck.id);
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind === 'cad' && el.levelId === levelId && cadPoints(el).every((p) => inside(p, box))) ids.push(el.id);

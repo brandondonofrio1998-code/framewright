@@ -28,7 +28,7 @@ export const LengthFormatSchema = z.discriminatedUnion('system', [
 ]);
 
 /** Plan layers a layer set can show or hide. The sheet and DXF still draw every layer. */
-export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs'] as const;
+export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck'] as const;
 export type PlanLayerId = (typeof PLAN_LAYER_IDS)[number];
 
 export const LayerSetSchema = z.object({
@@ -349,6 +349,23 @@ export const StairSchema = z.object({
 });
 export type Stair = z.infer<typeof StairSchema>;
 
+/** A rectangular deck against one wall. The walking surface is the level's floor. */
+export const DeckSchema = z.object({
+  ...elementBase,
+  kind: z.literal('deck'),
+  /** Start of the edge against the house. */
+  ledger: Vec2Schema,
+  /** Unit vector along that edge. */
+  dir: Vec2Schema,
+  /** Length along the house, inches. */
+  width: z.number().min(36).max(480),
+  /** Distance out from the house, inches. */
+  depth: z.number().min(36).max(240),
+  /** 1 extends to the left of `dir`. */
+  side: z.union([z.literal(1), z.literal(-1)]),
+});
+export type Deck = z.infer<typeof DeckSchema>;
+
 const CadLineSchema = z.object({ t: z.literal('line'), a: Vec2Schema, b: Vec2Schema });
 const CadPolylineSchema = z.object({ t: z.literal('polyline'), pts: z.array(Vec2Schema).min(2).max(500), closed: z.boolean() });
 const CadArcSchema = z.object({
@@ -394,6 +411,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   RoofPlaneSchema,
   FoundationSchema,
   StairSchema,
+  DeckSchema,
   CadSchema,
   TextSchema,
 ]);

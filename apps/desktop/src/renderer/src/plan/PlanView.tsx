@@ -27,6 +27,7 @@ import { createDimensionTool } from '../tools/dimension-tool';
 import { createTextTool } from '../tools/text-tool';
 import { createObjectTool } from '../tools/object-tool';
 import { createOpeningTool } from '../tools/opening-tool';
+import { createDeckTool } from '../tools/deck-tool';
 import { createStairTool } from '../tools/stair-tool';
 import { createSelectTool } from '../tools/select-tool';
 import type { PlanPointer, SnapRequest, Tool, ToolContext } from '../tools/types';
@@ -81,6 +82,7 @@ const createTools = (): Record<ToolId, Tool> => ({
   objects: createObjectTool(),
   dimensions: createDimensionTool(),
   stairs: createStairTool(),
+  deck: createDeckTool(),
   text: createTextTool(),
 });
 

@@ -151,6 +151,7 @@ describe('menu template', () => {
       ['Windows', 'windows'],
       ['Objects', 'objects'],
       ['Stairs', 'stairs'],
+      ['Deck', 'deck'],
       ['Dimensions', 'dimensions'],
     ] as const) {
       click(find(items, name));

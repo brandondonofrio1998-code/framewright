@@ -8,6 +8,7 @@ import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
+import { deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
 import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
@@ -22,7 +23,7 @@ export interface TakeoffLine {
   unit: TakeoffUnit;
 }
 
-const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Openings', 'Stairs'];
+const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs'];
 const SHEET = new Set(['finish', 'sheathing', 'insulation']);
 
 /**
@@ -120,6 +121,21 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
       }
     }
     add('Stairs', 'Stair treads', treads, 'each');
+    let decking = 0;
+    let joistFeet = 0;
+    let railFeet = 0;
+    let posts = 0;
+    for (const deck of decksOnLevel(doc, levelId)) {
+      decking += (deck.width * deck.depth) / 144;
+      const span = Math.min(deck.width, deck.depth);
+      joistFeet += (deckJoists(deck).length * span) / 12;
+      railFeet += deckRailLength(deck) / 12;
+      posts += deckPosts(deck).length;
+    }
+    add('Decks', 'Decking', decking, 'sq ft');
+    add('Decks', 'Deck joists', joistFeet, 'lin ft');
+    add('Decks', 'Deck railing', railFeet, 'lin ft');
+    add('Decks', 'Deck posts', posts, 'each');
     add('Stairs', 'Handrail', rail / 12, 'lin ft');
   }
 

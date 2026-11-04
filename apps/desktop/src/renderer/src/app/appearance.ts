@@ -59,6 +59,8 @@ export function layerForKind(kind: string): DrawLayer | null {
       return 'foundation';
     case 'stair':
       return 'stairs';
+    case 'deck':
+      return 'deck';
     case 'cad':
       return 'reference';
     default:

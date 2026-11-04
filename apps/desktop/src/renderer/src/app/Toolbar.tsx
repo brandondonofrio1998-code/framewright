@@ -5,6 +5,7 @@ import {
   BrickWall,
   DoorOpen,
   DoorStairwell,
+  Fence,
   House,
   LandPlot,
   MousePointer2,
@@ -37,6 +38,7 @@ const TOOL_GROUPS: ToolButton[][] = [
   [
     { id: 'objects', icon: Archive },
     { id: 'stairs', icon: DoorStairwell },
+    { id: 'deck', icon: Fence },
     { id: 'roof', label: 'Roof', icon: House },
     { id: 'hip', label: 'Hip Roof', icon: Pyramid },
     { id: 'foundation', label: 'Foundation', icon: LandPlot },

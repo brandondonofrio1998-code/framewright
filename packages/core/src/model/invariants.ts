@@ -101,6 +101,7 @@ export function checkInvariants(doc: PlanDocument): string[] {
       const target = doc.levels[el.toLevelId];
       if (!target || target.id === el.levelId) problems.push(`stair ${el.id} does not arrive at a level above`);
     }
+    if (el.kind === 'deck' && Math.hypot(el.dir.x, el.dir.y) < 0.5) problems.push(`deck ${el.id} has no direction`);
   }
   return problems;
 }

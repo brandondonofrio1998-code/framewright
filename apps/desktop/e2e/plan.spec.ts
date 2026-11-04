@@ -806,6 +806,19 @@ test('status bar shows the cursor position and snap toggles', async ({ window })
   await expect(grid).toHaveAttribute('aria-pressed', 'false');
 });
 
+test('builds a deck outside the room', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Deck', exact: true }).click();
+  await expect(window.getByTestId('status-tool')).toHaveText('Deck');
+  await clickAt(window, { x: -40, y: -90 });
+  await clickAt(window, { x: 80, y: -200 });
+  const plan = await savePlan(electronApp, userData, 'deck');
+  const deck = ofKind(plan, 'deck')[0] as { width?: number; depth?: number } | undefined;
+  expect(deck?.width).toBeGreaterThan(36);
+  expect(deck?.depth).toBeGreaterThan(36);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('a layer set is saved with the plan', async ({ electronApp, window, userData, consoleErrors }) => {
   await clickMenu(electronApp, ['View', 'Layers', 'Walls']);
   await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');

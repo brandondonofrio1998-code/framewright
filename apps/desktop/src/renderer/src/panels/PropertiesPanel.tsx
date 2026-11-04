@@ -403,6 +403,28 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'deck') {
+    const format = doc.settings.lengthFormat;
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Deck</h3>
+        <dl className="level-fields">
+          <dt>Along the wall</dt>
+          <dd>
+            <span className="field-readonly">{formatLength(only.width, format)}</span>
+          </dd>
+          <dt>Out from the wall</dt>
+          <dd>
+            <span className="field-readonly">{formatLength(only.depth, format)}</span>
+          </dd>
+        </dl>
+        <p className="panel-hint">2x8 joists span the short side. Posts and a top rail run the three open sides. The deck stays where it was built.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'text') {
     const format = doc.settings.lengthFormat;
     return (

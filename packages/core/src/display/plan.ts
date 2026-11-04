@@ -3,6 +3,7 @@ import { objectPrims } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
+import { deckJoists, deckOpenEdges, deckPolygon, decksOnLevel } from '../decks/deck';
 import { handrail, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
 import type { Cad, Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
@@ -146,6 +147,18 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     const landing = landingPolygon(el);
     if (landing) prims.push({ t: 'polyline', pts: landing, closed: true, pen: 'stair' });
     items.push({ elementId: el.id, layer: 'stairs', prims });
+  }
+  for (const deck of decksOnLevel(doc, levelId)) {
+    const outline = deckPolygon(deck);
+    items.push({
+      elementId: deck.id,
+      layer: 'deck',
+      prims: [
+        { t: 'polyline', pts: outline, closed: true, pen: 'deck' },
+        ...deckJoists(deck).map((joist): Prim => ({ t: 'polyline', pts: joist, closed: true, pen: 'deck' })),
+        ...deckOpenEdges(deck).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'deck' })),
+      ],
+    });
   }
 
   for (const el of Object.values(doc.elements)) {

@@ -2,6 +2,7 @@ import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
+import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, deckJoists, deckOpenEdges, deckPolygon, deckPosts, decksOnLevel, postFoot, railStrip } from '../decks/deck';
 import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
@@ -353,6 +354,31 @@ function addRail(b: Builder, a: Vec3, c: Vec3, side: Vec2, size: number): void {
   face(finishEnd[0]!, finishEnd[1]!, finishEnd[2]!, finishEnd[3]!, d);
 }
 
+function deckSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  const lumber = Object.values(doc.materials).find((material) => material.category === 'framing')?.id ?? null;
+  for (const deck of decksOnLevel(doc, levelId)) {
+    const top = elevation;
+    const board = builder();
+    extrude(board, deckPolygon(deck), top - DECK_BOARD, top);
+    push(parts, finish(board, deck.id, lumber, 'solid'));
+    for (const joist of deckJoists(deck)) {
+      const piece = builder();
+      extrude(piece, joist, top - DECK_BOARD - DECK_JOIST_DEPTH, top - DECK_BOARD);
+      push(parts, finish(piece, deck.id, lumber, 'solid'));
+    }
+    for (const [a, b] of deckOpenEdges(deck)) {
+      const rail = builder();
+      extrude(rail, railStrip(a, b), top + RAIL_HEIGHT - RAIL_WIDTH, top + RAIL_HEIGHT);
+      push(parts, finish(rail, deck.id, lumber, 'solid'));
+    }
+    for (const post of deckPosts(deck)) {
+      const piece = builder();
+      extrude(piece, postFoot(post), top, top + RAIL_HEIGHT);
+      push(parts, finish(piece, deck.id, lumber, 'solid'));
+    }
+  }
+}
+
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   const floorBottom = elevation - FLOOR_FINISH;
   for (const foundation of foundationsOnLevel(doc, levelId)) {
@@ -454,6 +480,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   objectSolids(doc, levelId, level.elevation, parts);
   foundationSolids(doc, levelId, level.elevation, parts);
   stairSolids(doc, levelId, level.elevation, parts);
+  deckSolids(doc, levelId, level.elevation, parts);
   const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.id ?? null;
   for (const roof of roofsOnLevel(doc, levelId)) {
     const b = builder();
