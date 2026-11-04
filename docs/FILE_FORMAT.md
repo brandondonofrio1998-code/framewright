@@ -28,6 +28,7 @@ A file is a Framewright plan when its top-level object has `"format": "framewrig
 | `materials` | Map of material id to `{ id, name, category, color, texture? }`. `texture`, when present, is `{ id, tile }`: `id` is a bundled set (`smooth-wall`, `softwood`, `wood-planks`, `oak-floor`) and `tile` is `[width, height]` in inches, the real size of one repeat. Sheathing has no texture. Plans saved before textures omit the field and still open |
 | `catalogDefs` | Map of catalog definition id to the definition embedded when an object was placed. Empty when the plan has no catalog objects. See below |
 | `elements` | Map of element id to an element, discriminated by `kind` (see below) |
+| `layerSets` | Optional list of `{ id, name, hidden }`. `hidden` names plan layers (`walls`, `openings`, `objects`, `rooms`, `dimensions`, `text`, `roof`, `foundation`, `stairs`, `reference`). Omitted means every layer is shown. `activeLayerSet` is the id of the set the plan view uses. The sheet and DXF still draw every layer |
 
 ### Element kinds
 
@@ -60,7 +61,7 @@ Loading validates the whole file against the schema. A file that fails validatio
 
 ## Versioning
 
-- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, the `stair` kind, the `cad` kind, the `text` kind, and the optional material `texture` were added at version 2 for that reason.
+- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, the `stair` kind, the `cad` kind, the `text` kind, the optional material `texture`, and the optional `layerSets` list were added at version 2 for that reason.
 - Version 1 files upgrade to version 2 by adding `catalogDefs: {}`. The frozen fixture is `packages/core/test/fixtures/v1/two-levels.fwplan`.
 - Older files are upgraded on load, and open with unsaved changes, by a chain of migrations, one per version step (`MIGRATIONS` in `packages/core/src/file/format.ts`). Each migration has a frozen fixture file under `packages/core/test/fixtures/v<N>/`.
 - A file from a newer version of Framewright is not opened. The message tells the user to update rather than risk losing data the older app doesn't understand.
