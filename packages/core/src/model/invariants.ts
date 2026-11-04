@@ -25,6 +25,11 @@ export function checkInvariants(doc: PlanDocument): string[] {
   for (const [key, mat] of Object.entries(doc.materials)) if (key !== mat.id) problems.push(`material key ${key} != id ${mat.id}`);
   for (const [key, def] of Object.entries(doc.catalogDefs)) if (key !== def.id) problems.push(`catalog def key ${key} != id ${def.id}`);
   for (const [key, el] of Object.entries(doc.elements)) if (key !== el.id) problems.push(`element key ${key} != id ${el.id}`);
+  if (doc.layerSets) {
+    const ids = doc.layerSets.map((set) => set.id);
+    if (new Set(ids).size !== ids.length) problems.push('layer sets repeat an id');
+    if (doc.activeLayerSet && !ids.includes(doc.activeLayerSet)) problems.push('the active layer set is missing');
+  } else if (doc.activeLayerSet) problems.push('the active layer set is missing');
 
   if (doc.levelOrder.length === 0) problems.push('document has no levels');
   if (new Set(doc.levelOrder).size !== doc.levelOrder.length) problems.push('levelOrder has duplicates');

@@ -139,7 +139,11 @@ export class DocumentServices {
     const state = this.windows.get(win);
     if (!state) return;
     const labelsChanged = state.doc?.undoLabel !== doc.undoLabel || state.doc?.redoLabel !== doc.redoLabel;
-    const appearanceChanged = state.doc?.dark !== doc.dark || (state.doc?.hiddenLayers ?? []).join() !== doc.hiddenLayers.join();
+    const appearanceChanged =
+      state.doc?.dark !== doc.dark ||
+      (state.doc?.hiddenLayers ?? []).join() !== doc.hiddenLayers.join() ||
+      (state.doc?.activeLayerSet ?? null) !== doc.activeLayerSet ||
+      (state.doc?.layerSets ?? []).map((set) => set.id).join() !== doc.layerSets.map((set) => set.id).join();
     state.doc = doc;
     win.setTitle(`${doc.title}${doc.dirty && process.platform !== 'darwin' ? ' *' : ''} — ${this.opts.appName}`);
     if (process.platform === 'darwin') {

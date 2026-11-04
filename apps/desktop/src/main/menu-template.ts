@@ -7,9 +7,11 @@ export interface MenuState {
   recent: FileRef[];
   dark: boolean;
   hiddenLayers: string[];
+  layerSets: { id: string; name: string }[];
+  activeLayerSet: string | null;
 }
 
-export const EMPTY_MENU_STATE: MenuState = { undoLabel: null, redoLabel: null, recent: [], dark: false, hiddenLayers: [] };
+export const EMPTY_MENU_STATE: MenuState = { undoLabel: null, redoLabel: null, recent: [], dark: false, hiddenLayers: [], layerSets: [], activeLayerSet: null };
 
 export interface MenuContext {
   platform: Platform;
@@ -154,25 +156,40 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       { label: 'Dark Mode', type: 'checkbox', checked: ctx.state.dark, click: () => ctx.send({ type: 'view.toggleDark' }) },
       {
         label: 'Layers',
-        submenu: (
-          [
-            ['walls', 'Walls'],
-            ['openings', 'Openings'],
-            ['objects', 'Objects'],
-            ['rooms', 'Rooms'],
-            ['dimensions', 'Dimensions'],
-            ['text', 'Text'],
-            ['roof', 'Roof'],
-            ['foundation', 'Foundation'],
-            ['stairs', 'Stairs'],
-            ['reference', 'Reference'],
-          ] as const
-        ).map(([id, name]): MenuItemConstructorOptions => ({
-          label: name,
-          type: 'checkbox',
-          checked: !ctx.state.hiddenLayers.includes(id),
-          click: () => ctx.send({ type: 'view.layer', layer: id }),
-        })),
+        submenu: [
+          ...(ctx.state.layerSets.length > 0 ? ctx.state.layerSets : [{ id: '', name: 'Plan' }]).map(
+            (set): MenuItemConstructorOptions => ({
+              label: set.name,
+              type: 'radio',
+              checked: ctx.state.layerSets.length === 0 ? set.id === '' : set.id === ctx.state.activeLayerSet,
+              click: () => {
+                if (set.id) ctx.send({ type: 'view.layerSet', id: set.id });
+              },
+            }),
+          ),
+          sep,
+          { label: 'New Layer Set', click: () => ctx.send({ type: 'view.layerSetNew' }) },
+          sep,
+          ...(
+            [
+              ['walls', 'Walls'],
+              ['openings', 'Openings'],
+              ['objects', 'Objects'],
+              ['rooms', 'Rooms'],
+              ['dimensions', 'Dimensions'],
+              ['text', 'Text'],
+              ['roof', 'Roof'],
+              ['foundation', 'Foundation'],
+              ['stairs', 'Stairs'],
+              ['reference', 'Reference'],
+            ] as const
+          ).map(([id, name]): MenuItemConstructorOptions => ({
+            label: name,
+            type: 'checkbox',
+            checked: !ctx.state.hiddenLayers.includes(id),
+            click: () => ctx.send({ type: 'view.layer', layer: id }),
+          })),
+        ],
       },
       sep,
       { role: 'togglefullscreen' },

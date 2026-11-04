@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { AppInfo, MenuCommand, RecoveryEntry } from '../../../shared/ipc';
 import { newPlan, openHandle, openPlan, restoreRecovered, save, saveAndClose, saveAs, exportDxf, exportGlb, exportMaterials, exportSheet, importDxf } from '../document/file-actions';
-import { history, setAppVersion } from '../document/store';
+import { history, dispatch, setAppVersion } from '../document/store';
 import { deleteSelection, isEditable, selectAll, buildFoundation, buildGable, buildHip } from '../editor/actions';
 import { useAppearance } from './appearance';
 import { setTool } from '../editor/store';
@@ -72,7 +72,13 @@ function handleMenu(command: MenuCommand): void {
       useAppearance.getState().toggleDark();
       return;
     case 'view.layer':
-      useAppearance.getState().toggleLayer(command.layer);
+      dispatch('layerSet.toggle', { layer: command.layer });
+      return;
+    case 'view.layerSet':
+      dispatch('layerSet.use', { id: command.id });
+      return;
+    case 'view.layerSetNew':
+      dispatch('layerSet.create', {});
       return;
   }
 }

@@ -7,6 +7,7 @@ import { openingCommands } from './openings';
 import { roofCommands } from './roofs';
 import { stairCommands } from './stairs';
 import { textCommands } from './text';
+import { layerCommands } from './layers';
 import { wallCommands } from './walls';
 
 export const planCommands = {
@@ -20,5 +21,6 @@ export const planCommands = {
   ...stairCommands,
   ...cadCommands,
   ...textCommands,
+  ...layerCommands,
 };
 export type PlanCommands = typeof planCommands;

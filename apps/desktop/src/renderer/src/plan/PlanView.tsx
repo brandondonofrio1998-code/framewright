@@ -8,6 +8,7 @@ import {
   dimensionPrims,
   dimensionsOnLevel,
   frameLevel,
+  hiddenLayersOf,
   resolveDimensionEnd,
   snapPoint,
   stairCorners,
@@ -17,10 +18,10 @@ import {
   type WallGeometry,
 } from '@framewright/core';
 import type { ToolId } from '../../../shared/ipc';
+import { useAppearance } from '../app/appearance';
 import { history, useDocument } from '../document/store';
 import { deleteSelection } from '../editor/actions';
 import { notify, setSelection, setTool, useEditor } from '../editor/store';
-import { useAppearance } from '../app/appearance';
 import { createBreakTool } from '../tools/break-tool';
 import { createDimensionTool } from '../tools/dimension-tool';
 import { createTextTool } from '../tools/text-tool';
@@ -117,7 +118,7 @@ export function PlanView() {
     const shown = tool.preview?.(committed, toolCtx) ?? committed;
     const geometry = shown === committed ? geometryOf(committed, activeLevelId) : computeWallGeometry(shown, activeLevelId);
 
-    const list = buildPlanDisplayList(shown, activeLevelId, { geometry }).filter((item) => !useAppearance.getState().hidden.includes(item.layer));
+    const list = buildPlanDisplayList(shown, activeLevelId, { geometry }).filter((item) => !hiddenLayersOf(shown).includes(item.layer));
     drawGrid(ctx2d, view, shown.settings.gridSpacing);
     drawDisplayList(ctx2d, view, list, new Set(selection));
     const studs = frameLevel(shown, activeLevelId, geometry).reduce((n, wall) => n + wall.members.filter((member) => member.kind === 'stud' || member.kind === 'king').length, 0);

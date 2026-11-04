@@ -1,9 +1,11 @@
-import { serializeDocument } from '@framewright/core';
+import { hiddenLayersOf, serializeDocument } from '@framewright/core';
 import type { DocState } from '../../../shared/ipc';
 import { useAppearance } from '../app/appearance';
 import { documentTitle, useDocument, type DocumentState } from './store';
 
 function docStateOf(state: DocumentState): DocState {
+  const hidden = hiddenLayersOf(state.doc);
+  document.documentElement.dataset.hidden = hidden.join(' ');
   return {
     docId: state.doc.meta.id,
     title: documentTitle(state),
@@ -12,7 +14,9 @@ function docStateOf(state: DocumentState): DocState {
     undoLabel: state.undoLabel,
     redoLabel: state.redoLabel,
     dark: useAppearance.getState().dark,
-    hiddenLayers: useAppearance.getState().hidden,
+    hiddenLayers: [...hidden],
+    layerSets: (state.doc.layerSets ?? []).map((set) => ({ id: set.id, name: set.name })),
+    activeLayerSet: state.doc.activeLayerSet ?? null,
   };
 }
 

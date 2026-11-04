@@ -179,6 +179,10 @@ describe('menu template', () => {
     expect(walls).toMatchObject({ type: 'checkbox', checked: true });
     click(walls);
     expect(send).toHaveBeenLastCalledWith({ type: 'view.layer', layer: 'walls' });
+    const plan = find(submenu(layers), 'Plan');
+    expect(plan).toMatchObject({ type: 'radio', checked: true });
+    click(find(submenu(layers), 'New Layer Set'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.layerSetNew' });
   });
 
   it('only exposes reload/devtools when dev tools are enabled', () => {

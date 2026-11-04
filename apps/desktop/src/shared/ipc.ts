@@ -78,6 +78,8 @@ export interface DocState {
   redoLabel: string | null;
   dark: boolean;
   hiddenLayers: string[];
+  layerSets: { id: string; name: string }[];
+  activeLayerSet: string | null;
 }
 
 export type DiscardChoice = 'save' | 'discard' | 'cancel';
@@ -111,6 +113,8 @@ export type MenuCommand =
   | { type: 'view.resetLayout' }
   | { type: 'view.toggleDark' }
   | { type: 'view.layer'; layer: string }
+  | { type: 'view.layerSet'; id: string }
+  | { type: 'view.layerSetNew' }
   | { type: 'view.fit' }
   | { type: 'view.zoomIn' }
   | { type: 'view.zoomOut' }
@@ -139,6 +143,7 @@ const SIMPLE_COMMANDS = new Set([
   'edit.selectAll',
   'view.resetLayout',
   'view.toggleDark',
+  'view.layerSetNew',
   'view.fit',
   'view.zoomIn',
   'view.zoomOut',
@@ -156,6 +161,7 @@ export function isMenuCommand(value: unknown): value is MenuCommand {
   if (type === 'file.openHandle') return typeof handle === 'string';
   if (type === 'tool.activate') return (TOOL_IDS as readonly unknown[]).includes(tool);
   if (type === 'view.layer') return typeof (value as { layer?: unknown }).layer === 'string';
+  if (type === 'view.layerSet') return typeof (value as { id?: unknown }).id === 'string';
   if (type === 'view.show3d') {
     const mode = (value as { mode?: unknown }).mode;
     return mode === 'orbit' || mode === 'walk';

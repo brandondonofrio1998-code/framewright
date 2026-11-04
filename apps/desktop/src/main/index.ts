@@ -126,6 +126,8 @@ async function refreshMenu(): Promise<void> {
     recent: await services.recentRefs(),
     dark: doc?.dark ?? false,
     hiddenLayers: doc?.hiddenLayers ?? [],
+    layerSets: doc?.layerSets ?? [],
+    activeLayerSet: doc?.activeLayerSet ?? null,
   });
 }
 

@@ -27,6 +27,17 @@ export const LengthFormatSchema = z.discriminatedUnion('system', [
   }),
 ]);
 
+/** Plan layers a layer set can show or hide. The sheet and DXF still draw every layer. */
+export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs'] as const;
+export type PlanLayerId = (typeof PLAN_LAYER_IDS)[number];
+
+export const LayerSetSchema = z.object({
+  id: IdSchema,
+  name: z.string().trim().min(1).max(40),
+  hidden: z.array(z.enum(PLAN_LAYER_IDS)),
+});
+export type LayerSet = z.infer<typeof LayerSetSchema>;
+
 export const SettingsSchema = z.object({
   lengthFormat: LengthFormatSchema,
   gridSpacing: PositiveLength,
@@ -403,5 +414,8 @@ export const DocumentSchema = z.object({
   /** Catalog definitions used by objects in this plan. */
   catalogDefs: z.record(IdSchema, CatalogDefSchema),
   elements: z.record(IdSchema, ElementSchema),
+  /** Named plan-layer visibility. Absent means every layer is shown. The active id is one of these. */
+  layerSets: z.array(LayerSetSchema).max(12).optional(),
+  activeLayerSet: IdSchema.optional(),
 });
 export type PlanDocument = z.infer<typeof DocumentSchema>;

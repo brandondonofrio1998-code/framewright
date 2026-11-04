@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ElectronApplication, Page } from '@playwright/test';
-import { clickMenu, expect, menuItem, test } from './fixtures';
+import { clickMenu, expect, menuItem, test, answerMessageBoxes } from './fixtures';
 
 interface Vec2 {
   x: number;
@@ -782,4 +782,27 @@ test('status bar shows the cursor position and snap toggles', async ({ window })
   await expect(grid).toHaveAttribute('aria-pressed', 'true');
   await grid.click();
   await expect(grid).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('a layer set is saved with the plan', async ({ electronApp, window, userData, consoleErrors }) => {
+  await clickMenu(electronApp, ['View', 'Layers', 'Walls']);
+  await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');
+  const saved = await savePlan(electronApp, userData, 'layers');
+  const sets = (saved as { layerSets?: { name: string; hidden: string[] }[] }).layerSets;
+  expect(sets?.[0]?.name).toBe('Plan');
+  expect(sets?.[0]?.hidden).toContain('walls');
+
+  await clickMenu(electronApp, ['View', 'Layers', 'New Layer Set']);
+  await expect.poll(() => menuItem(electronApp, ['View', 'Layers', 'Set 2'])).toMatchObject({ enabled: true });
+  await clickMenu(electronApp, ['View', 'Layers', 'Walls']);
+  await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).not.toContain('walls');
+  await clickMenu(electronApp, ['View', 'Layers', 'Plan']);
+  await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');
+
+  await answerMessageBoxes(electronApp, 1);
+  await clickMenu(electronApp, ['File', 'New Plan']);
+  await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toBe('');
+  await clickMenu(electronApp, ['File', 'Open Recent', 'layers']);
+  await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');
+  expect(consoleErrors).toEqual([]);
 });
