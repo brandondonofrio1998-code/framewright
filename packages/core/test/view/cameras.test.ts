@@ -4,6 +4,7 @@ import {
   checkInvariants,
   loadDocument,
   partTexture,
+  serializeDocument,
   TEXTURE_SCANS,
   tileInches,
   type PlanDocument,
@@ -72,6 +73,17 @@ describe('saved cameras', () => {
     const same = history.dispatch('camera.save', { levelId: baseLevelId, name: 'View', mode: 'orbit', eye, target: eye });
     expect(same.ok).toBe(false);
     expect(camerasIn(history.doc)).toEqual([]);
+  });
+
+  it('saves an orthographic orbit and keeps a walk camera in perspective', () => {
+    const { history, baseLevelId } = testHistory();
+    const saved = history.dispatch('camera.save', { levelId: baseLevelId, name: 'Front', mode: 'orbit', eye, target, projection: 'orthographic', zoom: 4 });
+    if (!saved.ok) throw new Error(saved.error);
+    expect(camerasIn(history.doc)[0]).toMatchObject({ mode: 'orbit', projection: 'orthographic', zoom: 4 });
+    const loaded = loadDocument(serializeDocument(history.doc));
+    if (!loaded.ok) throw new Error(loaded.error);
+    expect(camerasIn(loaded.doc)[0]).toMatchObject({ projection: 'orthographic', zoom: 4 });
+    expect(history.dispatch('camera.save', { levelId: baseLevelId, name: 'Walk', mode: 'walk', eye, target, projection: 'orthographic' }).ok).toBe(false);
   });
 
   it('drops a camera with no look direction on load, and deletes cameras with their level', () => {

@@ -15,7 +15,7 @@ import { PlanView } from '../plan/PlanView';
 import { SectionView } from '../section/SectionView';
 import { SheetView } from '../sheets/SheetView';
 import { View3D } from '../view3d/View3D';
-import { openCameras, setViewMode, useView3d } from '../view3d/view-state';
+import { openCameras, setOrbit, setViewMode, useView3d } from '../view3d/view-state';
 
 const theme: DockviewTheme = {
   ...themeLight,
@@ -162,7 +162,8 @@ export function Workspace() {
         else if (command.type === 'view.showElevation') showElevation(apiRef.current);
         else if (command.type === 'view.showSection') showSection(apiRef.current);
         else if (command.type === 'view.show3d') {
-          setViewMode(command.mode);
+          if (command.mode === 'walk') setViewMode('walk');
+          else setOrbit(command.projection === 'orthographic' ? 'orthographic' : 'perspective');
           showPerspective(apiRef.current);
         } else if (command.type === 'view.cameras') {
           openCameras();

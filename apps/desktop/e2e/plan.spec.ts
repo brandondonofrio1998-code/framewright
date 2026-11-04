@@ -635,6 +635,28 @@ test('shows the room in the 3D view', async ({ electronApp, window, consoleError
     return { w: canvas.width, h: canvas.height, colored, center: [pixels[mid], pixels[mid + 1], pixels[mid + 2]] };
   });
   expect(sample.colored, JSON.stringify(sample)).toBeGreaterThan(800);
+  await window.getByRole('button', { name: 'Ortho', exact: true }).click();
+  await expect(view).toHaveAttribute('data-mode', 'orbit');
+  await expect(view).toHaveAttribute('data-projection', 'orthographic');
+  const flat = await canvas.evaluate((el: HTMLCanvasElement) => {
+    const gl = el.getContext('webgl2');
+    if (!gl || el.width < 2) return 0;
+    const pixels = new Uint8Array(el.width * el.height * 4);
+    gl.readPixels(0, 0, el.width, el.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    let colored = 0;
+    for (let i = 0; i < pixels.length; i += 16) {
+      const r = pixels[i] ?? 0;
+      const g = pixels[i + 1] ?? 0;
+      const b = pixels[i + 2] ?? 0;
+      if (r + g + b === 0) continue;
+      if (Math.abs(r - 228) <= 14 && Math.abs(g - 231) <= 14 && Math.abs(b - 236) <= 14) continue;
+      colored++;
+    }
+    return colored;
+  });
+  expect(flat).toBeGreaterThan(800);
+  await window.getByRole('button', { name: 'Orbit', exact: true }).click();
+  await expect(view).toHaveAttribute('data-projection', 'perspective');
   expect(consoleErrors).toEqual([]);
   await window.screenshot({ path: test.info().outputPath('perspective.png') });
 });

@@ -1,4 +1,4 @@
-import { OrbitControls, useTexture } from '@react-three/drei';
+import { OrbitControls, OrthographicCamera, PerspectiveCamera, useTexture } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Suspense, useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import {
@@ -37,7 +37,7 @@ import { useAppearance } from '../app/appearance';
 import { dispatch, setActiveLevel, useDocument } from '../document/store';
 import { notify } from '../editor/store';
 import { TEXTURE_URLS } from './textures';
-import { recallCamera, setViewMode, useView3d, type Recall } from './view-state';
+import { recallCamera, setOrbit, setViewMode, useView3d, type Recall } from './view-state';
 
 Object3D.DEFAULT_UP.set(0, 0, 1);
 
@@ -54,6 +54,7 @@ const LOOK_SPEED = 0.002;
 interface LiveView {
   eye: Vec3;
   target: Vec3;
+  zoom: number;
 }
 
 interface OrbitTarget {
@@ -65,6 +66,17 @@ function isOrbit(value: unknown): value is OrbitTarget {
   if (typeof value !== 'object' || value === null || !('target' in value) || !('update' in value)) return false;
   const target = value.target;
   return typeof target === 'object' && target !== null && 'set' in target && typeof value.update === 'function';
+}
+
+function placeOrtho(camera: { isOrthographicCamera?: boolean; zoom: number; updateProjectionMatrix: () => void }, eye: Vec3, target: Vec3, height: number, zoom?: number): void {
+  if (!camera.isOrthographicCamera) return;
+  if (zoom !== undefined && zoom > 0) camera.zoom = zoom;
+  else {
+    const distance = Math.max(Math.hypot(eye.x - target.x, eye.y - target.y, eye.z - target.z), 72);
+    const visible = 2 * distance * Math.tan(Math.PI / 8);
+    camera.zoom = Math.max(height, 1) / visible;
+  }
+  camera.updateProjectionMatrix();
 }
 
 function partColor(doc: PlanDocument, part: MeshPart): string {
@@ -151,6 +163,7 @@ function FrameScene({
 }) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls);
+  const height = useThree((s) => s.size.height);
   const seen = useRef(-1);
   const key = useMemo(() => {
     const b = meshBounds(parts);
@@ -163,11 +176,13 @@ function FrameScene({
       if (!current) return;
       current.eye = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
       if (isOrbit(controls)) current.target = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
+      if ('isOrthographicCamera' in camera && camera.isOrthographicCamera) current.zoom = camera.zoom;
     };
     if (recall && recall.mode === 'orbit' && recall.token !== seen.current) {
       camera.up.set(0, 0, 1);
       camera.position.set(recall.eye.x, recall.eye.y, recall.eye.z);
       camera.lookAt(recall.target.x, recall.target.y, recall.target.z);
+      placeOrtho(camera, recall.eye, recall.target, height, recall.zoom);
       camera.updateProjectionMatrix();
       if (isOrbit(controls)) {
         controls.target.set(recall.target.x, recall.target.y, recall.target.z);
@@ -180,9 +195,15 @@ function FrameScene({
     }
     if (placedRef.current) {
       const current = liveRef.current;
-      if (current && isOrbit(controls)) {
-        controls.target.set(current.target.x, current.target.y, current.target.z);
-        controls.update();
+      if (current) {
+        camera.up.set(0, 0, 1);
+        camera.position.set(current.eye.x, current.eye.y, current.eye.z);
+        camera.lookAt(current.target.x, current.target.y, current.target.z);
+        placeOrtho(camera, current.eye, current.target, height, current.zoom > 0 ? current.zoom : undefined);
+        if (isOrbit(controls)) {
+          controls.target.set(current.target.x, current.target.y, current.target.z);
+          controls.update();
+        }
       }
       writeLive();
       return;
@@ -196,6 +217,7 @@ function FrameScene({
     camera.up.set(0, 0, 1);
     camera.position.set(cx + span * 0.85, cy - span * 1.15, cz + span * 0.65);
     camera.lookAt(cx, cy, cz);
+    placeOrtho(camera, { x: camera.position.x, y: camera.position.y, z: camera.position.z }, { x: cx, y: cy, z: cz }, height);
     camera.updateProjectionMatrix();
     if (isOrbit(controls)) {
       controls.target.set(cx, cy, cz);
@@ -203,13 +225,14 @@ function FrameScene({
     }
     placedRef.current = true;
     writeLive();
-  }, [camera, controls, key, liveRef, parts, placedRef, recall]);
+  }, [camera, controls, height, key, liveRef, parts, placedRef, recall]);
 
   useFrame(() => {
     const current = liveRef.current;
     if (!current) return;
     current.eye = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
     if (isOrbit(controls)) current.target = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
+    if ('isOrthographicCamera' in camera && camera.isOrthographicCamera) current.zoom = camera.zoom;
   });
 
   return (
@@ -385,6 +408,7 @@ function Scene({
   parts,
   elevation,
   mode,
+  projection,
   recall,
   placedRef,
   liveRef,
@@ -397,6 +421,7 @@ function Scene({
   parts: MeshPart[];
   elevation: number;
   mode: 'orbit' | 'walk';
+  projection: 'perspective' | 'orthographic';
   recall: Recall | null;
   placedRef: RefObject<boolean>;
   liveRef: RefObject<LiveView>;
@@ -425,6 +450,11 @@ function Scene({
 
   return (
     <>
+      {mode === 'walk' || projection === 'perspective' ? (
+        <PerspectiveCamera makeDefault fov={45} near={1} far={100000} />
+      ) : (
+        <OrthographicCamera makeDefault near={1} far={100000} zoom={1} />
+      )}
       <color attach="background" args={[dark ? '#1c1f24' : '#e4e7ec']} />
       <ambientLight intensity={0.55} />
       <hemisphereLight args={['#f4f7fb', '#d9cbb8', 0.4]} />
@@ -450,12 +480,13 @@ export function View3D() {
   const doc = useDocument((s) => s.doc);
   const levelId = useDocument((s) => s.activeLevelId);
   const mode = useView3d((s) => s.mode);
+  const projection = useView3d((s) => s.projection);
   const camerasOpen = useView3d((s) => s.camerasOpen);
   const recall = useView3d((s) => s.recall);
   const dark = useAppearance((s) => s.dark);
   const rootRef = useRef<HTMLDivElement>(null);
   const placedRef = useRef(false);
-  const liveRef = useRef<LiveView>({ eye: { x: 0, y: -10, z: 66 }, target: { x: 0, y: 0, z: 66 } });
+  const liveRef = useRef<LiveView>({ eye: { x: 0, y: -10, z: 66 }, target: { x: 0, y: 0, z: 66 }, zoom: 0 });
   const [name, setName] = useState('');
   const [shownTextures, setShownTextures] = useState(0);
   const parts = useMemo(() => buildPlanMeshes(doc), [doc]);
@@ -466,18 +497,26 @@ export function View3D() {
   const save = (event: FormEvent) => {
     event.preventDefault();
     const current = liveRef.current;
-    const result = dispatch('camera.save', { levelId, name: name.trim() || 'View', mode, eye: current.eye, target: current.target });
+    const ortho = mode === 'orbit' && projection === 'orthographic';
+    const result = dispatch('camera.save', {
+      levelId,
+      name: name.trim() || 'View',
+      mode,
+      eye: current.eye,
+      target: current.target,
+      ...(ortho ? { projection: 'orthographic' as const, ...(current.zoom > 0 ? { zoom: current.zoom } : {}) } : {}),
+    });
     notify(errorOf(result));
     if (result.ok) setName('');
   };
 
   const restore = (camera: SavedCamera) => {
     setActiveLevel(camera.levelId);
-    recallCamera(camera.mode, camera.eye, camera.target);
+    recallCamera(camera.mode, camera.eye, camera.target, camera.projection === 'orthographic' ? 'orthographic' : 'perspective', camera.zoom);
   };
 
   return (
-    <div className="view-3d" ref={rootRef} data-testid="view-3d" data-mesh-count={parts.length} data-mode={mode} data-textured={shownTextures}>
+    <div className="view-3d" ref={rootRef} data-testid="view-3d" data-mesh-count={parts.length} data-mode={mode} data-projection={mode === 'walk' ? 'perspective' : projection} data-textured={shownTextures}>
       <Canvas className="view-3d-canvas" camera={{ fov: 45, near: 1, far: 100000, position: [240, -280, 180] }} gl={{ antialias: true, preserveDrawingBuffer: true }}>
         <Suspense fallback={null}>
           <Scene
@@ -485,6 +524,7 @@ export function View3D() {
             parts={parts}
             elevation={elevation}
             mode={mode}
+            projection={projection}
             recall={recall}
             placedRef={placedRef}
             liveRef={liveRef}
@@ -498,8 +538,11 @@ export function View3D() {
       {parts.length === 0 && <p className="view-3d-empty">Draw walls in the plan to see them here.</p>}
       <div className="view-3d-bar">
         <div className="view-3d-modes" role="group" aria-label="Camera mode">
-          <button type="button" aria-pressed={mode === 'orbit'} onClick={() => setViewMode('orbit')}>
+          <button type="button" aria-pressed={mode === 'orbit' && projection === 'perspective'} onClick={() => setOrbit('perspective')}>
             Orbit
+          </button>
+          <button type="button" aria-pressed={mode === 'orbit' && projection === 'orthographic'} onClick={() => setOrbit('orthographic')}>
+            Ortho
           </button>
           <button type="button" aria-pressed={mode === 'walk'} onClick={() => setViewMode('walk')}>
             Walk

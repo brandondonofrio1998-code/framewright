@@ -35,13 +35,17 @@ export interface SaveCamera {
   mode: CameraMode;
   eye: Vec3;
   target: Vec3;
+  projection?: 'orthographic';
+  zoom?: number;
 }
 
 export const saveCamera = defineCommand<SaveCamera, Id>({
   label: () => 'Save Camera',
-  run: (doc, { levelId, name, mode, eye, target }, ctx) => {
+  run: (doc, { levelId, name, mode, eye, target, projection, zoom }, ctx) => {
     checkLevel(doc, levelId);
     if (mode !== 'orbit' && mode !== 'walk') throw new CommandError('Unknown camera mode.');
+    if (projection === 'orthographic' && mode !== 'orbit') throw new CommandError('A walk camera stays in perspective.');
+    if (zoom !== undefined && (projection !== 'orthographic' || !(zoom > 0) || zoom > 1000)) throw new CommandError('That zoom is out of range.');
     const from = checkPoint(eye, 'Camera position');
     const to = checkPoint(target, 'Camera target');
     if (lookLength(from, to) < MIN_LOOK) throw new CommandError('The camera needs a direction to look.');
@@ -53,6 +57,7 @@ export const saveCamera = defineCommand<SaveCamera, Id>({
       mode,
       eye: from,
       target: to,
+      ...(projection === 'orthographic' ? { projection: 'orthographic' as const, ...(zoom !== undefined ? { zoom } : {}) } : {}),
     };
     doc.elements[camera.id] = camera;
     return camera.id;

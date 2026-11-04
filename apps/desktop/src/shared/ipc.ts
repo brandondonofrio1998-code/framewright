@@ -120,7 +120,7 @@ export type MenuCommand =
   | { type: 'view.zoomOut' }
   | { type: 'view.showElevation' }
   | { type: 'view.showSection' }
-  | { type: 'view.show3d'; mode: 'orbit' | 'walk' }
+  | { type: 'view.show3d'; mode: 'orbit' | 'walk'; projection?: 'perspective' | 'orthographic' }
   | { type: 'view.cameras' };
 
 export const TOOL_IDS = ['select', 'walls', 'break', 'doors', 'windows', 'objects', 'dimensions', 'stairs', 'text'] as const;
@@ -164,7 +164,9 @@ export function isMenuCommand(value: unknown): value is MenuCommand {
   if (type === 'view.layerSet') return typeof (value as { id?: unknown }).id === 'string';
   if (type === 'view.show3d') {
     const mode = (value as { mode?: unknown }).mode;
-    return mode === 'orbit' || mode === 'walk';
+    const projection = (value as { projection?: unknown }).projection;
+    const projectionOk = projection === undefined || projection === 'perspective' || projection === 'orthographic';
+    return (mode === 'orbit' || mode === 'walk') && projectionOk;
   }
   return typeof type === 'string' && SIMPLE_COMMANDS.has(type);
 }

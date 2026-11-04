@@ -112,6 +112,8 @@ describe('menu template', () => {
     const items = submenu(top(template, '3D'));
     click(find(items, 'Perspective View'));
     expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d', mode: 'orbit' });
+    click(find(items, 'Orthographic View'));
+    expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d', mode: 'orbit', projection: 'orthographic' });
     click(find(items, 'Orbit Camera'));
     expect(send).toHaveBeenLastCalledWith({ type: 'view.show3d', mode: 'orbit' });
     click(find(items, 'Walkthrough Camera'));

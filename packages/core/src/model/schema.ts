@@ -259,6 +259,10 @@ export const CameraSchema = z.object({
   eye: Vec3Schema,
   /** A point the camera looks at. Distinct from `eye`. */
   target: Vec3Schema,
+  /** Absent means a perspective orbit. A walk camera does not use this. */
+  projection: z.literal('orthographic').optional(),
+  /** Orthographic zoom. Absent means the view fits the eye distance. */
+  zoom: z.number().positive().max(1000).optional(),
 });
 export type SavedCamera = z.infer<typeof CameraSchema>;
 
