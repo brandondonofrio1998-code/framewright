@@ -28,7 +28,7 @@ export const LengthFormatSchema = z.discriminatedUnion('system', [
 ]);
 
 /** Plan layers a layer set can show or hide. The sheet and DXF still draw every layer. */
-export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck'] as const;
+export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical'] as const;
 export type PlanLayerId = (typeof PLAN_LAYER_IDS)[number];
 
 export const LayerSetSchema = z.object({
@@ -366,6 +366,23 @@ export const DeckSchema = z.object({
 });
 export type Deck = z.infer<typeof DeckSchema>;
 
+export const ELECTRICAL_DEVICES = ['receptacle', 'switch', 'light'] as const;
+export type ElectricalDevice = (typeof ELECTRICAL_DEVICES)[number];
+
+/** A receptacle or switch on a wall, or a ceiling light. Heights are derived. */
+export const ElectricalSchema = z.object({
+  ...elementBase,
+  kind: z.literal('electrical'),
+  device: z.enum(ELECTRICAL_DEVICES),
+  /** Face point of a wall device, or the plan point of a light. */
+  p: Vec2Schema,
+  hostWallId: IdSchema.optional(),
+  /** Distance along the wall from node a. */
+  hostT: z.number().nonnegative().optional(),
+  side: z.enum(['left', 'right']).optional(),
+});
+export type Electrical = z.infer<typeof ElectricalSchema>;
+
 const CadLineSchema = z.object({ t: z.literal('line'), a: Vec2Schema, b: Vec2Schema });
 const CadPolylineSchema = z.object({ t: z.literal('polyline'), pts: z.array(Vec2Schema).min(2).max(500), closed: z.boolean() });
 const CadArcSchema = z.object({
@@ -412,6 +429,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   FoundationSchema,
   StairSchema,
   DeckSchema,
+  ElectricalSchema,
   CadSchema,
   TextSchema,
 ]);

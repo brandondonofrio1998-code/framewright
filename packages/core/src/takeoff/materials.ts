@@ -9,6 +9,7 @@ import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import { deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
+import { electricalOnLevel } from '../electrical/devices';
 import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
@@ -23,7 +24,7 @@ export interface TakeoffLine {
   unit: TakeoffUnit;
 }
 
-const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs'];
+const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs', 'Electrical'];
 const SHEET = new Set(['finish', 'sheathing', 'insulation']);
 
 /**
@@ -136,6 +137,17 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Decks', 'Deck joists', joistFeet, 'lin ft');
     add('Decks', 'Deck railing', railFeet, 'lin ft');
     add('Decks', 'Deck posts', posts, 'each');
+    let receptacles = 0;
+    let switches = 0;
+    let lights = 0;
+    for (const device of electricalOnLevel(doc, levelId)) {
+      if (device.device === 'receptacle') receptacles += 1;
+      else if (device.device === 'switch') switches += 1;
+      else lights += 1;
+    }
+    add('Electrical', 'Receptacles', receptacles, 'each');
+    add('Electrical', 'Switches', switches, 'each');
+    add('Electrical', 'Lights', lights, 'each');
     add('Stairs', 'Handrail', rail / 12, 'lin ft');
   }
 

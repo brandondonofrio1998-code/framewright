@@ -47,6 +47,7 @@ const PENS: Record<PenId, { width: number; color: [number, number, number]; dash
   foundation: { width: 0.6, color: [0.36, 0.4, 0.38] },
   stair: { width: 0.7, color: [0.14, 0.19, 0.27] },
   deck: { width: 0.7, color: [0.45, 0.32, 0.2] },
+  electrical: { width: 0.7, color: [0.12, 0.32, 0.24] },
 };
 
 const FILLS: Record<FillId, string> = {

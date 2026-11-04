@@ -3,6 +3,7 @@ import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, deckJoists, deckOpenEdges, deckPolygon, deckPosts, decksOnLevel, postFoot, railStrip } from '../decks/deck';
+import { RECEPTACLE_CENTER, SWITCH_CENTER, electricalOnLevel, electricalPose } from '../electrical/devices';
 import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
@@ -379,6 +380,40 @@ function deckSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: Me
   }
 }
 
+function electricalSolids(doc: PlanDocument, levelId: Id, elevation: number, ceilingHeight: number, parts: MeshPart[]): void {
+  for (const device of electricalOnLevel(doc, levelId)) {
+    const pose = electricalPose(doc, device);
+    const b = builder();
+    if (device.device === 'light') {
+      const half = 3;
+      const p = pose.p;
+      extrude(
+        b,
+        [
+          { x: p.x - half, y: p.y - half },
+          { x: p.x + half, y: p.y - half },
+          { x: p.x + half, y: p.y + half },
+          { x: p.x - half, y: p.y + half },
+        ],
+        elevation + ceilingHeight - 1,
+        elevation + ceilingHeight,
+      );
+    } else {
+      const center = elevation + (device.device === 'switch' ? SWITCH_CENTER : RECEPTACLE_CENTER);
+      extrude(b, deviceBox(pose.p, pose.dir, pose.out), center - 2.25, center + 2.25);
+    }
+    push(parts, finish(b, device.id, null, 'solid'));
+  }
+}
+
+function deviceBox(p: Vec2, dir: Vec2, out: Vec2): Vec2[] {
+  const along = { x: dir.x * 1.4, y: dir.y * 1.4 };
+  const proud = { x: out.x * 0.6, y: out.y * 0.6 };
+  const a = { x: p.x - along.x, y: p.y - along.y };
+  const c = { x: p.x + along.x, y: p.y + along.y };
+  return [a, c, { x: c.x + proud.x, y: c.y + proud.y }, { x: a.x + proud.x, y: a.y + proud.y }];
+}
+
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   const floorBottom = elevation - FLOOR_FINISH;
   for (const foundation of foundationsOnLevel(doc, levelId)) {
@@ -481,6 +516,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   foundationSolids(doc, levelId, level.elevation, parts);
   stairSolids(doc, levelId, level.elevation, parts);
   deckSolids(doc, levelId, level.elevation, parts);
+  electricalSolids(doc, levelId, level.elevation, level.ceilingHeight, parts);
   const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.id ?? null;
   for (const roof of roofsOnLevel(doc, levelId)) {
     const b = builder();

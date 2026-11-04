@@ -44,6 +44,7 @@ export const TOOL_LABELS: Record<ToolId, string> = {
   dimensions: 'Dimensions',
   stairs: 'Stairs',
   deck: 'Deck',
+  electrical: 'Electrical',
   text: 'Text',
 };
 

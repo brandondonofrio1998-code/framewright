@@ -819,6 +819,19 @@ test('builds a deck outside the room', async ({ electronApp, window, userData, c
   expect(consoleErrors).toEqual([]);
 });
 
+test('places a receptacle, a switch, and a ceiling light', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Electrical', exact: true }).click();
+  await expect(window.getByTestId('status-tool')).toHaveText('Electrical');
+  await clickAt(window, { x: 0, y: -80 });
+  await clickAt(window, { x: 40, y: -80 }, true);
+  await clickAt(window, { x: 0, y: 0 });
+  const plan = await savePlan(electronApp, userData, 'electrical');
+  const devices = ofKind(plan, 'electrical') as { device?: string }[];
+  expect(devices.map((device) => device.device).sort()).toEqual(['light', 'receptacle', 'switch']);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('a layer set is saved with the plan', async ({ electronApp, window, userData, consoleErrors }) => {
   await clickMenu(electronApp, ['View', 'Layers', 'Walls']);
   await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');

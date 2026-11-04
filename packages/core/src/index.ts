@@ -34,6 +34,7 @@ export * from './foundations/slab';
 export * from './foundations/joists';
 export * from './stairs/straight';
 export * from './decks/deck';
+export * from './electrical/devices';
 export * from './takeoff/materials';
 export * from './sheets/layout';
 export * from './schedules/openings';

@@ -123,7 +123,7 @@ export type MenuCommand =
   | { type: 'view.show3d'; mode: 'orbit' | 'walk'; projection?: 'perspective' | 'orthographic' }
   | { type: 'view.cameras' };
 
-export const TOOL_IDS = ['select', 'walls', 'break', 'doors', 'windows', 'objects', 'dimensions', 'stairs', 'deck', 'text'] as const;
+export const TOOL_IDS = ['select', 'walls', 'break', 'doors', 'windows', 'objects', 'dimensions', 'stairs', 'deck', 'electrical', 'text'] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
 const SIMPLE_COMMANDS = new Set([

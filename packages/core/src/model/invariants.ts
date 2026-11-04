@@ -102,6 +102,10 @@ export function checkInvariants(doc: PlanDocument): string[] {
       if (!target || target.id === el.levelId) problems.push(`stair ${el.id} does not arrive at a level above`);
     }
     if (el.kind === 'deck' && Math.hypot(el.dir.x, el.dir.y) < 0.5) problems.push(`deck ${el.id} has no direction`);
+    if (el.kind === 'electrical' && el.hostWallId) {
+      const wall = doc.elements[el.hostWallId];
+      if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) problems.push(`electrical ${el.id} references a missing wall`);
+    }
   }
   return problems;
 }
@@ -224,6 +228,16 @@ export function repairInvariants(input: PlanDocument): RepairResult {
           delete el.side;
           repairs.push(`Detached object ${el.id} from a missing wall`);
         }
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'electrical' || !el.hostWallId) continue;
+      const wall = d.elements[el.hostWallId];
+      if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) {
+        delete el.hostWallId;
+        delete el.hostT;
+        delete el.side;
+        repairs.push(`Detached electrical ${el.id} from a missing wall`);
       }
     }
     for (const el of Object.values(d.elements)) {

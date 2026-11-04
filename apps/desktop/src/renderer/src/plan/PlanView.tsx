@@ -24,6 +24,7 @@ import { deleteSelection } from '../editor/actions';
 import { notify, setSelection, setTool, useEditor } from '../editor/store';
 import { createBreakTool } from '../tools/break-tool';
 import { createDimensionTool } from '../tools/dimension-tool';
+import { createElectricalTool } from '../tools/electrical-tool';
 import { createTextTool } from '../tools/text-tool';
 import { createObjectTool } from '../tools/object-tool';
 import { createOpeningTool } from '../tools/opening-tool';
@@ -83,6 +84,7 @@ const createTools = (): Record<ToolId, Tool> => ({
   dimensions: createDimensionTool(),
   stairs: createStairTool(),
   deck: createDeckTool(),
+  electrical: createElectricalTool(),
   text: createTextTool(),
 });
 

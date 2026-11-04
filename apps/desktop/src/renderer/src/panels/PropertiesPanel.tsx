@@ -425,6 +425,44 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'electrical') {
+    const format = doc.settings.lengthFormat;
+    const height = only.device === 'light' ? null : only.device === 'switch' ? 48 : 18;
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Electrical</h3>
+        <dl className="level-fields">
+          <dt>Device</dt>
+          <dd>
+            {only.device === 'light' ? (
+              <span className="field-readonly">Light</span>
+            ) : (
+              <select
+                aria-label="Device"
+                className="status-select"
+                value={only.device}
+                onChange={(event) => {
+                  const device = event.target.value === 'switch' ? 'switch' : 'receptacle';
+                  notify(errorOf(dispatch('electrical.setDevice', { id: only.id, device })));
+                }}
+              >
+                <option value="receptacle">Receptacle</option>
+                <option value="switch">Switch</option>
+              </select>
+            )}
+          </dd>
+          <dt>Height</dt>
+          <dd>
+            <span className="field-readonly">{height === null ? 'Ceiling' : `${formatLength(height, format)} to center`}</span>
+          </dd>
+        </dl>
+        <p className="panel-hint">A receptacle is 18 inches to center and a switch is 48 inches. A light sits on the ceiling. Wall devices stay where they were placed.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'text') {
     const format = doc.settings.lengthFormat;
     return (

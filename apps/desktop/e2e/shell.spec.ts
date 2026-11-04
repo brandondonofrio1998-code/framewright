@@ -2,7 +2,7 @@ import { blockedRequests, clickMenu, expect, test } from './fixtures';
 
 test('opens the workspace with toolbar, docked panels and status bar', async ({ window, consoleErrors }) => {
   await expect(window).toHaveTitle('Framewright');
-  for (const label of ['Select Objects', 'Walls', 'Break Wall', 'Doors', 'Windows', 'Objects', 'Stairs', 'Deck', 'Roof', 'Hip Roof', 'Foundation', 'Dimensions', 'Text']) {
+  for (const label of ['Select Objects', 'Walls', 'Break Wall', 'Doors', 'Windows', 'Objects', 'Stairs', 'Deck', 'Electrical', 'Roof', 'Hip Roof', 'Foundation', 'Dimensions', 'Text']) {
     await expect(window.getByRole('button', { name: label, exact: true })).toBeVisible();
   }
   for (const tab of ['Plan', 'Elevation', 'Section', '3D', 'Sheet', 'Library', 'Levels', 'Properties', 'Materials']) {

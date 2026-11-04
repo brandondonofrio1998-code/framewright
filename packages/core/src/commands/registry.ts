@@ -3,6 +3,7 @@ import { cameraCommands } from './cameras';
 import { catalogCommands } from './catalog';
 import { deckCommands } from './decks';
 import { documentCommands } from './document';
+import { electricalCommands } from './electrical';
 import { foundationCommands } from './foundations';
 import { openingCommands } from './openings';
 import { roofCommands } from './roofs';
@@ -21,6 +22,7 @@ export const planCommands = {
   ...foundationCommands,
   ...stairCommands,
   ...deckCommands,
+  ...electricalCommands,
   ...cadCommands,
   ...textCommands,
   ...layerCommands,
