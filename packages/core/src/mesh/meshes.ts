@@ -7,6 +7,7 @@ import { RECEPTACLE_CENTER, SWITCH_CENTER, electricalOnLevel, electricalPose } f
 import { DRAIN_CENTER, SUPPLY_CENTER, plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
 import { siteOnLevel } from '../site/marks';
 import { plantRing, plantsOnLevel } from '../plants/tree';
+import { ROAD_THICKNESS, roadPolygon, roadsOnLevel } from '../roads/drive';
 import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
@@ -471,6 +472,14 @@ function plantSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: M
   }
 }
 
+function roadSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  for (const road of roadsOnLevel(doc, levelId)) {
+    const pad = builder();
+    extrude(pad, roadPolygon(road), elevation - ROAD_THICKNESS, elevation);
+    push(parts, finish(pad, road.id, null, 'solid'));
+  }
+}
+
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   const floorBottom = elevation - FLOOR_FINISH;
   for (const foundation of foundationsOnLevel(doc, levelId)) {
@@ -577,6 +586,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   plumbingSolids(doc, levelId, level.elevation, parts);
   lotPads(doc, levelId, level.elevation, parts);
   plantSolids(doc, levelId, level.elevation, parts);
+  roadSolids(doc, levelId, level.elevation, parts);
   const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.id ?? null;
   for (const roof of roofsOnLevel(doc, levelId)) {
     const b = builder();

@@ -8,6 +8,7 @@ import { foundationCommands } from './foundations';
 import { openingCommands } from './openings';
 import { plantCommands } from './plants';
 import { plumbingCommands } from './plumbing';
+import { roadCommands } from './roads';
 import { roofCommands } from './roofs';
 import { siteCommands } from './site';
 import { stairCommands } from './stairs';
@@ -29,6 +30,7 @@ export const planCommands = {
   ...plumbingCommands,
   ...siteCommands,
   ...plantCommands,
+  ...roadCommands,
   ...cadCommands,
   ...textCommands,
   ...layerCommands,

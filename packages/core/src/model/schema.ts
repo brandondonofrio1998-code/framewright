@@ -28,7 +28,7 @@ export const LengthFormatSchema = z.discriminatedUnion('system', [
 ]);
 
 /** Plan layers a layer set can show or hide. The sheet and DXF still draw every layer. */
-export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical', 'plumbing', 'site', 'plants'] as const;
+export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical', 'plumbing', 'site', 'plants', 'roads'] as const;
 export type PlanLayerId = (typeof PLAN_LAYER_IDS)[number];
 
 export const LayerSetSchema = z.object({
@@ -434,6 +434,17 @@ export const PlantSchema = z.object({
 });
 export type Plant = z.infer<typeof PlantSchema>;
 
+/** A straight driveway. The top sits at the level floor. */
+export const RoadSchema = z.object({
+  ...elementBase,
+  kind: z.literal('road'),
+  a: Vec2Schema,
+  b: Vec2Schema,
+  /** Width, inches. */
+  width: z.number().min(96).max(480),
+});
+export type Road = z.infer<typeof RoadSchema>;
+
 const CadLineSchema = z.object({ t: z.literal('line'), a: Vec2Schema, b: Vec2Schema });
 const CadPolylineSchema = z.object({ t: z.literal('polyline'), pts: z.array(Vec2Schema).min(2).max(500), closed: z.boolean() });
 const CadArcSchema = z.object({
@@ -484,6 +495,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   PlumbingSchema,
   SiteSchema,
   PlantSchema,
+  RoadSchema,
   CadSchema,
   TextSchema,
 ]);

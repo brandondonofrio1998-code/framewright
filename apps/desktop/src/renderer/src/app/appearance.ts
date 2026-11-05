@@ -69,6 +69,8 @@ export function layerForKind(kind: string): DrawLayer | null {
       return 'site';
     case 'plant':
       return 'plants';
+    case 'road':
+      return 'roads';
     case 'cad':
       return 'reference';
     default:

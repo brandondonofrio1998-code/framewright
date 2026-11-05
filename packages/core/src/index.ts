@@ -38,6 +38,7 @@ export * from './electrical/devices';
 export * from './plumbing/fixtures';
 export * from './site/marks';
 export * from './plants/tree';
+export * from './roads/drive';
 export * from './takeoff/materials';
 export * from './sheets/layout';
 export * from './schedules/openings';

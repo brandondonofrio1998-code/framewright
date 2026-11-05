@@ -1,4 +1,4 @@
-import { polygonArea } from '../geometry/vec2';
+import { distance, polygonArea } from '../geometry/vec2';
 import { subtractConvex } from '../geometry/polygon';
 import { frameLevel } from '../framing/members';
 import { defaultWallHeight } from '../model/levels';
@@ -13,6 +13,7 @@ import { electricalOnLevel } from '../electrical/devices';
 import { plumbingOnLevel } from '../plumbing/fixtures';
 import { lotArea, lotPerimeter, siteOnLevel } from '../site/marks';
 import { plantsOnLevel } from '../plants/tree';
+import { roadsOnLevel } from '../roads/drive';
 import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
@@ -27,7 +28,7 @@ export interface TakeoffLine {
   unit: TakeoffUnit;
 }
 
-const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs', 'Electrical', 'Plumbing', 'Site'];
+const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs', 'Electrical', 'Plumbing', 'Site', 'Roads'];
 const SHEET = new Set(['finish', 'sheathing', 'insulation']);
 
 /**
@@ -172,6 +173,9 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Site', 'Property line', lotFeet, 'lin ft');
     add('Site', 'North arrows', norths, 'each');
     add('Site', 'Trees', plantsOnLevel(doc, levelId).length, 'each');
+    let driveway = 0;
+    for (const road of roadsOnLevel(doc, levelId)) driveway += (distance(road.a, road.b) * road.width) / 144;
+    add('Roads', 'Driveway', driveway, 'sq ft');
     add('Stairs', 'Handrail', rail / 12, 'lin ft');
   }
 

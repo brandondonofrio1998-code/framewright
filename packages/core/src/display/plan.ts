@@ -8,6 +8,7 @@ import { electricalItem, electricalOnLevel } from '../electrical/devices';
 import { plumbingItem, plumbingOnLevel } from '../plumbing/fixtures';
 import { siteItem, siteOnLevel } from '../site/marks';
 import { plantItem, plantsOnLevel } from '../plants/tree';
+import { roadItem, roadsOnLevel } from '../roads/drive';
 import { handrail, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
 import type { Cad, Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
@@ -171,6 +172,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     if (item) items.push(item);
   }
   for (const plant of plantsOnLevel(doc, levelId)) items.push(plantItem(plant));
+  for (const road of roadsOnLevel(doc, levelId)) items.push(roadItem(road));
 
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'cad' || el.levelId !== levelId) continue;

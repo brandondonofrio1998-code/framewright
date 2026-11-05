@@ -4,6 +4,7 @@ import { electricalPose, electricalOnLevel } from '../electrical/devices';
 import { plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
 import { siteOnLevel } from '../site/marks';
 import { plantsOnLevel } from '../plants/tree';
+import { roadPolygon, roadsOnLevel } from '../roads/drive';
 import { landingPolygon, placedFlights, stairCorners, stairsOnLevel } from '../stairs/straight';
 import { dimensionLine } from '../display/display-list';
 import { openingOutline } from '../display/openings';
@@ -16,7 +17,7 @@ import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text' | 'deck' | 'electrical' | 'plumbing' | 'site' | 'plant';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text' | 'deck' | 'electrical' | 'plumbing' | 'site' | 'plant' | 'road';
   id: Id;
 }
 
@@ -108,6 +109,10 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
     }
   }
   for (const plant of plantsOnLevel(doc, levelId)) consider({ kind: 'plant', id: plant.id }, Math.max(0, distance(p, plant.p) - plant.radius));
+  for (const road of roadsOnLevel(doc, levelId)) {
+    const poly = roadPolygon(road);
+    if (pointInPolygon(p, poly)) consider({ kind: 'road', id: road.id }, 0);
+  }
   if (best.picked) return best.picked;
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'text' || el.levelId !== levelId) continue;
@@ -196,6 +201,9 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
   }
   for (const plant of plantsOnLevel(doc, levelId)) {
     if (inside(plant.p, box)) ids.push(plant.id);
+  }
+  for (const road of roadsOnLevel(doc, levelId)) {
+    if (roadPolygon(road).every((p) => inside(p, box))) ids.push(road.id);
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind === 'cad' && el.levelId === levelId && cadPoints(el).every((p) => inside(p, box))) ids.push(el.id);

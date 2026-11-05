@@ -875,6 +875,19 @@ test('plants a tree', async ({ electronApp, window, userData, consoleErrors }) =
   expect(consoleErrors).toEqual([]);
 });
 
+test('draws a driveway', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Road', exact: true }).click();
+  await expect(window.getByTestId('status-tool')).toHaveText('Road');
+  await clickAt(window, { x: -140, y: -60 });
+  await clickAt(window, { x: 140, y: -60 });
+  const plan = await savePlan(electronApp, userData, 'drive');
+  const roads = ofKind(plan, 'road') as { width?: number }[];
+  expect(roads).toHaveLength(1);
+  expect(roads[0]?.width).toBe(144);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('a layer set is saved with the plan', async ({ electronApp, window, userData, consoleErrors }) => {
   await clickMenu(electronApp, ['View', 'Layers', 'Walls']);
   await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');

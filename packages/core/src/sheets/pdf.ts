@@ -51,6 +51,7 @@ const PENS: Record<PenId, { width: number; color: [number, number, number]; dash
   plumbing: { width: 0.7, color: [0.11, 0.31, 0.54] },
   site: { width: 0.9, color: [0.18, 0.29, 0.2] },
   plant: { width: 0.7, color: [0.18, 0.42, 0.22] },
+  road: { width: 0.9, color: [0.23, 0.24, 0.26] },
 };
 
 const FILLS: Record<FillId, string> = {

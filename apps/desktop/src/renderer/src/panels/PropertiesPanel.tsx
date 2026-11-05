@@ -575,6 +575,28 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'road') {
+    const format = doc.settings.lengthFormat;
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Driveway</h3>
+        <dl className="level-fields">
+          <dt>Length</dt>
+          <dd>
+            <span className="field-readonly">{formatLength(distance(only.a, only.b), format)}</span>
+          </dd>
+          <dt>Width</dt>
+          <dd>
+            <LengthInput label="Driveway width" value={only.width} format={format} onCommit={(width) => errorOf(dispatch('road.width', { id: only.id, width }))} />
+          </dd>
+        </dl>
+        <p className="panel-hint">The top of the driveway sits at the level floor. It is 4 inches thick.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'text') {
     const format = doc.settings.lengthFormat;
     return (
