@@ -28,7 +28,7 @@ export const LengthFormatSchema = z.discriminatedUnion('system', [
 ]);
 
 /** Plan layers a layer set can show or hide. The sheet and DXF still draw every layer. */
-export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical', 'plumbing', 'site'] as const;
+export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical', 'plumbing', 'site', 'plants'] as const;
 export type PlanLayerId = (typeof PLAN_LAYER_IDS)[number];
 
 export const LayerSetSchema = z.object({
@@ -412,8 +412,27 @@ export const SiteSchema = z.object({
   points: z.array(Vec2Schema).min(3).max(64).optional(),
   /** Where the north arrow stands. */
   p: Vec2Schema.optional(),
+  /** Inches above the level floor. Present when the lot is drawn as ground. */
+  grade: z.number().min(-240).max(240).optional(),
 });
 export type SiteMark = z.infer<typeof SiteSchema>;
+
+/** Canopy radius of a new tree, inches. */
+export const PLANT_RADIUS = 96;
+/** Height of a new tree, inches. */
+export const PLANT_HEIGHT = 240;
+
+/** A tree. The canopy is a circle in plan. */
+export const PlantSchema = z.object({
+  ...elementBase,
+  kind: z.literal('plant'),
+  p: Vec2Schema,
+  /** Canopy radius, inches. */
+  radius: z.number().min(12).max(600),
+  /** Height, inches. */
+  height: z.number().min(24).max(1200),
+});
+export type Plant = z.infer<typeof PlantSchema>;
 
 const CadLineSchema = z.object({ t: z.literal('line'), a: Vec2Schema, b: Vec2Schema });
 const CadPolylineSchema = z.object({ t: z.literal('polyline'), pts: z.array(Vec2Schema).min(2).max(500), closed: z.boolean() });
@@ -464,6 +483,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   ElectricalSchema,
   PlumbingSchema,
   SiteSchema,
+  PlantSchema,
   CadSchema,
   TextSchema,
 ]);

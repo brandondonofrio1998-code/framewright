@@ -12,6 +12,7 @@ import { deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/de
 import { electricalOnLevel } from '../electrical/devices';
 import { plumbingOnLevel } from '../plumbing/fixtures';
 import { lotArea, lotPerimeter, siteOnLevel } from '../site/marks';
+import { plantsOnLevel } from '../plants/tree';
 import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
@@ -170,6 +171,7 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Site', 'Lot area', lotSqFt, 'sq ft');
     add('Site', 'Property line', lotFeet, 'lin ft');
     add('Site', 'North arrows', norths, 'each');
+    add('Site', 'Trees', plantsOnLevel(doc, levelId).length, 'each');
     add('Stairs', 'Handrail', rail / 12, 'lin ft');
   }
 

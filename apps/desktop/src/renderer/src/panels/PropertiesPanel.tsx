@@ -521,6 +521,22 @@ export function PropertiesPanel() {
             </dd>
           </dl>
           <p className="panel-hint">The property line is a plan mark. North on the plan points up.</p>
+          <label className="section-cut">
+            <input
+              type="checkbox"
+              checked={only.grade !== undefined}
+              onChange={(event) => notify(errorOf(dispatch('site.grade', { id: only.id, grade: event.target.checked ? 0 : null })))}
+            />
+            Ground in 3D
+          </label>
+          {only.grade !== undefined && (
+            <dl className="level-fields">
+              <dt>Grade</dt>
+              <dd>
+                <LengthInput label="Grade" value={only.grade} format={format} onCommit={(grade) => errorOf(dispatch('site.grade', { id: only.id, grade }))} />
+              </dd>
+            </dl>
+          )}
           <div className="panel-actions">
             <DeleteButton ids={[only.id]} />
           </div>
@@ -531,6 +547,28 @@ export function PropertiesPanel() {
       <div className="panel properties-panel">
         <h3 className="panel-heading">North</h3>
         <p className="panel-hint">The arrow points up the plan.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
+  if (elements.length === 1 && only?.kind === 'plant') {
+    const format = doc.settings.lengthFormat;
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Tree</h3>
+        <dl className="level-fields">
+          <dt>Canopy radius</dt>
+          <dd>
+            <LengthInput label="Canopy radius" value={only.radius} format={format} onCommit={(radius) => errorOf(dispatch('plant.update', { id: only.id, radius }))} />
+          </dd>
+          <dt>Height</dt>
+          <dd>
+            <LengthInput label="Tree height" value={only.height} format={format} onCommit={(height) => errorOf(dispatch('plant.update', { id: only.id, height }))} />
+          </dd>
+        </dl>
+        <p className="panel-hint">A new tree is 16 feet across and 20 feet tall. The trunk and the canopy are simple solids.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

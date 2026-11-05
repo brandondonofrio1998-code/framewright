@@ -15,6 +15,7 @@ import {
   Pyramid,
   RulerDimensionLine,
   Scissors,
+  TreeDeciduous,
   Type,
   Video,
 } from 'lucide-react';
@@ -45,6 +46,7 @@ const TOOL_GROUPS: ToolButton[][] = [
     { id: 'electrical', icon: Zap },
     { id: 'plumbing', icon: Droplets },
     { id: 'site', icon: Map },
+    { id: 'plant', icon: TreeDeciduous },
     { id: 'roof', label: 'Roof', icon: House },
     { id: 'hip', label: 'Hip Roof', icon: Pyramid },
     { id: 'foundation', label: 'Foundation', icon: LandPlot },

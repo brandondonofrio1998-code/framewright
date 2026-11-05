@@ -5,6 +5,8 @@ import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, deckJoists, deckOpenEdges, deckPolygon, deckPosts, decksOnLevel, postFoot, railStrip } from '../decks/deck';
 import { RECEPTACLE_CENTER, SWITCH_CENTER, electricalOnLevel, electricalPose } from '../electrical/devices';
 import { DRAIN_CENTER, SUPPLY_CENTER, plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
+import { siteOnLevel } from '../site/marks';
+import { plantRing, plantsOnLevel } from '../plants/tree';
 import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
@@ -447,6 +449,28 @@ function plumbingSolids(doc: PlanDocument, levelId: Id, elevation: number, parts
   }
 }
 
+function lotPads(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  for (const mark of siteOnLevel(doc, levelId)) {
+    if (mark.role !== 'lot' || !mark.points || mark.grade === undefined) continue;
+    const top = elevation + mark.grade;
+    const pad = builder();
+    extrude(pad, mark.points, top - 2, top);
+    push(parts, finish(pad, mark.id, null, 'solid'));
+  }
+}
+
+function plantSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  const lumber = Object.values(doc.materials).find((material) => material.category === 'framing')?.id ?? null;
+  for (const plant of plantsOnLevel(doc, levelId)) {
+    const trunk = builder();
+    extrude(trunk, plantRing(plant.p, 4), elevation, elevation + plant.height * 0.45);
+    push(parts, finish(trunk, plant.id, lumber, 'solid'));
+    const canopy = builder();
+    extrude(canopy, plantRing(plant.p, plant.radius), elevation + plant.height * 0.4, elevation + plant.height);
+    push(parts, finish(canopy, plant.id, null, 'solid'));
+  }
+}
+
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   const floorBottom = elevation - FLOOR_FINISH;
   for (const foundation of foundationsOnLevel(doc, levelId)) {
@@ -551,6 +575,8 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   deckSolids(doc, levelId, level.elevation, parts);
   electricalSolids(doc, levelId, level.elevation, level.ceilingHeight, parts);
   plumbingSolids(doc, levelId, level.elevation, parts);
+  lotPads(doc, levelId, level.elevation, parts);
+  plantSolids(doc, levelId, level.elevation, parts);
   const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.id ?? null;
   for (const roof of roofsOnLevel(doc, levelId)) {
     const b = builder();

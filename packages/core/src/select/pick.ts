@@ -3,6 +3,7 @@ import { deckPolygon, decksOnLevel } from '../decks/deck';
 import { electricalPose, electricalOnLevel } from '../electrical/devices';
 import { plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
 import { siteOnLevel } from '../site/marks';
+import { plantsOnLevel } from '../plants/tree';
 import { landingPolygon, placedFlights, stairCorners, stairsOnLevel } from '../stairs/straight';
 import { dimensionLine } from '../display/display-list';
 import { openingOutline } from '../display/openings';
@@ -15,7 +16,7 @@ import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text' | 'deck' | 'electrical' | 'plumbing' | 'site';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text' | 'deck' | 'electrical' | 'plumbing' | 'site' | 'plant';
   id: Id;
 }
 
@@ -106,6 +107,7 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
       consider({ kind: 'site', id: mark.id }, best);
     }
   }
+  for (const plant of plantsOnLevel(doc, levelId)) consider({ kind: 'plant', id: plant.id }, Math.max(0, distance(p, plant.p) - plant.radius));
   if (best.picked) return best.picked;
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'text' || el.levelId !== levelId) continue;
@@ -191,6 +193,9 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
   for (const mark of siteOnLevel(doc, levelId)) {
     if (mark.role === 'lot' && mark.points?.every((p) => inside(p, box))) ids.push(mark.id);
     if (mark.role === 'north' && mark.p && inside(mark.p, box)) ids.push(mark.id);
+  }
+  for (const plant of plantsOnLevel(doc, levelId)) {
+    if (inside(plant.p, box)) ids.push(plant.id);
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind === 'cad' && el.levelId === levelId && cadPoints(el).every((p) => inside(p, box))) ids.push(el.id);

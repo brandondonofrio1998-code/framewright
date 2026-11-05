@@ -40,7 +40,22 @@ function checkCorner(p: Vec2): Vec2 {
   return { x: p.x, y: p.y };
 }
 
+export const setLotGrade = defineCommand<{ id: Id; grade: number | null }>({
+  label: () => 'Lot Grade',
+  run: (doc, { id, grade }) => {
+    const el = doc.elements[id];
+    if (el?.kind !== 'site' || el.role !== 'lot') throw new CommandError('That is not a property line.');
+    if (grade === null) {
+      delete el.grade;
+      return;
+    }
+    if (!Number.isFinite(grade) || grade < -240 || grade > 240) throw new CommandError('Grade has to stay within 20 feet of the floor.');
+    el.grade = grade;
+  },
+});
+
 export const siteCommands = {
   'site.lot': createLot,
   'site.north': placeNorth,
+  'site.grade': setLotGrade,
 };

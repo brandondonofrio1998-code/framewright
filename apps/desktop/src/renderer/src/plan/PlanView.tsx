@@ -27,6 +27,7 @@ import { createDimensionTool } from '../tools/dimension-tool';
 import { createElectricalTool } from '../tools/electrical-tool';
 import { createPlumbingTool } from '../tools/plumbing-tool';
 import { createSiteTool } from '../tools/site-tool';
+import { createPlantTool } from '../tools/plant-tool';
 import { createTextTool } from '../tools/text-tool';
 import { createObjectTool } from '../tools/object-tool';
 import { createOpeningTool } from '../tools/opening-tool';
@@ -89,6 +90,7 @@ const createTools = (): Record<ToolId, Tool> => ({
   electrical: createElectricalTool(),
   plumbing: createPlumbingTool(),
   site: createSiteTool(),
+  plant: createPlantTool(),
   text: createTextTool(),
 });
 
