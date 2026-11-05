@@ -847,6 +847,21 @@ test('places a supply, a wall drain, and a floor drain', async ({ electronApp, w
   expect(consoleErrors).toEqual([]);
 });
 
+test('draws a property line and a north arrow', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Site', exact: true }).click();
+  await expect(window.getByTestId('status-tool')).toHaveText('Site');
+  await clickAt(window, { x: -150, y: -80 });
+  await clickAt(window, { x: 150, y: -80 });
+  await clickAt(window, { x: 150, y: 90 });
+  await clickAt(window, { x: -150, y: -80 });
+  await clickAt(window, { x: 0, y: 40 }, true);
+  const plan = await savePlan(electronApp, userData, 'site');
+  const marks = ofKind(plan, 'site') as { role?: string }[];
+  expect(marks.map((mark) => mark.role).sort()).toEqual(['lot', 'north']);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('a layer set is saved with the plan', async ({ electronApp, window, userData, consoleErrors }) => {
   await clickMenu(electronApp, ['View', 'Layers', 'Walls']);
   await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');

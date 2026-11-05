@@ -24,6 +24,7 @@ const PENS: Record<PenId, PenStyle> = {
   deck: { width: 1.25, color: '#8d7355' },
   electrical: { width: 1.25, color: '#1f4b3a' },
   plumbing: { width: 1.25, color: '#1d4e89' },
+  site: { width: 1.5, color: '#2f4a32' },
 };
 
 const FILLS: Record<FillId, string> = {
@@ -66,6 +67,7 @@ const DARK_INK: Record<PenId, string> = {
   deck: '#e4d3b8',
   electrical: '#9ddec4',
   plumbing: '#b9d4f2',
+  site: '#b7d7b0',
 };
 
 function penOf(pen: PenStyle | PenId): PenStyle {

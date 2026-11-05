@@ -6,6 +6,8 @@ import {
   formatArea,
   formatLength,
   isOpening,
+  lotArea,
+  lotPerimeter,
   objectSize,
   ROOM_TYPES,
   resolveDimensionEnd,
@@ -496,6 +498,39 @@ export function PropertiesPanel() {
           </dd>
         </dl>
         <p className="panel-hint">A supply is a hot and cold pair at 20 inches. A wall drain is at 12 inches. A floor drain sits on the floor. Wall fixtures stay where they were placed.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
+  if (elements.length === 1 && only?.kind === 'site') {
+    if (only.role === 'lot' && only.points) {
+      const format = doc.settings.lengthFormat;
+      return (
+        <div className="panel properties-panel">
+          <h3 className="panel-heading">Property line</h3>
+          <dl className="level-fields">
+            <dt>Area</dt>
+            <dd>
+              <span className="field-readonly">{formatArea(lotArea(only.points))}</span>
+            </dd>
+            <dt>Perimeter</dt>
+            <dd>
+              <span className="field-readonly">{formatLength(lotPerimeter(only.points), format)}</span>
+            </dd>
+          </dl>
+          <p className="panel-hint">The property line is a plan mark. North on the plan points up.</p>
+          <div className="panel-actions">
+            <DeleteButton ids={[only.id]} />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">North</h3>
+        <p className="panel-hint">The arrow points up the plan.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

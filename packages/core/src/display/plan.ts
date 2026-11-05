@@ -6,6 +6,7 @@ import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { deckJoists, deckOpenEdges, deckPolygon, decksOnLevel } from '../decks/deck';
 import { electricalItem, electricalOnLevel } from '../electrical/devices';
 import { plumbingItem, plumbingOnLevel } from '../plumbing/fixtures';
+import { siteItem, siteOnLevel } from '../site/marks';
 import { handrail, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
 import type { Cad, Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
@@ -164,6 +165,10 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
   }
   for (const device of electricalOnLevel(doc, levelId)) items.push(electricalItem(doc, device));
   for (const fixture of plumbingOnLevel(doc, levelId)) items.push(plumbingItem(doc, fixture));
+  for (const mark of siteOnLevel(doc, levelId)) {
+    const item = siteItem(mark);
+    if (item) items.push(item);
+  }
 
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'cad' || el.levelId !== levelId) continue;

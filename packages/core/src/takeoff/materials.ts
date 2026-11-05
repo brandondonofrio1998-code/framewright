@@ -11,6 +11,7 @@ import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import { deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
 import { electricalOnLevel } from '../electrical/devices';
 import { plumbingOnLevel } from '../plumbing/fixtures';
+import { lotArea, lotPerimeter, siteOnLevel } from '../site/marks';
 import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
@@ -25,7 +26,7 @@ export interface TakeoffLine {
   unit: TakeoffUnit;
 }
 
-const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs', 'Electrical', 'Plumbing'];
+const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs', 'Electrical', 'Plumbing', 'Site'];
 const SHEET = new Set(['finish', 'sheathing', 'insulation']);
 
 /**
@@ -157,6 +158,18 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     }
     add('Plumbing', 'Supplies', supplies, 'each');
     add('Plumbing', 'Drains', drains, 'each');
+    let lotSqFt = 0;
+    let lotFeet = 0;
+    let norths = 0;
+    for (const mark of siteOnLevel(doc, levelId)) {
+      if (mark.role === 'lot' && mark.points) {
+        lotSqFt += lotArea(mark.points) / 144;
+        lotFeet += lotPerimeter(mark.points) / 12;
+      } else if (mark.role === 'north') norths += 1;
+    }
+    add('Site', 'Lot area', lotSqFt, 'sq ft');
+    add('Site', 'Property line', lotFeet, 'lin ft');
+    add('Site', 'North arrows', norths, 'each');
     add('Stairs', 'Handrail', rail / 12, 'lin ft');
   }
 

@@ -110,6 +110,8 @@ export function checkInvariants(doc: PlanDocument): string[] {
       const wall = doc.elements[el.hostWallId];
       if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) problems.push(`plumbing ${el.id} references a missing wall`);
     }
+    if (el.kind === 'site' && el.role === 'lot' && (el.points?.length ?? 0) < 3) problems.push(`lot ${el.id} needs corners`);
+    if (el.kind === 'site' && el.role === 'north' && !el.p) problems.push(`north arrow ${el.id} needs a point`);
   }
   return problems;
 }

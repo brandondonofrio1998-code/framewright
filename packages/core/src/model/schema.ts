@@ -28,7 +28,7 @@ export const LengthFormatSchema = z.discriminatedUnion('system', [
 ]);
 
 /** Plan layers a layer set can show or hide. The sheet and DXF still draw every layer. */
-export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical', 'plumbing'] as const;
+export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical', 'plumbing', 'site'] as const;
 export type PlanLayerId = (typeof PLAN_LAYER_IDS)[number];
 
 export const LayerSetSchema = z.object({
@@ -400,6 +400,21 @@ export const PlumbingSchema = z.object({
 });
 export type Plumbing = z.infer<typeof PlumbingSchema>;
 
+export const SITE_ROLES = ['lot', 'north'] as const;
+export type SiteRole = (typeof SITE_ROLES)[number];
+
+/** A property line or a north arrow. North is plan +Y. */
+export const SiteSchema = z.object({
+  ...elementBase,
+  kind: z.literal('site'),
+  role: z.enum(SITE_ROLES),
+  /** Lot corners, in order. The last edge closes back to the first. */
+  points: z.array(Vec2Schema).min(3).max(64).optional(),
+  /** Where the north arrow stands. */
+  p: Vec2Schema.optional(),
+});
+export type SiteMark = z.infer<typeof SiteSchema>;
+
 const CadLineSchema = z.object({ t: z.literal('line'), a: Vec2Schema, b: Vec2Schema });
 const CadPolylineSchema = z.object({ t: z.literal('polyline'), pts: z.array(Vec2Schema).min(2).max(500), closed: z.boolean() });
 const CadArcSchema = z.object({
@@ -448,6 +463,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   DeckSchema,
   ElectricalSchema,
   PlumbingSchema,
+  SiteSchema,
   CadSchema,
   TextSchema,
 ]);

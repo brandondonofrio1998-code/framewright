@@ -135,6 +135,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       tool('Deck', 'deck'),
       tool('Electrical', 'electrical'),
       tool('Plumbing', 'plumbing'),
+      tool('Site', 'site'),
       { label: 'Roof', click: () => ctx.send({ type: 'build.roof' }) },
       { label: 'Hip Roof', click: () => ctx.send({ type: 'build.hip' }) },
       { label: 'Foundation', click: () => ctx.send({ type: 'foundation.build' }) },
@@ -187,6 +188,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
               ['deck', 'Deck'],
               ['electrical', 'Electrical'],
               ['plumbing', 'Plumbing'],
+              ['site', 'Site'],
               ['reference', 'Reference'],
             ] as const
           ).map(([id, name]): MenuItemConstructorOptions => ({
