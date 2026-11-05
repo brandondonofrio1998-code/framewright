@@ -49,6 +49,7 @@ Every element has `id`, `kind` and `levelId`, plus optional `name` and `locked`.
 | `stair` | `start`; `dir` (a unit vector toward the top); `run` (horizontal length of the treads); `width`; `toLevelId` (the level above); `risers`; `riser` (at most 7 3/4 inches); `tread` (at least 10 inches). A straight flight under IRC 2021 R311.7. The file stays at schema 2 |
 | `deck` | `ledger` (start of the edge against the house); `dir` (unit vector along that edge); `width`; `depth`; `side` (`1` extends to the left of `dir`). A rectangle at the level's floor. Joists, posts, and the rail are derived. The file stays at schema 2 |
 | `electrical` | `device` (`receptacle`, `switch`, or `light`); `p`. A receptacle or switch also has `hostWallId`, `hostT`, and `side` (`left` or `right` of the wall). A light is a ceiling point and omits the wall fields. Heights are not stored. The file stays at schema 2 |
+| `plumbing` | `fixture` (`supply` or `drain`); `p`. A wall fixture also has `hostWallId`, `hostT`, and `side`. A floor drain omits the wall fields. Heights are not stored. The file stays at schema 2 |
 | `cad` | `name`; `prims`: lines, polylines, arcs, and text imported from a DXF, already converted to model inches. A reference drawing. It is not walls, rooms, or framing. The file stays at schema 2 |
 
 A door or window must lie entirely within its wall (`width/2 ≤ t ≤ length − width/2`), and openings on one wall don't overlap.
@@ -63,7 +64,7 @@ Loading validates the whole file against the schema. A file that fails validatio
 
 ## Versioning
 
-- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, the `stair` kind, the `cad` kind, the `text` kind, the `deck` kind, the `electrical` kind, the optional material `texture`, the optional `layerSets` list, and the optional camera `projection` were added at version 2 for that reason.
+- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, the `stair` kind, the `cad` kind, the `text` kind, the `deck` kind, the `electrical` kind, the `plumbing` kind, the optional material `texture`, the optional `layerSets` list, and the optional camera `projection` were added at version 2 for that reason.
 - Version 1 files upgrade to version 2 by adding `catalogDefs: {}`. The frozen fixture is `packages/core/test/fixtures/v1/two-levels.fwplan`.
 - Older files are upgraded on load, and open with unsaved changes, by a chain of migrations, one per version step (`MIGRATIONS` in `packages/core/src/file/format.ts`). Each migration has a frozen fixture file under `packages/core/test/fixtures/v<N>/`.
 - A file from a newer version of Framewright is not opened. The message tells the user to update rather than risk losing data the older app doesn't understand.
