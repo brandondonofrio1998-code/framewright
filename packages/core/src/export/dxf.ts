@@ -16,6 +16,7 @@ const LAYERS: { name: DrawLayer; color: number }[] = [
   { name: 'stairs', color: 5 },
   { name: 'deck', color: 32 },
   { name: 'electrical', color: 3 },
+  { name: 'plumbing', color: 5 },
 ];
 
 /**

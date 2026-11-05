@@ -1,7 +1,7 @@
 import { add, angleOf, distance, midpoint, normalize, perp, scale, sub } from '../geometry/vec2';
 import type { Id, PlanLayerId, Vec2 } from '../model/schema';
 
-export type PenId = 'wall.face' | 'wall.layer' | 'dimension' | 'reference' | 'opening' | 'opening.swing' | 'opening.hidden' | 'object' | 'object.detail' | 'object.hidden' | 'roof' | 'foundation' | 'stair' | 'deck' | 'electrical';
+export type PenId = 'wall.face' | 'wall.layer' | 'dimension' | 'reference' | 'opening' | 'opening.swing' | 'opening.hidden' | 'object' | 'object.detail' | 'object.hidden' | 'roof' | 'foundation' | 'stair' | 'deck' | 'electrical' | 'plumbing';
 export type FillId = 'wall.structure' | 'wall.sheathing' | 'wall.insulation' | 'wall.finish' | 'wall.air';
 export type DrawLayer = PlanLayerId;
 export type TextAlign = 'left' | 'center' | 'right';

@@ -10,6 +10,7 @@ import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import { deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
 import { electricalOnLevel } from '../electrical/devices';
+import { plumbingOnLevel } from '../plumbing/fixtures';
 import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
@@ -24,7 +25,7 @@ export interface TakeoffLine {
   unit: TakeoffUnit;
 }
 
-const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs', 'Electrical'];
+const CATEGORY_ORDER = ['Walls', 'Framing', 'Floors', 'Ceilings', 'Roof', 'Foundation', 'Decks', 'Openings', 'Stairs', 'Electrical', 'Plumbing'];
 const SHEET = new Set(['finish', 'sheathing', 'insulation']);
 
 /**
@@ -148,6 +149,14 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Electrical', 'Receptacles', receptacles, 'each');
     add('Electrical', 'Switches', switches, 'each');
     add('Electrical', 'Lights', lights, 'each');
+    let supplies = 0;
+    let drains = 0;
+    for (const fixture of plumbingOnLevel(doc, levelId)) {
+      if (fixture.fixture === 'supply') supplies += 1;
+      else drains += 1;
+    }
+    add('Plumbing', 'Supplies', supplies, 'each');
+    add('Plumbing', 'Drains', drains, 'each');
     add('Stairs', 'Handrail', rail / 12, 'lin ft');
   }
 

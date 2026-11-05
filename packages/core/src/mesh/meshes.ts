@@ -4,6 +4,7 @@ import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, deckJoists, deckOpenEdges, deckPolygon, deckPosts, decksOnLevel, postFoot, railStrip } from '../decks/deck';
 import { RECEPTACLE_CENTER, SWITCH_CENTER, electricalOnLevel, electricalPose } from '../electrical/devices';
+import { DRAIN_CENTER, SUPPLY_CENTER, plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
 import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
@@ -414,6 +415,38 @@ function deviceBox(p: Vec2, dir: Vec2, out: Vec2): Vec2[] {
   return [a, c, { x: c.x + proud.x, y: c.y + proud.y }, { x: a.x + proud.x, y: a.y + proud.y }];
 }
 
+function plumbingSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  for (const fixture of plumbingOnLevel(doc, levelId)) {
+    const pose = plumbingPose(doc, fixture);
+    if (!fixture.hostWallId) {
+      const b = builder();
+      const half = 4;
+      const p = pose.p;
+      extrude(
+        b,
+        [
+          { x: p.x - half, y: p.y - half },
+          { x: p.x + half, y: p.y - half },
+          { x: p.x + half, y: p.y + half },
+          { x: p.x - half, y: p.y + half },
+        ],
+        elevation,
+        elevation + 0.5,
+      );
+      push(parts, finish(b, fixture.id, null, 'solid'));
+      continue;
+    }
+    const center = elevation + (fixture.fixture === 'supply' ? SUPPLY_CENTER : DRAIN_CENTER);
+    const offsets = fixture.fixture === 'supply' ? [-4, 4] : [0];
+    for (const offset of offsets) {
+      const b = builder();
+      const p = { x: pose.p.x + pose.dir.x * offset, y: pose.p.y + pose.dir.y * offset };
+      extrude(b, deviceBox(p, pose.dir, pose.out), center - 1.5, center + 1.5);
+      push(parts, finish(b, fixture.id, null, 'solid'));
+    }
+  }
+}
+
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   const floorBottom = elevation - FLOOR_FINISH;
   for (const foundation of foundationsOnLevel(doc, levelId)) {
@@ -517,6 +550,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   stairSolids(doc, levelId, level.elevation, parts);
   deckSolids(doc, levelId, level.elevation, parts);
   electricalSolids(doc, levelId, level.elevation, level.ceilingHeight, parts);
+  plumbingSolids(doc, levelId, level.elevation, parts);
   const sheathing = Object.values(doc.materials).find((material) => material.category === 'sheathing')?.id ?? null;
   for (const roof of roofsOnLevel(doc, levelId)) {
     const b = builder();

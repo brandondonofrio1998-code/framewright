@@ -106,6 +106,10 @@ export function checkInvariants(doc: PlanDocument): string[] {
       const wall = doc.elements[el.hostWallId];
       if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) problems.push(`electrical ${el.id} references a missing wall`);
     }
+    if (el.kind === 'plumbing' && el.hostWallId) {
+      const wall = doc.elements[el.hostWallId];
+      if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) problems.push(`plumbing ${el.id} references a missing wall`);
+    }
   }
   return problems;
 }
@@ -238,6 +242,16 @@ export function repairInvariants(input: PlanDocument): RepairResult {
         delete el.hostT;
         delete el.side;
         repairs.push(`Detached electrical ${el.id} from a missing wall`);
+      }
+    }
+    for (const el of Object.values(d.elements)) {
+      if (el.kind !== 'plumbing' || !el.hostWallId) continue;
+      const wall = d.elements[el.hostWallId];
+      if (wall?.kind !== 'wall' || wall.levelId !== el.levelId) {
+        delete el.hostWallId;
+        delete el.hostT;
+        delete el.side;
+        repairs.push(`Detached plumbing ${el.id} from a missing wall`);
       }
     }
     for (const el of Object.values(d.elements)) {

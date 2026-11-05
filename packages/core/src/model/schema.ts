@@ -28,7 +28,7 @@ export const LengthFormatSchema = z.discriminatedUnion('system', [
 ]);
 
 /** Plan layers a layer set can show or hide. The sheet and DXF still draw every layer. */
-export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical'] as const;
+export const PLAN_LAYER_IDS = ['reference', 'walls', 'openings', 'objects', 'rooms', 'dimensions', 'text', 'roof', 'foundation', 'stairs', 'deck', 'electrical', 'plumbing'] as const;
 export type PlanLayerId = (typeof PLAN_LAYER_IDS)[number];
 
 export const LayerSetSchema = z.object({
@@ -383,6 +383,23 @@ export const ElectricalSchema = z.object({
 });
 export type Electrical = z.infer<typeof ElectricalSchema>;
 
+export const PLUMBING_FIXTURES = ['supply', 'drain'] as const;
+export type PlumbingFixture = (typeof PLUMBING_FIXTURES)[number];
+
+/** A hot-and-cold supply or a drain. A floor drain has no wall. Heights are derived. */
+export const PlumbingSchema = z.object({
+  ...elementBase,
+  kind: z.literal('plumbing'),
+  fixture: z.enum(PLUMBING_FIXTURES),
+  /** Face point of a wall fixture, or the plan point of a floor drain. */
+  p: Vec2Schema,
+  hostWallId: IdSchema.optional(),
+  /** Distance along the wall from node a. */
+  hostT: z.number().nonnegative().optional(),
+  side: z.enum(['left', 'right']).optional(),
+});
+export type Plumbing = z.infer<typeof PlumbingSchema>;
+
 const CadLineSchema = z.object({ t: z.literal('line'), a: Vec2Schema, b: Vec2Schema });
 const CadPolylineSchema = z.object({ t: z.literal('polyline'), pts: z.array(Vec2Schema).min(2).max(500), closed: z.boolean() });
 const CadArcSchema = z.object({
@@ -430,6 +447,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   StairSchema,
   DeckSchema,
   ElectricalSchema,
+  PlumbingSchema,
   CadSchema,
   TextSchema,
 ]);

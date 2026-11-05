@@ -463,6 +463,45 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'plumbing') {
+    const format = doc.settings.lengthFormat;
+    const onWall = only.hostWallId !== undefined;
+    const height = !onWall ? null : only.fixture === 'supply' ? 20 : 12;
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Plumbing</h3>
+        <dl className="level-fields">
+          <dt>Fixture</dt>
+          <dd>
+            {onWall ? (
+              <select
+                aria-label="Fixture"
+                className="status-select"
+                value={only.fixture}
+                onChange={(event) => {
+                  const fixture = event.target.value === 'drain' ? 'drain' : 'supply';
+                  notify(errorOf(dispatch('plumbing.setFixture', { id: only.id, fixture })));
+                }}
+              >
+                <option value="supply">Supply</option>
+                <option value="drain">Drain</option>
+              </select>
+            ) : (
+              <span className="field-readonly">Floor drain</span>
+            )}
+          </dd>
+          <dt>Height</dt>
+          <dd>
+            <span className="field-readonly">{height === null ? 'Floor' : `${formatLength(height, format)} to center`}</span>
+          </dd>
+        </dl>
+        <p className="panel-hint">A supply is a hot and cold pair at 20 inches. A wall drain is at 12 inches. A floor drain sits on the floor. Wall fixtures stay where they were placed.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'text') {
     const format = doc.settings.lengthFormat;
     return (

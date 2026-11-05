@@ -153,6 +153,7 @@ describe('menu template', () => {
       ['Stairs', 'stairs'],
       ['Deck', 'deck'],
       ['Electrical', 'electrical'],
+      ['Plumbing', 'plumbing'],
       ['Dimensions', 'dimensions'],
     ] as const) {
       click(find(items, name));
