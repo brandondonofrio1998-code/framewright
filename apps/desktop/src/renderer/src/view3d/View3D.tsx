@@ -3,10 +3,12 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Suspense, useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import {
   BufferGeometry,
+  DirectionalLight,
   DoubleSide,
   Float32BufferAttribute,
   NoColorSpace,
   Object3D,
+  PCFSoftShadowMap,
   RepeatWrapping,
   SRGBColorSpace,
   Uint32BufferAttribute,
@@ -129,7 +131,7 @@ function PartMesh({ part, color, maps }: { part: MeshPart; color: string; maps?:
   useEffect(() => () => geometry.dispose(), [geometry]);
   const glass = part.role === 'glass';
   return (
-    <mesh geometry={geometry}>
+    <mesh geometry={geometry} castShadow={!glass} receiveShadow={!glass}>
       <meshStandardMaterial
         color={maps ? '#ffffff' : color}
         map={maps?.color ?? null}
@@ -403,6 +405,39 @@ function MarkTextured({ count, onReady }: { count: number; onReady: (count: numb
   return null;
 }
 
+function Sun({ parts }: { parts: MeshPart[] }) {
+  const light = useRef<DirectionalLight>(null);
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    const sun = light.current;
+    if (!sun) return;
+    scene.add(sun.target);
+    const bounds = meshBounds(parts);
+    const span = bounds ? Math.max(bounds.max[0] - bounds.min[0], bounds.max[1] - bounds.min[1], bounds.max[2] - bounds.min[2], 240) : 480;
+    const cx = bounds ? (bounds.min[0] + bounds.max[0]) / 2 : 0;
+    const cy = bounds ? (bounds.min[1] + bounds.max[1]) / 2 : 0;
+    const cz = bounds ? (bounds.min[2] + bounds.max[2]) / 2 : 0;
+    sun.position.set(cx + span, cy - span * 0.75, cz + span * 1.1);
+    sun.target.position.set(cx, cy, cz);
+    sun.target.updateMatrixWorld();
+    const cover = span * 1.4;
+    const cam = sun.shadow.camera;
+    cam.left = -cover;
+    cam.right = cover;
+    cam.top = cover;
+    cam.bottom = -cover;
+    cam.near = 1;
+    cam.far = span * 8;
+    cam.updateProjectionMatrix();
+    sun.shadow.bias = -0.00015;
+    sun.shadow.normalBias = 1.5;
+    return () => {
+      scene.remove(sun.target);
+    };
+  }, [parts, scene]);
+  return <directionalLight ref={light} intensity={1.15} castShadow shadow-mapSize={[2048, 2048]} />;
+}
+
 function Scene({
   doc,
   parts,
@@ -458,7 +493,7 @@ function Scene({
       <color attach="background" args={[dark ? '#1c1f24' : '#e4e7ec']} />
       <ambientLight intensity={0.55} />
       <hemisphereLight args={['#f4f7fb', '#d9cbb8', 0.4]} />
-      <directionalLight position={[180, -120, 260]} intensity={1.15} />
+      <Sun parts={parts} />
       <gridHelper args={[720, 30, '#d4d0ca', '#eceae6']} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, elevation]} />
       {groups.flat.map((item, i) => (
         <PartMesh key={`${item.part.elementId}:flat:${i}`} part={item.part} color={item.color} />
@@ -516,8 +551,8 @@ export function View3D() {
   };
 
   return (
-    <div className="view-3d" ref={rootRef} data-testid="view-3d" data-mesh-count={parts.length} data-mode={mode} data-projection={mode === 'walk' ? 'perspective' : projection} data-textured={shownTextures}>
-      <Canvas className="view-3d-canvas" camera={{ fov: 45, near: 1, far: 100000, position: [240, -280, 180] }} gl={{ antialias: true, preserveDrawingBuffer: true }}>
+    <div className="view-3d" ref={rootRef} data-testid="view-3d" data-mesh-count={parts.length} data-mode={mode} data-projection={mode === 'walk' ? 'perspective' : projection} data-shadows="on" data-textured={shownTextures}>
+      <Canvas className="view-3d-canvas" shadows camera={{ fov: 45, near: 1, far: 100000, position: [240, -280, 180] }} gl={{ antialias: true, preserveDrawingBuffer: true }} onCreated={({ gl }) => { gl.shadowMap.type = PCFSoftShadowMap; }}>
         <Suspense fallback={null}>
           <Scene
             doc={doc}

@@ -613,6 +613,7 @@ test('shows the room in the 3D view', async ({ electronApp, window, consoleError
   await window.locator('.dv-default-tab-content', { hasText: '3D' }).click();
   const view = window.getByTestId('view-3d');
   await expect(view).toBeVisible();
+  await expect(view).toHaveAttribute('data-shadows', 'on');
   await expect.poll(async () => Number(await view.getAttribute('data-mesh-count'))).toBeGreaterThan(4);
   await expect.poll(async () => Number(await view.getAttribute('data-textured'))).toBeGreaterThan(4);
   const canvas = view.locator('canvas');
