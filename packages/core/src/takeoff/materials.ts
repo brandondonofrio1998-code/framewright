@@ -155,6 +155,12 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     add('Electrical', 'Receptacles', receptacles, 'each');
     add('Electrical', 'Switches', switches, 'each');
     add('Electrical', 'Lights', lights, 'each');
+    const byCircuit = new Map<number, number>();
+    for (const device of electricalOnLevel(doc, levelId)) {
+      if (device.circuit === undefined) continue;
+      byCircuit.set(device.circuit, (byCircuit.get(device.circuit) ?? 0) + 1);
+    }
+    for (const number of [...byCircuit.keys()].sort((a, b) => a - b)) add('Electrical', `Circuit ${number}`, byCircuit.get(number) ?? 0, 'each');
     let supplies = 0;
     let drains = 0;
     for (const fixture of plumbingOnLevel(doc, levelId)) {

@@ -380,6 +380,8 @@ export const ElectricalSchema = z.object({
   /** Distance along the wall from node a. */
   hostT: z.number().nonnegative().optional(),
   side: z.enum(['left', 'right']).optional(),
+  /** Branch circuit, 1 through 20. Absent when the device is unassigned. */
+  circuit: z.number().int().min(1).max(20).optional(),
 });
 export type Electrical = z.infer<typeof ElectricalSchema>;
 

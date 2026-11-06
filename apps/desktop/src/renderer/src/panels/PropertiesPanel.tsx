@@ -420,7 +420,7 @@ export function PropertiesPanel() {
             <span className="field-readonly">{formatLength(only.depth, format)}</span>
           </dd>
         </dl>
-        <p className="panel-hint">2x8 joists span the short side. Posts and a top rail run the three open sides. The deck stays where it was built.</p>
+        <p className="panel-hint">2x8 joists span the short side. Posts, a top rail, and balusters run the three open sides. The deck stays where it was built.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>
@@ -453,12 +453,31 @@ export function PropertiesPanel() {
               </select>
             )}
           </dd>
+          <dt>Circuit</dt>
+          <dd>
+            <select
+              aria-label="Circuit"
+              className="status-select"
+              value={only.circuit ?? ''}
+              onChange={(event) => {
+                const circuit = event.target.value === '' ? null : Number(event.target.value);
+                notify(errorOf(dispatch('electrical.setCircuit', { id: only.id, circuit })));
+              }}
+            >
+              <option value="">None</option>
+              {Array.from({ length: 20 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
+            </select>
+          </dd>
           <dt>Height</dt>
           <dd>
             <span className="field-readonly">{height === null ? 'Ceiling' : `${formatLength(height, format)} to center`}</span>
           </dd>
         </dl>
-        <p className="panel-hint">A receptacle is 18 inches to center and a switch is 48 inches. A light sits on the ceiling. Wall devices stay where they were placed.</p>
+        <p className="panel-hint">A receptacle is 18 inches to center and a switch is 48 inches. A light sits on the ceiling. Devices on the same circuit share a number from 1 to 20. Wall devices stay where they were placed.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

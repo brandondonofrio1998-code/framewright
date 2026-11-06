@@ -37,6 +37,20 @@ export const setElectricalDevice = defineCommand<{ id: Id; device: ElectricalDev
   },
 });
 
+export const setElectricalCircuit = defineCommand<{ id: Id; circuit: number | null }>({
+  label: () => 'Circuit',
+  run: (doc, { id, circuit }) => {
+    const el = doc.elements[id];
+    if (el?.kind !== 'electrical') throw new CommandError('That device no longer exists.');
+    if (circuit === null) {
+      delete el.circuit;
+      return;
+    }
+    if (!Number.isInteger(circuit) || circuit < 1 || circuit > 20) throw new CommandError('A circuit is a whole number from 1 to 20.');
+    el.circuit = circuit;
+  },
+});
+
 function resolve(doc: PlanDocument, input: PlaceElectrical): Omit<Electrical, 'id' | 'kind' | 'levelId'> {
   if (input.device === 'light') {
     return { device: 'light', p: { x: input.p.x, y: input.p.y } };
@@ -57,4 +71,5 @@ function resolve(doc: PlanDocument, input: PlaceElectrical): Omit<Electrical, 'i
 export const electricalCommands = {
   'electrical.create': createElectrical,
   'electrical.setDevice': setElectricalDevice,
+  'electrical.setCircuit': setElectricalCircuit,
 };

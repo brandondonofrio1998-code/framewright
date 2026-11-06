@@ -827,9 +827,13 @@ test('places a receptacle, a switch, and a ceiling light', async ({ electronApp,
   await clickAt(window, { x: 0, y: -80 });
   await clickAt(window, { x: 40, y: -80 }, true);
   await clickAt(window, { x: 0, y: 0 });
+  await window.getByRole('button', { name: 'Select Objects' }).click();
+  await clickAt(window, { x: 0, y: -76 });
+  await window.getByLabel('Circuit', { exact: true }).selectOption('1');
   const plan = await savePlan(electronApp, userData, 'electrical');
-  const devices = ofKind(plan, 'electrical') as { device?: string }[];
+  const devices = ofKind(plan, 'electrical') as { device?: string; circuit?: number }[];
   expect(devices.map((device) => device.device).sort()).toEqual(['light', 'receptacle', 'switch']);
+  expect(devices.filter((device) => device.circuit === 1)).toHaveLength(1);
   expect(consoleErrors).toEqual([]);
 });
 

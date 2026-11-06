@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, materialsList, pointInsideMesh } from '../../src';
+import { buildLevelMeshes, buildPlanDisplayList, materialsList, pointInsideMesh } from '../../src';
 import { testHistory } from '../helpers';
 
 describe('electrical', () => {
@@ -33,6 +33,18 @@ describe('electrical', () => {
     expect(pointInsideMesh(box, [80, -4, 48])).toBe(true);
     const lamp = parts.filter((part) => part.elementId === light.value);
     expect(pointInsideMesh(lamp, [40, 40, 96.6])).toBe(true);
+    const circuit = history.dispatch('electrical.setCircuit', { id: light.value, circuit: 1 });
+    if (!circuit.ok) throw new Error(circuit.error);
+    expect(history.doc.elements[light.value]).toMatchObject({ circuit: 1 });
+    expect(history.dispatch('electrical.setCircuit', { id: light.value, circuit: 21 }).ok).toBe(false);
+    const shown = buildPlanDisplayList(history.doc, baseLevelId).find((item) => item.elementId === light.value);
+    expect(shown?.prims.find((prim) => prim.t === 'text')).toMatchObject({ s: '1' });
+    expect(materialsList(history.doc).find((line) => line.name === 'Circuit 1')?.quantity).toBe(1);
+    const cleared = history.dispatch('electrical.setCircuit', { id: light.value, circuit: null });
+    if (!cleared.ok) throw new Error(cleared.error);
+    expect(history.doc.elements[light.value]).not.toHaveProperty('circuit');
+    history.undo();
+    expect(history.doc.elements[light.value]).toMatchObject({ circuit: 1 });
 
     const door = history.dispatch('opening.place', {
       kind: 'door',

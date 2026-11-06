@@ -35,10 +35,14 @@ export function electricalPose(doc: PlanDocument, el: Electrical): { p: Vec2; di
   return { p: el.p, dir: { x: 1, y: 0 }, out: { x: 0, y: 1 } };
 }
 
-export function electricalSymbol(el: Electrical, pose: { p: Vec2; dir: Vec2 }): Prim[] {
+export function electricalSymbol(el: Electrical, pose: { p: Vec2; dir: Vec2; out?: Vec2 }): Prim[] {
   const { p, dir } = pose;
   const n = perpOf(dir);
   const prims: Prim[] = [{ t: 'arc', c: p, r: SYMBOL, start: 0, sweep: Math.PI * 2, pen: 'electrical' }];
+  if (el.circuit !== undefined) {
+    const out = pose.out ?? n;
+    prims.push({ t: 'text', p: add(p, scale(out, SYMBOL + 6)), s: String(el.circuit), size: 6, rot: 0, align: 'center' });
+  }
   if (el.device === 'light') {
     prims.push(line(add(p, scale(dir, -SYMBOL)), add(p, scale(dir, SYMBOL))));
     prims.push(line(add(p, scale(n, -SYMBOL)), add(p, scale(n, SYMBOL))));
