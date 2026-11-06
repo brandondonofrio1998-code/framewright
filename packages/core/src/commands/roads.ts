@@ -31,6 +31,17 @@ export const setRoadWidth = defineCommand<{ id: Id; width: number }>({
   },
 });
 
+export const setRoadFall = defineCommand<{ id: Id; fall: number }>({
+  label: () => 'Driveway Slope',
+  run: (doc, { id, fall }) => {
+    const el = doc.elements[id];
+    if (el?.kind !== 'road') throw new CommandError('That driveway no longer exists.');
+    if (!Number.isFinite(fall) || fall < -96 || fall > 96) throw new CommandError('The end can rise or drop at most 8 feet.');
+    if (Math.abs(fall) < 1e-6) delete el.fall;
+    else el.fall = fall;
+  },
+});
+
 function checkPoint(p: Vec2): Vec2 {
   if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || Math.abs(p.x) > 100_000 || Math.abs(p.y) > 100_000) {
     throw new CommandError('That point is out of range.');
@@ -41,4 +52,5 @@ function checkPoint(p: Vec2): Vec2 {
 export const roadCommands = {
   'road.create': createRoad,
   'road.width': setRoadWidth,
+  'road.fall': setRoadFall,
 };

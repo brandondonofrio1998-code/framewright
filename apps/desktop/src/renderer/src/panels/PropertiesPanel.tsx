@@ -663,8 +663,12 @@ export function PropertiesPanel() {
           <dd>
             <LengthInput label="Driveway width" value={only.width} format={format} onCommit={(width) => errorOf(dispatch('road.width', { id: only.id, width }))} />
           </dd>
+          <dt>Drop</dt>
+          <dd>
+            <LengthInput label="Drop" value={only.fall ?? 0} format={format} onCommit={(fall) => errorOf(dispatch('road.fall', { id: only.id, fall }))} />
+          </dd>
         </dl>
-        <p className="panel-hint">The top of the driveway sits at the level floor. It is 4 inches thick.</p>
+        <p className="panel-hint">The near end stays at the floor. Drop is how far the far end sits below that. Zero keeps the driveway level. The slab is 4 inches thick.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

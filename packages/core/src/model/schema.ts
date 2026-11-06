@@ -444,6 +444,8 @@ export const RoadSchema = z.object({
   b: Vec2Schema,
   /** Width, inches. */
   width: z.number().min(96).max(480),
+  /** Inches the end sits below the start. Absent when the top stays level with the floor. */
+  fall: z.number().min(-96).max(96).optional(),
 });
 export type Road = z.infer<typeof RoadSchema>;
 

@@ -492,9 +492,52 @@ function pipeSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: Me
 function roadSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   for (const road of roadsOnLevel(doc, levelId)) {
     const pad = builder();
-    extrude(pad, roadPolygon(road), elevation - ROAD_THICKNESS, elevation);
+    const fall = road.fall ?? 0;
+    const poly = roadPolygon(road);
+    if (Math.abs(fall) < 1e-6) extrude(pad, poly, elevation - ROAD_THICKNESS, elevation);
+    else ramp(pad, poly, elevation, elevation - fall);
     push(parts, finish(pad, road.id, null, 'solid'));
   }
+}
+
+/** A 4 inch slab whose top runs from `topA` at the first edge to `topB` at the far edge. */
+function ramp(b: Builder, poly: readonly Vec2[], topA: number, topB: number): void {
+  if (poly.length < 4) return;
+  const p = poly[0]!;
+  const q = poly[1]!;
+  const r = poly[2]!;
+  const s = poly[3]!;
+  const at = (v: Vec2, z: number) => ({ x: v.x, y: v.y, z });
+  const top = [at(p, topA), at(q, topA), at(r, topB), at(s, topB)];
+  const bot = [at(p, topA - ROAD_THICKNESS), at(q, topA - ROAD_THICKNESS), at(r, topB - ROAD_THICKNESS), at(s, topB - ROAD_THICKNESS)];
+  const quad = (pts: { x: number; y: number; z: number }[], n: { x: number; y: number; z: number }) => {
+    const i = b.positions.length / 3;
+    for (const point of pts) {
+      b.positions.push(point.x, point.y, point.z);
+      b.normals.push(n.x, n.y, n.z);
+      b.uvs.push(point.x, point.y);
+    }
+    b.indices.push(i, i + 1, i + 2, i, i + 2, i + 3);
+  };
+  const n = (a: { x: number; y: number; z: number }, c: { x: number; y: number; z: number }, d: { x: number; y: number; z: number }) => {
+    const ux = c.x - a.x;
+    const uy = c.y - a.y;
+    const uz = c.z - a.z;
+    const vx = d.x - a.x;
+    const vy = d.y - a.y;
+    const vz = d.z - a.z;
+    const x = uy * vz - uz * vy;
+    const y = uz * vx - ux * vz;
+    const z = ux * vy - uy * vx;
+    const len = Math.hypot(x, y, z) || 1;
+    return { x: x / len, y: y / len, z: z / len };
+  };
+  quad(top, n(top[0]!, top[1]!, top[2]!));
+  quad([bot[0]!, bot[3]!, bot[2]!, bot[1]!], n(bot[0]!, bot[3]!, bot[2]!));
+  quad([bot[0]!, bot[1]!, top[1]!, top[0]!], n(bot[0]!, bot[1]!, top[1]!));
+  quad([bot[2]!, bot[3]!, top[3]!, top[2]!], n(bot[2]!, bot[3]!, top[3]!));
+  quad([bot[1]!, bot[2]!, top[2]!, top[1]!], n(bot[1]!, bot[2]!, top[2]!));
+  quad([bot[3]!, bot[0]!, top[0]!, top[3]!], n(bot[3]!, bot[0]!, top[0]!));
 }
 
 function foundationSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {

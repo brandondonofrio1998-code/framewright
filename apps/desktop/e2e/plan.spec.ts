@@ -920,6 +920,13 @@ test('draws a driveway', async ({ electronApp, window, userData, consoleErrors }
   const roads = ofKind(plan, 'road') as { width?: number }[];
   expect(roads).toHaveLength(1);
   expect(roads[0]?.width).toBe(144);
+  await window.getByRole('button', { name: 'Select Objects' }).click();
+  await clickAt(window, { x: 0, y: -60 });
+  const drop = window.getByLabel('Drop', { exact: true });
+  await drop.fill(`1'`);
+  await drop.press('Enter');
+  const sloped = await savePlan(electronApp, userData, 'drive-slope');
+  expect((ofKind(sloped, 'road') as { fall?: number }[])[0]?.fall).toBe(12);
   expect(consoleErrors).toEqual([]);
 });
 
