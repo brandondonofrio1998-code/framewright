@@ -1,6 +1,7 @@
 import { objectFootprint } from '../catalog/symbols';
 import { deckPolygon, decksOnLevel } from '../decks/deck';
 import { electricalPose, electricalOnLevel } from '../electrical/devices';
+import { pipesOnLevel, pipePolygon } from '../pipes/pipe';
 import { plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
 import { siteOnLevel } from '../site/marks';
 import { plantsOnLevel } from '../plants/tree';
@@ -17,7 +18,7 @@ import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import type { WallGeometry } from '../walls/joins';
 
 export interface Picked {
-  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text' | 'deck' | 'electrical' | 'plumbing' | 'site' | 'plant' | 'road';
+  kind: 'wall' | 'dimension' | 'door' | 'window' | 'object' | 'room' | 'stair' | 'cad' | 'foundation' | 'text' | 'deck' | 'electrical' | 'plumbing' | 'pipe' | 'site' | 'plant' | 'road';
   id: Id;
 }
 
@@ -96,6 +97,7 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
   for (const deck of decksOnLevel(doc, levelId)) consider({ kind: 'deck', id: deck.id }, distanceToPolygon(p, deckPolygon(deck)));
   for (const device of electricalOnLevel(doc, levelId)) consider({ kind: 'electrical', id: device.id }, distance(p, electricalPose(doc, device).p));
   for (const fixture of plumbingOnLevel(doc, levelId)) consider({ kind: 'plumbing', id: fixture.id }, distance(p, plumbingPose(doc, fixture).p));
+  for (const pipe of pipesOnLevel(doc, levelId)) consider({ kind: 'pipe', id: pipe.id }, projectOnSegment(p, pipe.a, pipe.b).distance);
   for (const mark of siteOnLevel(doc, levelId)) {
     if (mark.role === 'north' && mark.p) consider({ kind: 'site', id: mark.id }, distance(p, mark.p));
     if (mark.role === 'lot' && mark.points) {
@@ -194,6 +196,9 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
   }
   for (const fixture of plumbingOnLevel(doc, levelId)) {
     if (inside(plumbingPose(doc, fixture).p, box)) ids.push(fixture.id);
+  }
+  for (const pipe of pipesOnLevel(doc, levelId)) {
+    if (pipePolygon(pipe).every((p) => inside(p, box))) ids.push(pipe.id);
   }
   for (const mark of siteOnLevel(doc, levelId)) {
     if (mark.role === 'lot' && mark.points?.every((p) => inside(p, box))) ids.push(mark.id);

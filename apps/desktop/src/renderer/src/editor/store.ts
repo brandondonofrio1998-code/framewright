@@ -46,6 +46,7 @@ export const TOOL_LABELS: Record<ToolId, string> = {
   deck: 'Deck',
   electrical: 'Electrical',
   plumbing: 'Plumbing',
+  pipe: 'Pipe',
   site: 'Site',
   plant: 'Plant',
   road: 'Road',

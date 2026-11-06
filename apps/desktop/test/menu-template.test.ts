@@ -154,6 +154,7 @@ describe('menu template', () => {
       ['Deck', 'deck'],
       ['Electrical', 'electrical'],
       ['Plumbing', 'plumbing'],
+      ['Pipe', 'pipe'],
       ['Site', 'site'],
       ['Plant', 'plant'],
       ['Road', 'road'],

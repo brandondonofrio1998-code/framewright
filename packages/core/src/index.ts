@@ -36,6 +36,7 @@ export * from './stairs/straight';
 export * from './decks/deck';
 export * from './electrical/devices';
 export * from './plumbing/fixtures';
+export * from './pipes/pipe';
 export * from './site/marks';
 export * from './plants/tree';
 export * from './roads/drive';

@@ -594,6 +594,39 @@ export function PropertiesPanel() {
       </div>
     );
   }
+  if (elements.length === 1 && only?.kind === 'pipe') {
+    const format = doc.settings.lengthFormat;
+    return (
+      <div className="panel properties-panel">
+        <h3 className="panel-heading">Pipe</h3>
+        <dl className="level-fields">
+          <dt>Run</dt>
+          <dd>
+            <select
+              aria-label="Pipe"
+              className="status-select"
+              value={only.service}
+              onChange={(event) => {
+                const service = event.target.value === 'drain' ? 'drain' : 'supply';
+                notify(errorOf(dispatch('pipe.service', { id: only.id, service })));
+              }}
+            >
+              <option value="supply">Supply</option>
+              <option value="drain">Drain</option>
+            </select>
+          </dd>
+          <dt>Length</dt>
+          <dd>
+            <span className="field-readonly">{formatLength(distance(only.a, only.b), format)}</span>
+          </dd>
+        </dl>
+        <p className="panel-hint">A supply is 3/4 inch, centered 20 inches above the floor. A drain is 2 inches, centered 12 inches above the floor.</p>
+        <div className="panel-actions">
+          <DeleteButton ids={[only.id]} />
+        </div>
+      </div>
+    );
+  }
   if (elements.length === 1 && only?.kind === 'road') {
     const format = doc.settings.lengthFormat;
     return (

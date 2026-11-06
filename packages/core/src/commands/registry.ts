@@ -6,6 +6,7 @@ import { documentCommands } from './document';
 import { electricalCommands } from './electrical';
 import { foundationCommands } from './foundations';
 import { openingCommands } from './openings';
+import { pipeCommands } from './pipes';
 import { plantCommands } from './plants';
 import { plumbingCommands } from './plumbing';
 import { roadCommands } from './roads';
@@ -28,6 +29,7 @@ export const planCommands = {
   ...deckCommands,
   ...electricalCommands,
   ...plumbingCommands,
+  ...pipeCommands,
   ...siteCommands,
   ...plantCommands,
   ...roadCommands,

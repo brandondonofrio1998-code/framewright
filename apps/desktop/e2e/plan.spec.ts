@@ -880,6 +880,19 @@ test('plants a tree', async ({ electronApp, window, userData, consoleErrors }) =
   expect(consoleErrors).toEqual([]);
 });
 
+test('draws a supply pipe', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Pipe', exact: true }).click();
+  await expect(window.getByTestId('status-tool')).toHaveText('Pipe');
+  await clickAt(window, { x: -200, y: -200 });
+  await clickAt(window, { x: -40, y: -200 });
+  const plan = await savePlan(electronApp, userData, 'pipe');
+  const pipes = ofKind(plan, 'pipe') as { service?: string }[];
+  expect(pipes).toHaveLength(1);
+  expect(pipes[0]?.service).toBe('supply');
+  expect(consoleErrors).toEqual([]);
+});
+
 test('draws a driveway', async ({ electronApp, window, userData, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.getByRole('button', { name: 'Road', exact: true }).click();

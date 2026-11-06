@@ -8,6 +8,7 @@ import { electricalItem, electricalOnLevel } from '../electrical/devices';
 import { plumbingItem, plumbingOnLevel } from '../plumbing/fixtures';
 import { siteItem, siteOnLevel } from '../site/marks';
 import { plantItem, plantsOnLevel } from '../plants/tree';
+import { pipeItem, pipesOnLevel } from '../pipes/pipe';
 import { roadItem, roadsOnLevel } from '../roads/drive';
 import { handrail, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
@@ -168,6 +169,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
   }
   for (const device of electricalOnLevel(doc, levelId)) items.push(electricalItem(doc, device));
   for (const fixture of plumbingOnLevel(doc, levelId)) items.push(plumbingItem(doc, fixture));
+  for (const pipe of pipesOnLevel(doc, levelId)) items.push(pipeItem(pipe));
   for (const mark of siteOnLevel(doc, levelId)) {
     const item = siteItem(mark);
     if (item) items.push(item);

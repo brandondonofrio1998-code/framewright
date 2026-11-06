@@ -8,6 +8,7 @@ import { DRAIN_CENTER, SUPPLY_CENTER, plumbingOnLevel, plumbingPose } from '../p
 import { siteOnLevel } from '../site/marks';
 import { plantRing, plantsOnLevel } from '../plants/tree';
 import { ROAD_THICKNESS, roadPolygon, roadsOnLevel } from '../roads/drive';
+import { pipeCenter, pipePolygon, pipeSize, pipesOnLevel } from '../pipes/pipe';
 import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
@@ -477,6 +478,16 @@ function plantSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: M
   }
 }
 
+function pipeSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  for (const pipe of pipesOnLevel(doc, levelId)) {
+    const size = pipeSize(pipe);
+    const center = elevation + pipeCenter(pipe);
+    const piece = builder();
+    extrude(piece, pipePolygon(pipe), center - size / 2, center + size / 2);
+    push(parts, finish(piece, pipe.id, null, 'solid'));
+  }
+}
+
 function roadSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   for (const road of roadsOnLevel(doc, levelId)) {
     const pad = builder();
@@ -589,6 +600,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   deckSolids(doc, levelId, level.elevation, parts);
   electricalSolids(doc, levelId, level.elevation, level.ceilingHeight, parts);
   plumbingSolids(doc, levelId, level.elevation, parts);
+  pipeSolids(doc, levelId, level.elevation, parts);
   lotPads(doc, levelId, level.elevation, parts);
   plantSolids(doc, levelId, level.elevation, parts);
   roadSolids(doc, levelId, level.elevation, parts);

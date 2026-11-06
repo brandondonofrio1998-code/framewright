@@ -10,6 +10,7 @@ import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import { deckBalusters, deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
 import { electricalOnLevel } from '../electrical/devices';
+import { pipesOnLevel } from '../pipes/pipe';
 import { plumbingOnLevel } from '../plumbing/fixtures';
 import { lotArea, lotPerimeter, siteOnLevel } from '../site/marks';
 import { plantsOnLevel } from '../plants/tree';
@@ -169,6 +170,15 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     }
     add('Plumbing', 'Supplies', supplies, 'each');
     add('Plumbing', 'Drains', drains, 'each');
+    let supplyPipe = 0;
+    let drainPipe = 0;
+    for (const pipe of pipesOnLevel(doc, levelId)) {
+      const feet = distance(pipe.a, pipe.b) / 12;
+      if (pipe.service === 'drain') drainPipe += feet;
+      else supplyPipe += feet;
+    }
+    add('Plumbing', 'Supply pipe', supplyPipe, 'lin ft');
+    add('Plumbing', 'Drain pipe', drainPipe, 'lin ft');
     let lotSqFt = 0;
     let lotFeet = 0;
     let norths = 0;

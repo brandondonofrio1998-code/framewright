@@ -135,6 +135,7 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
       tool('Deck', 'deck'),
       tool('Electrical', 'electrical'),
       tool('Plumbing', 'plumbing'),
+      tool('Pipe', 'pipe'),
       tool('Site', 'site'),
       tool('Plant', 'plant'),
       tool('Road', 'road'),

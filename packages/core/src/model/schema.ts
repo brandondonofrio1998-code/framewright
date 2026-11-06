@@ -447,6 +447,19 @@ export const RoadSchema = z.object({
 });
 export type Road = z.infer<typeof RoadSchema>;
 
+export const PIPE_SERVICES = ['supply', 'drain'] as const;
+export type PipeService = (typeof PIPE_SERVICES)[number];
+
+/** A straight supply or drain. The section is square and level. */
+export const PipeSchema = z.object({
+  ...elementBase,
+  kind: z.literal('pipe'),
+  service: z.enum(PIPE_SERVICES),
+  a: Vec2Schema,
+  b: Vec2Schema,
+});
+export type Pipe = z.infer<typeof PipeSchema>;
+
 const CadLineSchema = z.object({ t: z.literal('line'), a: Vec2Schema, b: Vec2Schema });
 const CadPolylineSchema = z.object({ t: z.literal('polyline'), pts: z.array(Vec2Schema).min(2).max(500), closed: z.boolean() });
 const CadArcSchema = z.object({
@@ -498,6 +511,7 @@ export const ElementSchema = z.discriminatedUnion('kind', [
   SiteSchema,
   PlantSchema,
   RoadSchema,
+  PipeSchema,
   CadSchema,
   TextSchema,
 ]);

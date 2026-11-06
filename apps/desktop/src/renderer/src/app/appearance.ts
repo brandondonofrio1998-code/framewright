@@ -64,6 +64,7 @@ export function layerForKind(kind: string): DrawLayer | null {
     case 'electrical':
       return 'electrical';
     case 'plumbing':
+    case 'pipe':
       return 'plumbing';
     case 'site':
       return 'site';
