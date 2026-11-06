@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deckJoists, deckPosts, materialsList, placeDeck, pointInsideMesh, buildLevelMeshes } from '../../src';
+import { BALUSTER_GAP, BALUSTER_SIZE, POST_SIZE, buildLevelMeshes, deckBalusters, deckJoists, deckOpenEdges, deckPosts, distance, dot, materialsList, normalize, placeDeck, pointInsideMesh, sub } from '../../src';
 import { testHistory } from '../helpers';
 
 describe('decks', () => {
@@ -16,10 +16,41 @@ describe('decks', () => {
     const lines = materialsList(history.doc);
     expect(lines.find((line) => line.name === 'Decking')?.quantity).toBeCloseTo((144 * 120) / 144, 3);
     expect(lines.find((line) => line.name === 'Deck railing')?.quantity).toBeCloseTo((144 + 240) / 12, 3);
+    const balusters = deckBalusters(shape);
+    expect(balusters.length).toBeGreaterThan(20);
+    expect(lines.find((line) => line.name === 'Deck balusters')?.quantity).toBe(balusters.length);
+    expect(widestOpening(shape)).toBeLessThanOrEqual(BALUSTER_GAP + 1e-6);
     const parts = buildLevelMeshes(history.doc, baseLevelId);
     const deckParts = parts.filter((part) => part.elementId === (deck && 'id' in deck ? deck.id : ''));
     expect(deckParts.length).toBeGreaterThan(4);
+    const spindle = balusters.reduce((best, p) => (p.x > best.x ? p : best));
+    expect(pointInsideMesh(deckParts, [spindle.x, spindle.y, 16])).toBe(true);
     expect(pointInsideMesh(deckParts, [72, -64, -0.4])).toBe(true);
     expect(() => placeDeck({ x: 0, y: 0 }, { x: 1, y: 0 }, -1, { x: 80, y: 40 })).toThrow(/outside/);
   });
 });
+
+/** Largest clear gap between posts and balusters along the open edges. */
+function widestOpening(shape: Parameters<typeof deckBalusters>[0]): number {
+  let widest = 0;
+  const spindles = deckBalusters(shape);
+  for (const [a, b] of deckOpenEdges(shape)) {
+    const u = normalize(sub(b, a));
+    const length = distance(a, b);
+    const along = (p: { x: number; y: number }) => dot(sub(p, a), u);
+    const marks: { t: number; half: number }[] = [];
+    const keep = (p: { x: number; y: number }, half: number) => {
+      const t = along(p);
+      const foot = { x: a.x + u.x * t, y: a.y + u.y * t };
+      if (distance(p, foot) < 0.6 && t >= -0.6 && t <= length + 0.6) marks.push({ t, half });
+    };
+    for (const p of deckPosts(shape)) keep(p, POST_SIZE / 2);
+    for (const p of spindles) keep(p, BALUSTER_SIZE / 2);
+    marks.sort((p, q) => p.t - q.t);
+    for (let i = 0; i < marks.length - 1; i++) {
+      const gap = marks[i + 1]!.t - marks[i + 1]!.half - (marks[i]!.t + marks[i]!.half);
+      if (gap > widest) widest = gap;
+    }
+  }
+  return widest;
+}

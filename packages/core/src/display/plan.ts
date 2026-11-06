@@ -3,7 +3,7 @@ import { objectPrims } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
-import { deckJoists, deckOpenEdges, deckPolygon, decksOnLevel } from '../decks/deck';
+import { balusterFoot, deckBalusters, deckJoists, deckOpenEdges, deckPolygon, decksOnLevel } from '../decks/deck';
 import { electricalItem, electricalOnLevel } from '../electrical/devices';
 import { plumbingItem, plumbingOnLevel } from '../plumbing/fixtures';
 import { siteItem, siteOnLevel } from '../site/marks';
@@ -162,6 +162,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
         { t: 'polyline', pts: outline, closed: true, pen: 'deck' },
         ...deckJoists(deck).map((joist): Prim => ({ t: 'polyline', pts: joist, closed: true, pen: 'deck' })),
         ...deckOpenEdges(deck).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'deck' })),
+        ...deckBalusters(deck).map((spindle): Prim => ({ t: 'polyline', pts: balusterFoot(spindle), closed: true, pen: 'deck' })),
       ],
     });
   }

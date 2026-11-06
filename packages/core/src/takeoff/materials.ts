@@ -8,7 +8,7 @@ import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
-import { deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
+import { deckBalusters, deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
 import { electricalOnLevel } from '../electrical/devices';
 import { plumbingOnLevel } from '../plumbing/fixtures';
 import { lotArea, lotPerimeter, siteOnLevel } from '../site/marks';
@@ -130,17 +130,20 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     let joistFeet = 0;
     let railFeet = 0;
     let posts = 0;
+    let balusters = 0;
     for (const deck of decksOnLevel(doc, levelId)) {
       decking += (deck.width * deck.depth) / 144;
       const span = Math.min(deck.width, deck.depth);
       joistFeet += (deckJoists(deck).length * span) / 12;
       railFeet += deckRailLength(deck) / 12;
       posts += deckPosts(deck).length;
+      balusters += deckBalusters(deck).length;
     }
     add('Decks', 'Decking', decking, 'sq ft');
     add('Decks', 'Deck joists', joistFeet, 'lin ft');
     add('Decks', 'Deck railing', railFeet, 'lin ft');
     add('Decks', 'Deck posts', posts, 'each');
+    add('Decks', 'Deck balusters', balusters, 'each');
     let receptacles = 0;
     let switches = 0;
     let lights = 0;

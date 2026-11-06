@@ -2,7 +2,7 @@ import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
-import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, deckJoists, deckOpenEdges, deckPolygon, deckPosts, decksOnLevel, postFoot, railStrip } from '../decks/deck';
+import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, balusterFoot, deckBalusters, deckJoists, deckOpenEdges, deckPolygon, deckPosts, decksOnLevel, postFoot, railStrip } from '../decks/deck';
 import { RECEPTACLE_CENTER, SWITCH_CENTER, electricalOnLevel, electricalPose } from '../electrical/devices';
 import { DRAIN_CENTER, SUPPLY_CENTER, plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
 import { siteOnLevel } from '../site/marks';
@@ -381,6 +381,11 @@ function deckSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: Me
       extrude(piece, postFoot(post), top, top + RAIL_HEIGHT);
       push(parts, finish(piece, deck.id, lumber, 'solid'));
     }
+    const spindles = builder();
+    for (const spindle of deckBalusters(deck)) {
+      extrude(spindles, balusterFoot(spindle), top, top + RAIL_HEIGHT - RAIL_WIDTH);
+    }
+    push(parts, finish(spindles, deck.id, lumber, 'solid'));
   }
 }
 

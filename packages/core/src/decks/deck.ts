@@ -11,6 +11,8 @@ export const RAIL_THICKNESS = 1.5;
 export const RAIL_WIDTH = 3.5;
 export const POST_SIZE = 3.5;
 export const POST_SPACING = 72;
+export const BALUSTER_SIZE = 1.5;
+export const BALUSTER_GAP = 4;
 const MIN_DECK = 36;
 const MAX_WIDTH = 480;
 const MAX_DEPTH = 240;
@@ -53,13 +55,45 @@ export function deckOpenEdges(deck: DeckShape): [Vec2, Vec2][] {
 export function deckPosts(deck: DeckShape): Vec2[] {
   const points: Vec2[] = [];
   for (const [a, b] of deckOpenEdges(deck)) {
-    const len = distance(a, b);
-    const segments = Math.max(1, Math.ceil(len / POST_SPACING));
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    for (const p of postsOnEdge(a, b)) {
       if (!points.some((q) => samePoint(q, p, 0.5))) points.push(p);
     }
+  }
+  return points;
+}
+
+/**
+ * Baluster centers on the open edges. Each bay between posts is filled so the
+ * clear opening is at most 4 inches, which keeps a 4 inch sphere from passing.
+ */
+export function deckBalusters(deck: DeckShape): Vec2[] {
+  const points: Vec2[] = [];
+  for (const [a, b] of deckOpenEdges(deck)) {
+    const posts = postsOnEdge(a, b);
+    for (let i = 0; i < posts.length - 1; i++) {
+      const p = posts[i]!;
+      const q = posts[i + 1]!;
+      const span = distance(p, q);
+      const clear = span - POST_SIZE;
+      if (!(clear > BALUSTER_GAP)) continue;
+      const count = Math.ceil((clear - BALUSTER_GAP) / (BALUSTER_SIZE + BALUSTER_GAP));
+      const gap = (clear - count * BALUSTER_SIZE) / (count + 1);
+      const u = normalize(sub(q, p));
+      const first = POST_SIZE / 2 + gap + BALUSTER_SIZE / 2;
+      const step = BALUSTER_SIZE + gap;
+      for (let k = 0; k < count; k++) points.push(add(p, scale(u, first + k * step)));
+    }
+  }
+  return points;
+}
+
+function postsOnEdge(a: Vec2, b: Vec2): Vec2[] {
+  const len = distance(a, b);
+  const segments = Math.max(1, Math.ceil(len / POST_SPACING));
+  const points: Vec2[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    points.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
   }
   return points;
 }
@@ -76,7 +110,15 @@ export function railStrip(a: Vec2, b: Vec2): Vec2[] {
 }
 
 export function postFoot(p: Vec2): Vec2[] {
-  const h = POST_SIZE / 2;
+  return squareFoot(p, POST_SIZE);
+}
+
+export function balusterFoot(p: Vec2): Vec2[] {
+  return squareFoot(p, BALUSTER_SIZE);
+}
+
+function squareFoot(p: Vec2, size: number): Vec2[] {
+  const h = size / 2;
   return [
     { x: p.x - h, y: p.y - h },
     { x: p.x + h, y: p.y - h },
