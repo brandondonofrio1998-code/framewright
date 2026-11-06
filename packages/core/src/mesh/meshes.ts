@@ -3,9 +3,10 @@ import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, balusterFoot, deckBalusters, deckJoists, deckOpenEdges, deckPolygon, deckPosts, decksOnLevel, postFoot, railStrip } from '../decks/deck';
-import { RECEPTACLE_CENTER, SWITCH_CENTER, electricalOnLevel, electricalPose } from '../electrical/devices';
+import { circuitWires, RECEPTACLE_CENTER, SWITCH_CENTER, electricalOnLevel, electricalPose } from '../electrical/devices';
 import { DRAIN_CENTER, SUPPLY_CENTER, plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
 import { siteOnLevel } from '../site/marks';
+import { blendedGround } from '../site/ground';
 import { plantRing, plantsOnLevel } from '../plants/tree';
 import { ROAD_THICKNESS, roadPolygon, roadsOnLevel } from '../roads/drive';
 import { pipeCenter, pipePolygon, pipeSize, pipesOnLevel } from '../pipes/pipe';
@@ -457,7 +458,28 @@ function plumbingSolids(doc: PlanDocument, levelId: Id, elevation: number, parts
 }
 
 function lotPads(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  const used = new Set<Id>();
   for (const mark of siteOnLevel(doc, levelId)) {
+    if (mark.role !== 'lot' || !mark.points || mark.grade === undefined) continue;
+    const contours = siteOnLevel(doc, levelId)
+      .filter((other) => other.role === 'contour' && other.points && other.grade !== undefined)
+      .map((other) => ({ points: other.points!, grade: other.grade! }));
+    const mesh = blendedGround(mark.points, mark.grade, contours, elevation);
+    if (!mesh) continue;
+    used.add(mark.id);
+    for (const other of siteOnLevel(doc, levelId)) if (other.role === 'contour') used.add(other.id);
+    parts.push({
+      elementId: mark.id,
+      materialId: null,
+      role: 'solid',
+      positions: Float32Array.from(mesh.positions),
+      normals: Float32Array.from(mesh.normals),
+      uvs: Float32Array.from(mesh.uvs),
+      indices: Uint32Array.from(mesh.indices),
+    });
+  }
+  for (const mark of siteOnLevel(doc, levelId)) {
+    if (used.has(mark.id)) continue;
     if (mark.role !== 'lot' && mark.role !== 'contour') continue;
     if (!mark.points || mark.grade === undefined) continue;
     const top = elevation + mark.grade;
@@ -477,6 +499,67 @@ function plantSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: M
     extrude(canopy, plantRing(plant.p, plant.radius), elevation + plant.height * 0.4, elevation + plant.height);
     push(parts, finish(canopy, plant.id, null, 'solid'));
   }
+}
+
+function wireSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
+  const wires = circuitWires(doc, levelId);
+  if (wires.length === 0) return;
+  const b = builder();
+  for (const wire of wires) {
+    addCable(b, { x: wire.a.x, y: wire.a.y, z: elevation + wire.za }, { x: wire.b.x, y: wire.b.y, z: elevation + wire.zb }, 0.25);
+  }
+  push(parts, finish(b, wires[0]!.id, null, 'solid'));
+}
+
+function addCable(b: Builder, a: Vec3, c: Vec3, radius: number): void {
+  const dx = c.x - a.x;
+  const dy = c.y - a.y;
+  const dz = c.z - a.z;
+  const len = Math.hypot(dx, dy, dz);
+  if (len < 1) return;
+  let nx = -dy;
+  let ny = dx;
+  let nlen = Math.hypot(nx, ny);
+  if (nlen < 1e-6) {
+    nx = 1;
+    ny = 0;
+    nlen = 1;
+  }
+  nx /= nlen;
+  ny /= nlen;
+  const ux = dx / len;
+  const uy = dy / len;
+  const uz = dz / len;
+  const vx = uy * 0 - uz * ny;
+  const vy = uz * nx - ux * 0;
+  const vz = ux * ny - uy * nx;
+  const vlen = Math.hypot(vx, vy, vz) || 1;
+  const sx = vx / vlen;
+  const sy = vy / vlen;
+  const sz = vz / vlen;
+  const corner = (origin: Vec3, s: number, t: number): Vec3 => ({
+    x: origin.x + nx * radius * s + sx * radius * t,
+    y: origin.y + ny * radius * s + sy * radius * t,
+    z: origin.z + sz * radius * t,
+  });
+  const ring = (origin: Vec3) => [corner(origin, -1, -1), corner(origin, 1, -1), corner(origin, 1, 1), corner(origin, -1, 1)];
+  const start = ring(a);
+  const end = ring(c);
+  const quad = (pts: Vec3[], n: Vec3) => {
+    const i = b.positions.length / 3;
+    for (const p of pts) {
+      b.positions.push(p.x, p.y, p.z);
+      b.normals.push(n.x, n.y, n.z);
+      b.uvs.push(0, 0);
+    }
+    b.indices.push(i, i + 1, i + 2, i, i + 2, i + 3);
+  };
+  for (let i = 0; i < 4; i++) {
+    const j = (i + 1) % 4;
+    quad([start[i]!, start[j]!, end[j]!, end[i]!], { x: nx, y: ny, z: 0 });
+  }
+  quad([start[0]!, start[1]!, start[2]!, start[3]!], { x: -ux, y: -uy, z: -uz });
+  quad([end[0]!, end[3]!, end[2]!, end[1]!], { x: ux, y: uy, z: uz });
 }
 
 function pipeSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
@@ -643,6 +726,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   stairSolids(doc, levelId, level.elevation, parts);
   deckSolids(doc, levelId, level.elevation, parts);
   electricalSolids(doc, levelId, level.elevation, level.ceilingHeight, parts);
+  wireSolids(doc, levelId, level.elevation, parts);
   plumbingSolids(doc, levelId, level.elevation, parts);
   pipeSolids(doc, levelId, level.elevation, parts);
   lotPads(doc, levelId, level.elevation, parts);

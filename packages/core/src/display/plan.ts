@@ -4,7 +4,7 @@ import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { balusterFoot, deckBalusters, deckJoists, deckOpenEdges, deckPolygon, decksOnLevel } from '../decks/deck';
-import { electricalItem, electricalOnLevel } from '../electrical/devices';
+import { circuitWires, electricalItem, electricalOnLevel } from '../electrical/devices';
 import { plumbingItem, plumbingOnLevel } from '../plumbing/fixtures';
 import { siteItem, siteOnLevel } from '../site/marks';
 import { plantItem, plantsOnLevel } from '../plants/tree';
@@ -168,6 +168,9 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     });
   }
   for (const device of electricalOnLevel(doc, levelId)) items.push(electricalItem(doc, device));
+  for (const wire of circuitWires(doc, levelId)) {
+    items.push({ elementId: wire.id, layer: 'electrical', prims: [{ t: 'line', a: wire.a, b: wire.b, pen: 'electrical' }] });
+  }
   for (const fixture of plumbingOnLevel(doc, levelId)) items.push(plumbingItem(doc, fixture));
   for (const pipe of pipesOnLevel(doc, levelId)) items.push(pipeItem(pipe));
   for (const mark of siteOnLevel(doc, levelId)) {

@@ -20,7 +20,7 @@ import {
   buildPlanMeshes,
   camerasIn,
   clipWalk,
-  computeWallGeometry,
+  walkObstacles,
   eyeZ,
   meshBounds,
   partTexture,
@@ -535,10 +535,7 @@ export function View3D() {
   const cameras = useMemo(() => camerasIn(doc), [doc]);
   const textured = useMemo(() => parts.filter((part) => partTexture(doc, part)).length, [doc, parts]);
   const elevation = doc.levels[levelId]?.elevation ?? doc.levels[doc.levelOrder[0] ?? '']?.elevation ?? 0;
-  const barriers = useMemo(
-    () => [...computeWallGeometry(doc, levelId).values()].map((geom) => ({ a: geom.a, b: geom.b, half: geom.thickness / 2 })),
-    [doc, levelId],
-  );
+  const barriers = useMemo(() => walkObstacles(doc, levelId), [doc, levelId]);
 
   const save = (event: FormEvent) => {
     event.preventDefault();

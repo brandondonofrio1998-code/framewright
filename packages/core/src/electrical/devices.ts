@@ -66,3 +66,56 @@ function perpOf(dir: Vec2): Vec2 {
 function line(a: Vec2, b: Vec2): Prim {
   return { t: 'line', a, b, pen: 'electrical' };
 }
+
+export interface CircuitWire {
+  /** The first device on the circuit. The cable is derived, not stored. */
+  id: Id;
+  circuit: number;
+  a: Vec2;
+  b: Vec2;
+  /** Height of each end above the level floor. */
+  za: number;
+  zb: number;
+}
+
+/** Center of the device above the floor. A light uses the ceiling. */
+export function deviceHeight(device: Electrical['device'], ceilingHeight: number): number {
+  if (device === 'light') return ceilingHeight - 0.5;
+  if (device === 'switch') return SWITCH_CENTER;
+  return RECEPTACLE_CENTER;
+}
+
+/**
+ * Straight cables joining devices that share a circuit, in plan order.
+ * One device on a circuit has no cable.
+ */
+export function circuitWires(doc: PlanDocument, levelId: Id): CircuitWire[] {
+  const ceiling = doc.levels[levelId]?.ceilingHeight ?? 96;
+  const groups = new Map<number, Electrical[]>();
+  for (const device of electricalOnLevel(doc, levelId)) {
+    if (device.circuit === undefined) continue;
+    const list = groups.get(device.circuit) ?? [];
+    list.push(device);
+    groups.set(device.circuit, list);
+  }
+  const wires: CircuitWire[] = [];
+  for (const [circuit, devices] of groups) {
+    const placed = devices
+      .map((device) => {
+        const pose = electricalPose(doc, device);
+        return { device, p: pose.p, z: deviceHeight(device.device, ceiling) };
+      })
+      .sort((p, q) => p.p.x - q.p.x || p.p.y - q.p.y || (p.device.id < q.device.id ? -1 : 1));
+    for (let i = 1; i < placed.length; i++) {
+      const prev = placed[i - 1]!;
+      const next = placed[i]!;
+      if (Math.hypot(next.p.x - prev.p.x, next.p.y - prev.p.y, next.z - prev.z) < 1) continue;
+      wires.push({ id: placed[0]!.device.id, circuit, a: prev.p, b: next.p, za: prev.z, zb: next.z });
+    }
+  }
+  return wires;
+}
+
+export function cableFeet(wires: readonly CircuitWire[]): number {
+  return wires.reduce((sum, wire) => sum + Math.hypot(wire.b.x - wire.a.x, wire.b.y - wire.a.y, wire.zb - wire.za), 0) / 12;
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { clipWalk, eyeZ, EYE_HEIGHT, PITCH_LIMIT, poseFromLook, stepWalk, walkLook, WALK_SPEED } from '../../src';
+import { clipWalk, eyeZ, EYE_HEIGHT, PITCH_LIMIT, poseFromLook, stepWalk, walkLook, walkObstacles, WALK_SPEED } from '../../src';
+import { testHistory } from '../helpers';
 
 const still = { forward: 0, strafe: 0, yaw: 0, pitch: 0, elevation: 0 };
 
@@ -52,5 +53,26 @@ describe('walk', () => {
     expect(next.z).toBe(66);
     expect(next.yaw).toBeCloseTo(Math.PI / 2);
     expect(next.pitch).toBeCloseTo(0);
+  });
+
+  it('leaves a doorway open and stops at the rest of the wall', () => {
+    const { history, baseLevelId } = testHistory();
+    const typeId = Object.values(history.doc.wallTypes).find((type) => type.name === 'Exterior 2x6')!.id;
+    const drawn = history.dispatch('wall.draw', { levelId: baseLevelId, typeId, points: [{ x: 0, y: 0 }, { x: 240, y: 0 }] });
+    if (!drawn.ok) throw new Error(drawn.error);
+    const door = history.dispatch('opening.place', {
+      kind: 'door',
+      wallId: drawn.value[0]!,
+      t: 120,
+      width: 36,
+      height: 80,
+      side: 'left',
+      hinge: 'start',
+      style: 'hinged',
+    });
+    if (!door.ok) throw new Error(door.error);
+    const barriers = walkObstacles(history.doc, baseLevelId);
+    expect(clipWalk({ x: 120, y: -40 }, { x: 120, y: 40 }, barriers)).toEqual({ x: 120, y: 40 });
+    expect(clipWalk({ x: 40, y: -40 }, { x: 40, y: 5 }, barriers).y).toBe(-40);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, buildPlanDisplayList, materialsList, pointInsideMesh } from '../../src';
+import { buildLevelMeshes, buildPlanDisplayList, cableFeet, circuitWires, materialsList, pointInsideMesh } from '../../src';
 import { testHistory } from '../helpers';
 
 describe('electrical', () => {
@@ -45,6 +45,21 @@ describe('electrical', () => {
     expect(history.doc.elements[light.value]).not.toHaveProperty('circuit');
     history.undo();
     expect(history.doc.elements[light.value]).toMatchObject({ circuit: 1 });
+    const joined = history.dispatch('electrical.setCircuit', { id: receptacle.value, circuit: 1 });
+    if (!joined.ok) throw new Error(joined.error);
+    const wires = circuitWires(history.doc, baseLevelId);
+    expect(wires).toHaveLength(1);
+    expect(cableFeet(wires)).toBeGreaterThan(1);
+    expect(materialsList(history.doc).find((line) => line.name === 'Cable')?.quantity).toBeCloseTo(cableFeet(wires), 3);
+    const cableLine = buildPlanDisplayList(history.doc, baseLevelId).some((item) => item.prims.some((prim) => prim.t === 'line' && prim.pen === 'electrical' && prim.a.x !== prim.b.x));
+    expect(cableLine).toBe(true);
+    const mid = {
+      x: (wires[0]!.a.x + wires[0]!.b.x) / 2,
+      y: (wires[0]!.a.y + wires[0]!.b.y) / 2 + 0.05,
+      z: (wires[0]!.za + wires[0]!.zb) / 2,
+    };
+    const cable = buildLevelMeshes(history.doc, baseLevelId);
+    expect(pointInsideMesh(cable, [mid.x, mid.y, mid.z])).toBe(true);
 
     const door = history.dispatch('opening.place', {
       kind: 'door',

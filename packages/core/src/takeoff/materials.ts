@@ -9,7 +9,7 @@ import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
 import { deckBalusters, deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
-import { electricalOnLevel } from '../electrical/devices';
+import { cableFeet, circuitWires, electricalOnLevel } from '../electrical/devices';
 import { pipesOnLevel } from '../pipes/pipe';
 import { plumbingOnLevel } from '../plumbing/fixtures';
 import { lotArea, lotPerimeter, siteOnLevel } from '../site/marks';
@@ -162,6 +162,7 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
       byCircuit.set(device.circuit, (byCircuit.get(device.circuit) ?? 0) + 1);
     }
     for (const number of [...byCircuit.keys()].sort((a, b) => a - b)) add('Electrical', `Circuit ${number}`, byCircuit.get(number) ?? 0, 'each');
+    add('Electrical', 'Cable', cableFeet(circuitWires(doc, levelId)), 'lin ft');
     let supplies = 0;
     let drains = 0;
     for (const fixture of plumbingOnLevel(doc, levelId)) {
