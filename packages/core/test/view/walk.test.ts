@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { eyeZ, EYE_HEIGHT, PITCH_LIMIT, poseFromLook, stepWalk, walkLook, WALK_SPEED } from '../../src';
+import { clipWalk, eyeZ, EYE_HEIGHT, PITCH_LIMIT, poseFromLook, stepWalk, walkLook, WALK_SPEED } from '../../src';
 
 const still = { forward: 0, strafe: 0, yaw: 0, pitch: 0, elevation: 0 };
 
 describe('walk', () => {
   const pose = { x: 10, y: 20, z: 0, yaw: 0, pitch: 0 };
+
+  it('stops short of a wall and slides along it', () => {
+    const wall = { a: { x: -60, y: 0 }, b: { x: 60, y: 0 }, half: 3.5 };
+    expect(clipWalk({ x: 0, y: -30 }, { x: 0, y: -5 }, [wall])).toEqual({ x: 0, y: -30 });
+    expect(clipWalk({ x: 0, y: -30 }, { x: 10, y: -5 }, [wall])).toEqual({ x: 10, y: -30 });
+    expect(clipWalk({ x: 0, y: -10 }, { x: 0, y: -20 }, [wall])).toEqual({ x: 0, y: -20 });
+    expect(clipWalk({ x: 0, y: -40 }, { x: 12, y: -30 }, [wall])).toEqual({ x: 12, y: -30 });
+  });
 
   it('steps forward along +X when yaw is 0 and keeps the eye at 5\'-6"', () => {
     const next = stepWalk(pose, { ...still, forward: 12 });

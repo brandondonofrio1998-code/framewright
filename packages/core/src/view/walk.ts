@@ -1,3 +1,4 @@
+import { projectOnSegment } from '../geometry/vec2';
 import type { Vec3 } from '../model/schema';
 
 /** Eye height above the finished floor: 5'-6". */
@@ -49,6 +50,40 @@ export function walkLook(pose: WalkPose): Vec3 {
     y: pose.y + Math.sin(pose.yaw) * horizontal,
     z: pose.z + Math.sin(pose.pitch),
   };
+}
+
+/** Inches of clear space kept between the eye and a wall face. */
+export const WALK_BODY = 8;
+
+export interface WalkBarrier {
+  a: { x: number; y: number };
+  b: { x: number; y: number };
+  /** Half the wall thickness, inches. */
+  half: number;
+}
+
+/**
+ * Keep a step from moving closer to a wall than the body clearance.
+ * A blocked diagonal slides along one axis. Looking is unchanged.
+ */
+export function clipWalk(from: { x: number; y: number }, to: { x: number; y: number }, barriers: readonly WalkBarrier[]): { x: number; y: number } {
+  if (!blocked(from, to, barriers)) return { x: to.x, y: to.y };
+  const alongX = { x: to.x, y: from.y };
+  if (!blocked(from, alongX, barriers)) return alongX;
+  const alongY = { x: from.x, y: to.y };
+  if (!blocked(from, alongY, barriers)) return alongY;
+  return { x: from.x, y: from.y };
+}
+
+function blocked(from: { x: number; y: number }, to: { x: number; y: number }, barriers: readonly WalkBarrier[]): boolean {
+  for (const wall of barriers) {
+    const limit = wall.half + WALK_BODY;
+    const end = projectOnSegment(to, wall.a, wall.b).distance;
+    if (end >= limit) continue;
+    const start = projectOnSegment(from, wall.a, wall.b).distance;
+    if (end < start - 1e-6) return true;
+  }
+  return false;
 }
 
 function clampPitch(pitch: number): number {

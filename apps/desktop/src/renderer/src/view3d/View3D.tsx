@@ -19,6 +19,8 @@ import {
 import {
   buildPlanMeshes,
   camerasIn,
+  clipWalk,
+  computeWallGeometry,
   eyeZ,
   meshBounds,
   partTexture,
@@ -33,6 +35,7 @@ import {
   type SavedCamera,
   type TextureId,
   type Vec3,
+  type WalkBarrier,
   type WalkPose,
 } from '@framewright/core';
 import { useAppearance } from '../app/appearance';
@@ -295,7 +298,7 @@ function isTyping(event: KeyboardEvent): boolean {
   return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 }
 
-function WalkControls({ elevation, recall, liveRef }: { elevation: number; recall: Recall | null; liveRef: RefObject<LiveView> }) {
+function WalkControls({ elevation, recall, liveRef, barriers }: { elevation: number; recall: Recall | null; liveRef: RefObject<LiveView>; barriers: readonly WalkBarrier[] }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const pose = useRef<WalkPose | null>(null);
@@ -371,7 +374,9 @@ function WalkControls({ elevation, recall, liveRef }: { elevation: number; recal
     const mag = Math.hypot(forward, strafe);
     if (mag > 0) {
       const speed = (held.shift ? WALK_FAST : WALK_SPEED) * Math.min(dt, 0.05);
-      pose.current = stepWalk(pose.current, { forward: (forward / mag) * speed, strafe: (strafe / mag) * speed, yaw: 0, pitch: 0, elevation });
+      const next = stepWalk(pose.current, { forward: (forward / mag) * speed, strafe: (strafe / mag) * speed, yaw: 0, pitch: 0, elevation });
+      const clipped = clipWalk(pose.current, next, barriers);
+      pose.current = { ...next, x: clipped.x, y: clipped.y };
     } else {
       pose.current = { ...pose.current, z: eyeZ(elevation) };
     }
@@ -451,6 +456,7 @@ function Scene({
   textured,
   onTextured,
   dark,
+  barriers,
 }: {
   doc: PlanDocument;
   parts: MeshPart[];
@@ -464,6 +470,7 @@ function Scene({
   textured: number;
   onTextured: (count: number) => void;
   dark: boolean;
+  barriers: readonly WalkBarrier[];
 }) {
   const groups = useMemo(() => {
     const flat: { part: MeshPart; color: string }[] = [];
@@ -501,7 +508,7 @@ function Scene({
       {groups.textured.map((group) => (
         <TexturedGroup key={`${group.texture.id}:${group.texture.tile.join(',')}`} texture={group.texture} items={group.items} />
       ))}
-      {mode === 'walk' ? <WalkControls elevation={elevation} recall={recall} liveRef={liveRef} /> : <FrameScene parts={parts} placedRef={placedRef} liveRef={liveRef} recall={recall} />}
+      {mode === 'walk' ? <WalkControls elevation={elevation} recall={recall} liveRef={liveRef} barriers={barriers} /> : <FrameScene parts={parts} placedRef={placedRef} liveRef={liveRef} recall={recall} />}
       <EyeProbe rootRef={rootRef} />
       <MarkTextured count={textured} onReady={onTextured} />
     </>
@@ -528,6 +535,10 @@ export function View3D() {
   const cameras = useMemo(() => camerasIn(doc), [doc]);
   const textured = useMemo(() => parts.filter((part) => partTexture(doc, part)).length, [doc, parts]);
   const elevation = doc.levels[levelId]?.elevation ?? doc.levels[doc.levelOrder[0] ?? '']?.elevation ?? 0;
+  const barriers = useMemo(
+    () => [...computeWallGeometry(doc, levelId).values()].map((geom) => ({ a: geom.a, b: geom.b, half: geom.thickness / 2 })),
+    [doc, levelId],
+  );
 
   const save = (event: FormEvent) => {
     event.preventDefault();
@@ -567,6 +578,7 @@ export function View3D() {
             textured={textured}
             onTextured={setShownTextures}
             dark={dark}
+            barriers={barriers}
           />
         </Suspense>
       </Canvas>
