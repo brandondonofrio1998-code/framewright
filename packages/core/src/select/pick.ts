@@ -100,7 +100,7 @@ export function pickElement(doc: PlanDocument, levelId: Id, geometry: Map<Id, Wa
   for (const pipe of pipesOnLevel(doc, levelId)) consider({ kind: 'pipe', id: pipe.id }, projectOnSegment(p, pipe.a, pipe.b).distance);
   for (const mark of siteOnLevel(doc, levelId)) {
     if (mark.role === 'north' && mark.p) consider({ kind: 'site', id: mark.id }, distance(p, mark.p));
-    if (mark.role === 'lot' && mark.points) {
+    if ((mark.role === 'lot' || mark.role === 'contour') && mark.points) {
       let best = Infinity;
       for (let i = 0; i < mark.points.length; i++) {
         const a = mark.points[i]!;
@@ -201,7 +201,7 @@ export function elementsInBox(doc: PlanDocument, levelId: Id, geometry: Map<Id, 
     if (pipePolygon(pipe).every((p) => inside(p, box))) ids.push(pipe.id);
   }
   for (const mark of siteOnLevel(doc, levelId)) {
-    if (mark.role === 'lot' && mark.points?.every((p) => inside(p, box))) ids.push(mark.id);
+    if ((mark.role === 'lot' || mark.role === 'contour') && mark.points?.every((p) => inside(p, box))) ids.push(mark.id);
     if (mark.role === 'north' && mark.p && inside(mark.p, box)) ids.push(mark.id);
   }
   for (const plant of plantsOnLevel(doc, levelId)) {

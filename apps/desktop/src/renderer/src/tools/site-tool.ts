@@ -1,5 +1,5 @@
 import { distance, type Vec2 } from '@framewright/core';
-import { dispatch } from '../document/store';
+import { dispatch, history } from '../document/store';
 import type { Overlay, Tool, ToolContext } from './types';
 
 const CLOSE = 18;
@@ -10,7 +10,9 @@ export function createSiteTool(): Tool {
   let hover: Vec2 | null = null;
 
   const close = (ctx: ToolContext) => {
-    const result = dispatch('site.lot', { levelId: ctx.levelId(), points: corners });
+    const levelId = ctx.levelId();
+    const hasLot = Object.values(history.doc.elements).some((el) => el.kind === 'site' && el.role === 'lot' && el.levelId === levelId);
+    const result = dispatch(hasLot ? 'site.contour' : 'site.lot', { levelId, points: corners });
     ctx.notify(result.ok ? null : result.error);
     if (result.ok) corners = [];
   };
@@ -20,7 +22,17 @@ export function createSiteTool(): Tool {
     cursor: 'crosshair',
     move(e, ctx) {
       hover = e.model;
-      ctx.notify(corners.length === 0 ? 'Click the property corners. Shift-click places north.' : 'Click the first corner again to close the lot.');
+      const levelId = ctx.levelId();
+      const hasLot = Object.values(history.doc.elements).some((el) => el.kind === 'site' && el.role === 'lot' && el.levelId === levelId);
+      ctx.notify(
+        corners.length === 0
+          ? hasLot
+            ? 'Click the terrace corners. Shift-click places north.'
+            : 'Click the property corners. Shift-click places north.'
+          : hasLot
+            ? 'Click the first corner again to close the terrace.'
+            : 'Click the first corner again to close the lot.',
+      );
       ctx.redraw();
     },
     down(e, ctx) {

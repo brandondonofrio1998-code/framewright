@@ -182,14 +182,17 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     let lotSqFt = 0;
     let lotFeet = 0;
     let norths = 0;
+    let terrace = 0;
     for (const mark of siteOnLevel(doc, levelId)) {
       if (mark.role === 'lot' && mark.points) {
         lotSqFt += lotArea(mark.points) / 144;
         lotFeet += lotPerimeter(mark.points) / 12;
-      } else if (mark.role === 'north') norths += 1;
+      } else if (mark.role === 'contour' && mark.points) terrace += lotArea(mark.points) / 144;
+      else if (mark.role === 'north') norths += 1;
     }
     add('Site', 'Lot area', lotSqFt, 'sq ft');
     add('Site', 'Property line', lotFeet, 'lin ft');
+    add('Site', 'Terraces', terrace, 'sq ft');
     add('Site', 'North arrows', norths, 'each');
     add('Site', 'Trees', plantsOnLevel(doc, levelId).length, 'each');
     let driveway = 0;

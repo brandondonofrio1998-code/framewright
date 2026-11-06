@@ -458,7 +458,8 @@ function plumbingSolids(doc: PlanDocument, levelId: Id, elevation: number, parts
 
 function lotPads(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   for (const mark of siteOnLevel(doc, levelId)) {
-    if (mark.role !== 'lot' || !mark.points || mark.grade === undefined) continue;
+    if (mark.role !== 'lot' && mark.role !== 'contour') continue;
+    if (!mark.points || mark.grade === undefined) continue;
     const top = elevation + mark.grade;
     const pad = builder();
     extrude(pad, mark.points, top - 2, top);

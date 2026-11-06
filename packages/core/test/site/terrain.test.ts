@@ -25,5 +25,21 @@ describe('terrain and plants', () => {
     const cleared = history.dispatch('site.grade', { id: lot.value, grade: null });
     if (!cleared.ok) throw new Error(cleared.error);
     expect(history.doc.elements[lot.value]).not.toHaveProperty('grade');
+    const terrace = history.dispatch('site.contour', {
+      levelId: baseLevelId,
+      points: [
+        { x: 20, y: 20 },
+        { x: 80, y: 20 },
+        { x: 80, y: 80 },
+        { x: 20, y: 80 },
+      ],
+    });
+    if (!terrace.ok) throw new Error(terrace.error);
+    expect(history.doc.elements[terrace.value]).toMatchObject({ role: 'contour', grade: 12 });
+    expect(materialsList(history.doc).find((line) => line.name === 'Terraces')?.quantity).toBeCloseTo((60 * 60) / 144, 3);
+    const raised = buildLevelMeshes(history.doc, baseLevelId).filter((part) => part.elementId === terrace.value);
+    expect(pointInsideMesh(raised, [40, 50, 11.3])).toBe(true);
+    expect(pointInsideMesh(raised, [40, 50, 0])).toBe(false);
+    expect(history.dispatch('site.grade', { id: terrace.value, grade: null }).ok).toBe(false);
   });
 });

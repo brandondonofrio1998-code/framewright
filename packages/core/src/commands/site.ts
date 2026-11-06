@@ -1,5 +1,5 @@
 import { distance } from '../geometry/vec2';
-import { lotArea } from '../site/marks';
+import { CONTOUR_GRADE, lotArea } from '../site/marks';
 import type { Id, SiteMark, Vec2 } from '../model/schema';
 import { CommandError, defineCommand } from './history';
 
@@ -20,6 +20,24 @@ export const createLot = defineCommand<{ levelId: Id; points: Vec2[] }, Id>({
     const lot: SiteMark = { id: ctx.newId(), kind: 'site', levelId, role: 'lot', points: corners };
     doc.elements[lot.id] = lot;
     return lot.id;
+  },
+});
+
+/** A closed terrace. It sits 12 inches above the floor until the grade is edited. */
+export const createContour = defineCommand<{ levelId: Id; points: Vec2[] }, Id>({
+  label: () => 'Contour',
+  run: (doc, { levelId, points }, ctx) => {
+    if (!doc.levels[levelId]) throw new CommandError('That level no longer exists.');
+    const corners = points.map((p) => checkCorner(p));
+    if (corners.length < 3 || corners.length > 64) throw new CommandError('A contour needs 3 to 64 corners.');
+    for (let i = 0; i < corners.length; i++) {
+      if (distance(corners[i]!, corners[(i + 1) % corners.length]!) < MIN_EDGE) throw new CommandError('Contour corners have to be at least 1 foot apart.');
+      if (distance(corners[0]!, corners[i]!) > MAX_FROM_START) throw new CommandError('A contour corner is more than 2000 feet from the start.');
+    }
+    if (lotArea(corners) < 144) throw new CommandError('That contour has no area.');
+    const terrace: SiteMark = { id: ctx.newId(), kind: 'site', levelId, role: 'contour', points: corners, grade: CONTOUR_GRADE };
+    doc.elements[terrace.id] = terrace;
+    return terrace.id;
   },
 });
 
@@ -44,8 +62,9 @@ export const setLotGrade = defineCommand<{ id: Id; grade: number | null }>({
   label: () => 'Lot Grade',
   run: (doc, { id, grade }) => {
     const el = doc.elements[id];
-    if (el?.kind !== 'site' || el.role !== 'lot') throw new CommandError('That is not a property line.');
+    if (el?.kind !== 'site' || (el.role !== 'lot' && el.role !== 'contour')) throw new CommandError('That is not a property line.');
     if (grade === null) {
+      if (el.role === 'contour') throw new CommandError('A contour keeps its grade.');
       delete el.grade;
       return;
     }
@@ -56,6 +75,7 @@ export const setLotGrade = defineCommand<{ id: Id; grade: number | null }>({
 
 export const siteCommands = {
   'site.lot': createLot,
+  'site.contour': createContour,
   'site.north': placeNorth,
   'site.grade': setLotGrade,
 };

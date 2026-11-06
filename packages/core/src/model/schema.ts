@@ -402,7 +402,7 @@ export const PlumbingSchema = z.object({
 });
 export type Plumbing = z.infer<typeof PlumbingSchema>;
 
-export const SITE_ROLES = ['lot', 'north'] as const;
+export const SITE_ROLES = ['lot', 'north', 'contour'] as const;
 export type SiteRole = (typeof SITE_ROLES)[number];
 
 /** A property line or a north arrow. North is plan +Y. */

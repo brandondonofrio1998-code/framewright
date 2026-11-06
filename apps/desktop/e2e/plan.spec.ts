@@ -867,6 +867,23 @@ test('draws a property line and a north arrow', async ({ electronApp, window, us
   expect(consoleErrors).toEqual([]);
 });
 
+test('draws a terrace after the property line', async ({ electronApp, window, userData, consoleErrors }) => {
+  await drawRoom(electronApp, window);
+  await window.getByRole('button', { name: 'Site', exact: true }).click();
+  await clickAt(window, { x: -150, y: -80 });
+  await clickAt(window, { x: 150, y: -80 });
+  await clickAt(window, { x: 150, y: 90 });
+  await clickAt(window, { x: -150, y: -80 });
+  await clickAt(window, { x: -40, y: -20 });
+  await clickAt(window, { x: 40, y: -20 });
+  await clickAt(window, { x: 40, y: 20 });
+  await clickAt(window, { x: -40, y: -20 });
+  const plan = await savePlan(electronApp, userData, 'contour');
+  const marks = ofKind(plan, 'site') as { role?: string; grade?: number }[];
+  expect(marks.filter((mark) => mark.role === 'contour')).toEqual([expect.objectContaining({ grade: 12 })]);
+  expect(consoleErrors).toEqual([]);
+});
+
 test('plants a tree', async ({ electronApp, window, userData, consoleErrors }) => {
   await drawRoom(electronApp, window);
   await window.getByRole('button', { name: 'Plant', exact: true }).click();

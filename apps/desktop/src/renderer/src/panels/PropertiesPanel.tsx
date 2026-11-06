@@ -524,6 +524,28 @@ export function PropertiesPanel() {
     );
   }
   if (elements.length === 1 && only?.kind === 'site') {
+    if (only.role === 'contour' && only.points) {
+      const format = doc.settings.lengthFormat;
+      return (
+        <div className="panel properties-panel">
+          <h3 className="panel-heading">Contour</h3>
+          <dl className="level-fields">
+            <dt>Area</dt>
+            <dd>
+              <span className="field-readonly">{formatArea(lotArea(only.points))}</span>
+            </dd>
+            <dt>Grade</dt>
+            <dd>
+              <LengthInput label="Grade" value={only.grade ?? 0} format={format} onCommit={(grade) => errorOf(dispatch('site.grade', { id: only.id, grade }))} />
+            </dd>
+          </dl>
+          <p className="panel-hint">A contour is a flat terrace, 2 inches thick. It does not slope the property.</p>
+          <div className="panel-actions">
+            <DeleteButton ids={[only.id]} />
+          </div>
+        </div>
+      );
+    }
     if (only.role === 'lot' && only.points) {
       const format = doc.settings.lengthFormat;
       return (
