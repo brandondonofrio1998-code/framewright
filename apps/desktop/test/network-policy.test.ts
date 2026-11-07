@@ -34,6 +34,19 @@ describe('isAllowedRequest', () => {
     expect(isAllowedRequest('https://localhost:5173/', DEV)).toBe(false);
     expect(isAllowedRequest('https://example.com/', DEV)).toBe(false);
   });
+
+  it('allows a Framewright release download only while update checks are on', () => {
+    const latest = 'https://api.github.com/repos/brandondonofrio1998-code/framewright/releases/latest';
+    const installer = 'https://github.com/brandondonofrio1998-code/framewright/releases/download/v0.1.0/Framewright-0.1.0-setup.exe';
+    const asset = 'https://release-assets.githubusercontent.com/github-production-release-asset/1';
+    expect(isAllowedRequest(latest, null)).toBe(false);
+    expect(isAllowedRequest(installer, null)).toBe(false);
+    expect(isAllowedRequest(latest, null, true)).toBe(true);
+    expect(isAllowedRequest(installer, null, true)).toBe(true);
+    expect(isAllowedRequest(asset, null, true)).toBe(true);
+    expect(isAllowedRequest('https://api.github.com/repos/other/project/releases/latest', null, true)).toBe(false);
+    expect(isAllowedRequest('https://example.com/', null, true)).toBe(false);
+  });
 });
 
 describe('isAppUrl', () => {

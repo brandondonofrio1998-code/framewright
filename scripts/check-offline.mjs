@@ -28,6 +28,7 @@ export const ALLOWLIST = [
   { pattern: /^https:\/\/docs\.pmnd\.rs\/react-three-fiber\/api\/objects#using-3rd-party-objects-declaratively$/, where: 'build', reason: 'Comment inside react-three-fiber pointing at its docs; never requested' },
   { pattern: /^https:\/\/github\.com\/react-spring\/react-use-measure\/#resize-observer-polyfills$/, where: 'build', reason: 'Comment inside @react-spring/use-measure (pulled in by react-three-fiber); never requested' },
   { pattern: /^https:\/\/github\.com\/Hopding\/pdf-lib$/, where: 'build', reason: 'pdf-lib writes this URL into the PDF Producer metadata; never requested' },
+  { pattern: /^https:\/\/api\.github\.com\$\{LATEST_RELEASE_PATH\}$/, where: 'build', reason: 'Framewright update check. Requested only after Help > Allow Update Checks is turned on' },
 ];
 
 function* walk(dir) {

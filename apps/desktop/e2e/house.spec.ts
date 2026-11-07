@@ -119,7 +119,9 @@ test('builds a 24 by 16 foot house with a bedroom wall, a roof, and a foundation
   await window.locator('.dv-default-tab-content', { hasText: '3D' }).click();
   await expect.poll(async () => Number(await window.getByTestId('view-3d').getAttribute('data-mesh-count'))).toBeGreaterThan(4);
   await window.locator('.dv-default-tab-content', { hasText: 'Sheet' }).click();
-  await expect(window.getByLabel('Sheet', { exact: true })).toBeVisible();
+  const sheet = window.getByTestId('sheet-view');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByLabel('Sheet', { exact: true })).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
 

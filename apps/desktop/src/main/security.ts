@@ -3,14 +3,19 @@ import { devCsp } from '../shared/csp';
 import { APP_ORIGIN, isAllowedRequest, isAppUrl } from '../shared/network-policy';
 
 const blockedRequests: string[] = [];
+let updatesEnabled = false;
 
 export function getBlockedRequests(): readonly string[] {
   return blockedRequests;
 }
 
+export function setUpdatesEnabled(enabled: boolean): void {
+  updatesEnabled = enabled;
+}
+
 function hardenSession(ses: Session, devServerOrigin: string | null): void {
   ses.webRequest.onBeforeRequest((details, callback) => {
-    if (isAllowedRequest(details.url, devServerOrigin)) {
+    if (isAllowedRequest(details.url, devServerOrigin, updatesEnabled)) {
       callback({});
       return;
     }

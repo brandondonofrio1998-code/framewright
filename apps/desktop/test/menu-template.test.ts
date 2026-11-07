@@ -7,7 +7,9 @@ function build(platform: Platform, state: MenuState = EMPTY_MENU_STATE, devTools
   const send = vi.fn();
   const showAbout = vi.fn();
   const clearRecent = vi.fn();
-  const template = buildMenuTemplate({ platform, appName: 'Framewright', devTools, state, send, showAbout, clearRecent });
+  const checkForUpdates = vi.fn();
+  const setUpdates = vi.fn();
+  const template = buildMenuTemplate({ platform, appName: 'Framewright', devTools, state, send, showAbout, clearRecent, checkForUpdates, setUpdates });
   return { template, send, showAbout, clearRecent };
 }
 

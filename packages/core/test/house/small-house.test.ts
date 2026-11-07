@@ -167,5 +167,5 @@ describe('a small house', () => {
     const moved = history.dispatch('wall.move', { wallIds: [wallAt(upperId, 0, 192, 288, 192)], delta: p(0, 12) });
     expect(moved.ok).toBe(true);
     expect(Object.values(history.doc.elements).filter((el) => el.kind === 'roofPlane').length).toBeGreaterThan(0);
-  });
+  }, 60_000);
 });

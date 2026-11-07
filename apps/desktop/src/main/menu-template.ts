@@ -9,9 +9,10 @@ export interface MenuState {
   hiddenLayers: string[];
   layerSets: { id: string; name: string }[];
   activeLayerSet: string | null;
+  updates: boolean;
 }
 
-export const EMPTY_MENU_STATE: MenuState = { undoLabel: null, redoLabel: null, recent: [], dark: false, hiddenLayers: [], layerSets: [], activeLayerSet: null };
+export const EMPTY_MENU_STATE: MenuState = { undoLabel: null, redoLabel: null, recent: [], dark: false, hiddenLayers: [], layerSets: [], activeLayerSet: null, updates: false };
 
 export interface MenuContext {
   platform: Platform;
@@ -21,6 +22,8 @@ export interface MenuContext {
   send(command: MenuCommand): void;
   showAbout(): void;
   clearRecent(): void;
+  checkForUpdates(): void;
+  setUpdates(enabled: boolean): void;
 }
 
 const sep: MenuItemConstructorOptions = { type: 'separator' };
@@ -238,7 +241,11 @@ export function buildMenuTemplate(ctx: MenuContext): MenuItemConstructorOptions[
   const help: MenuItemConstructorOptions = {
     label: '&Help',
     role: 'help',
-    submenu: mac ? [] : [{ label: `About ${ctx.appName}`, click: () => ctx.showAbout() }],
+    submenu: [
+      { label: 'Check for Updates…', click: () => ctx.checkForUpdates() },
+      { label: 'Allow Update Checks', type: 'checkbox', checked: ctx.state.updates, click: (item) => ctx.setUpdates(item.checked) },
+      ...(mac ? [] : [sep, { label: `About ${ctx.appName}`, click: () => ctx.showAbout() }]),
+    ],
   };
 
   return [...(mac ? [appMenu] : []), file, edit, build, view, threeD, tools, windowMenu, help];

@@ -65,6 +65,10 @@ These builds are not code-signed, which is fine for personal use. The OS will wa
 
 Signing can be added later. Windows needs an Authenticode certificate set through `CSC_LINK` / `CSC_KEY_PASSWORD`. macOS needs an Apple Developer ID plus notarization, by removing `identity: null` and adding notarize settings to `electron-builder.yml`.
 
+## Updates
+
+Help > Allow Update Checks is off in a new install, and the app makes no network requests. Turning it on lets Framewright read the latest GitHub release for this repository and download `Framewright-<version>-setup.exe` on Windows or `Framewright-<version>-universal.dmg` on macOS. On Windows it quits and opens the installer. On macOS it opens the disk image. The installers are unsigned, so the operating system still shows the first-run warning.
+
 ## Releases (GitHub Actions)
 
 - `.github/workflows/ci.yml` runs on every push to `main` and on every pull request, on both Windows and macOS. It does a full verify, packages an unpacked app, and runs the end-to-end tests against that packaged app.

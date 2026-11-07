@@ -7,6 +7,7 @@ import { planPathFromArgv } from './fs-utils';
 import { buildMenuTemplate, EMPTY_MENU_STATE, type MenuState } from './menu-template';
 import { handleAppProtocol, registerAppScheme } from './protocol';
 import { getBlockedRequests, installSecurity, isTrustedSender } from './security';
+import { checkForUpdates, loadUpdatePreference, setUpdateChecks, updatesEnabled } from './updates';
 
 const APP_NAME = 'Framewright';
 const DEFAULT_AUTOSAVE_MS = 60_000;
@@ -57,6 +58,7 @@ if (!app.requestSingleInstanceLock()) {
 
 function start(): void {
   installSecurity(devServerOrigin);
+  loadUpdatePreference();
   handleAppProtocol();
   services = new DocumentServices({
     appName: APP_NAME,
@@ -80,6 +82,7 @@ function start(): void {
 
   const win = createMainWindow();
   for (const path of pendingOsOpens.splice(0)) services.requestOpen(win, path);
+  if (updatesEnabled() && !isTest) void checkForUpdates(win, { promptToEnable: false, quiet: true });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -128,6 +131,7 @@ async function refreshMenu(): Promise<void> {
     hiddenLayers: doc?.hiddenLayers ?? [],
     layerSets: doc?.layerSets ?? [],
     activeLayerSet: doc?.activeLayerSet ?? null,
+    updates: updatesEnabled(),
   });
 }
 
@@ -144,8 +148,16 @@ function installMenu(state: MenuState): void {
         type: 'info',
         title: `About ${APP_NAME}`,
         message: `${APP_NAME} ${app.getVersion()}`,
-        detail: 'Offline residential design.\nMIT License. Framewright contributors.',
+        detail: 'Residential design.\nUpdate checks stay off until you allow them in Help.\nMIT License. Framewright contributors.',
       });
+    },
+    checkForUpdates: () => {
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null;
+      void checkForUpdates(win, { promptToEnable: true, quiet: false }).then(() => refreshMenu());
+    },
+    setUpdates: (enabled) => {
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null;
+      void setUpdateChecks(win, enabled).then(() => refreshMenu());
     },
   });
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
