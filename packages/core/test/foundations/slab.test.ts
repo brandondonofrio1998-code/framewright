@@ -167,4 +167,15 @@ describe('slab foundations', () => {
     expect(centers.some((c) => c.x > 120 && c.y > 100)).toBe(false);
     expect(pointInPolygon(p(150, 120), foundation.polygon)).toBe(false);
   });
+
+  it('rebuilds when a wall moves', () => {
+    const ctx = room([p(0, 0), p(240, 0), p(240, 144), p(0, 144)]);
+    const built = ctx.history.dispatch('foundation.build', { levelId: ctx.baseLevelId });
+    if (!built.ok) throw new Error(built.error);
+    const before = JSON.stringify(foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!.polygon);
+    const wallId = built.value[0] ? Object.values(ctx.history.doc.elements).find((el) => el.kind === 'wall')!.id : '';
+    const moved = ctx.history.dispatch('wall.move', { wallIds: [wallId], delta: { x: 0, y: 36 } });
+    if (!moved.ok) throw new Error(moved.error);
+    expect(JSON.stringify(foundationsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!.polygon)).not.toBe(before);
+  });
 });

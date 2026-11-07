@@ -93,18 +93,26 @@ export interface Handrail {
 }
 
 /**
- * One handrail on the left of the flight. Its center is 36 inches vertically above the line of nosings,
- * and its outer face is flush with the side of the stair. A flight of fewer than four risers has none.
+ * Rails on both sides. Each center is 36 inches vertically above the line of nosings,
+ * and the outer face is flush with the side of the stair. A flight of fewer than four risers has none.
  */
+export function handrails(stair: Pick<Stair, 'start' | 'dir' | 'run' | 'width' | 'risers' | 'riser'>, elevation: number): Handrail[] {
+  if (stair.risers < HANDRAIL_MIN_RISERS) return [];
+  const offset = stair.width / 2 - HANDRAIL_SIZE / 2;
+  return [1, -1].map((sign) => {
+    const side = scale(perp(stair.dir), sign * offset);
+    const origin = add(stair.start, side);
+    const end = add(origin, scale(stair.dir, stair.run));
+    return {
+      a: { x: origin.x, y: origin.y, z: elevation + stair.riser + HANDRAIL_HEIGHT },
+      b: { x: end.x, y: end.y, z: elevation + stair.risers * stair.riser + HANDRAIL_HEIGHT },
+    };
+  });
+}
+
+/** The left rail. */
 export function handrail(stair: Pick<Stair, 'start' | 'dir' | 'run' | 'width' | 'risers' | 'riser'>, elevation: number): Handrail | null {
-  if (stair.risers < HANDRAIL_MIN_RISERS) return null;
-  const side = scale(perp(stair.dir), stair.width / 2 - HANDRAIL_SIZE / 2);
-  const origin = add(stair.start, side);
-  const end = add(origin, scale(stair.dir, stair.run));
-  return {
-    a: { x: origin.x, y: origin.y, z: elevation + stair.riser + HANDRAIL_HEIGHT },
-    b: { x: end.x, y: end.y, z: elevation + stair.risers * stair.riser + HANDRAIL_HEIGHT },
-  };
+  return handrails(stair, elevation)[0] ?? null;
 }
 
 export interface PlacedFlight {

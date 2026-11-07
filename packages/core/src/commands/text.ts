@@ -24,13 +24,18 @@ export const createText = defineCommand<{ levelId: Id; p: Vec2; text: string; si
   },
 });
 
-export const updateText = defineCommand<{ id: Id; text?: string; size?: number; p?: Vec2 }, Id>({
+export const updateText = defineCommand<{ id: Id; text?: string; size?: number; p?: Vec2; rot?: number }, Id>({
   label: () => 'Edit Text',
-  run: (doc, { id, text, size, p }) => {
+  run: (doc, { id, text, size, p, rot }) => {
     const el = doc.elements[id];
     if (el?.kind !== 'text') throw new CommandError('That text is gone.');
     if (text !== undefined) el.text = noteBody(text);
     if (size !== undefined) el.size = noteSize(size);
+    if (rot !== undefined) {
+      if (!Number.isFinite(rot) || rot < -Math.PI || rot > Math.PI) throw new CommandError('Turn the note by at most half a circle.');
+      if (Math.abs(rot) < 1e-6) delete el.rot;
+      else el.rot = rot;
+    }
     if (p !== undefined) {
       if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || Math.hypot(p.x, p.y) > 100_000) throw new CommandError('That point is too far away.');
       el.p = p;

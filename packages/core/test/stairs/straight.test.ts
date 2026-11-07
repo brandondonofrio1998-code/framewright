@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, handrail, landingPolygon, layoutFlight, placedFlights, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, HANDRAIL_HEIGHT, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
+import { buildLevelMeshes, handrail, handrails, landingPolygon, layoutFlight, placedFlights, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, HANDRAIL_HEIGHT, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -112,6 +112,7 @@ describe('straight stairs', () => {
     expect(rail.a.y).toBeCloseTo(18 - 0.75, 5);
     expect(rail.b.x).toBeCloseTo(140, 5);
     expect(handrail({ ...flight, risers: 3 }, 0)).toBeNull();
+    expect(handrails(flight, 10)).toHaveLength(2);
   });
 
   it('builds an L stair with a square landing and two flights', () => {

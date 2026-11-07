@@ -48,7 +48,7 @@ describe('electrical', () => {
     const joined = history.dispatch('electrical.setCircuit', { id: receptacle.value, circuit: 1 });
     if (!joined.ok) throw new Error(joined.error);
     const wires = circuitWires(history.doc, baseLevelId);
-    expect(wires).toHaveLength(1);
+    expect(wires.length).toBeGreaterThan(1);
     expect(cableFeet(wires)).toBeGreaterThan(1);
     expect(materialsList(history.doc).find((line) => line.name === 'Cable')?.quantity).toBeCloseTo(cableFeet(wires), 3);
     const cableLine = buildPlanDisplayList(history.doc, baseLevelId).some((item) => item.prims.some((prim) => prim.t === 'line' && prim.pen === 'electrical' && prim.a.x !== prim.b.x));

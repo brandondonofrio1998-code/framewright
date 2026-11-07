@@ -8,14 +8,14 @@ import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { roofsOnLevel } from '../roofs/gable';
 import { roomFace, roomsOnLevel } from '../rooms/rooms';
-import { deckBalusters, deckJoists, deckPosts, deckRailLength, decksOnLevel } from '../decks/deck';
+import { deckBalusters, deckJoists, deckPosts, deckRailLength, deckStair, deckStairDrop, decksOnLevel } from '../decks/deck';
 import { cableFeet, circuitWires, electricalOnLevel } from '../electrical/devices';
 import { pipesOnLevel } from '../pipes/pipe';
 import { plumbingOnLevel } from '../plumbing/fixtures';
 import { lotArea, lotPerimeter, siteOnLevel } from '../site/marks';
 import { plantsOnLevel } from '../plants/tree';
 import { roadsOnLevel } from '../roads/drive';
-import { handrail, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
+import { handrails, placedFlights, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { formatLength } from '../units/length';
 import { wallsOnLevel } from '../walls/graph';
 import { computeWallGeometry } from '../walls/joins';
@@ -122,8 +122,9 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     for (const stair of stairsOnLevel(doc, levelId)) {
       for (const flight of placedFlights(stair)) {
         treads += Math.max(0, flight.risers - 1);
-        const bar = handrail(flight, (level?.elevation ?? 0) + flight.rise0);
-        if (bar) rail += Math.hypot(bar.b.x - bar.a.x, bar.b.y - bar.a.y, bar.b.z - bar.a.z);
+        for (const bar of handrails(flight, (level?.elevation ?? 0) + flight.rise0)) {
+          rail += Math.hypot(bar.b.x - bar.a.x, bar.b.y - bar.a.y, bar.b.z - bar.a.z);
+        }
       }
     }
     add('Stairs', 'Stair treads', treads, 'each');
@@ -135,10 +136,11 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     for (const deck of decksOnLevel(doc, levelId)) {
       decking += (deck.width * deck.depth) / 144;
       const span = Math.min(deck.width, deck.depth);
+      const gap = deckStair(deck, deckStairDrop(doc, deck))?.width ?? 0;
       joistFeet += (deckJoists(deck).length * span) / 12;
-      railFeet += deckRailLength(deck) / 12;
-      posts += deckPosts(deck).length;
-      balusters += deckBalusters(deck).length;
+      railFeet += deckRailLength(deck, gap) / 12;
+      posts += deckPosts(deck, gap).length;
+      balusters += deckBalusters(deck, gap).length;
     }
     add('Decks', 'Decking', decking, 'sq ft');
     add('Decks', 'Deck joists', joistFeet, 'lin ft');

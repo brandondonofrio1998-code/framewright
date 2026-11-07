@@ -109,8 +109,11 @@ export function circuitWires(doc: PlanDocument, levelId: Id): CircuitWire[] {
     for (let i = 1; i < placed.length; i++) {
       const prev = placed[i - 1]!;
       const next = placed[i]!;
-      if (Math.hypot(next.p.x - prev.p.x, next.p.y - prev.p.y, next.z - prev.z) < 1) continue;
-      wires.push({ id: placed[0]!.device.id, circuit, a: prev.p, b: next.p, za: prev.z, zb: next.z });
+      const high = ceiling - 1;
+      if (Math.hypot(next.p.x - prev.p.x, next.p.y - prev.p.y) < 1 && Math.abs(next.z - prev.z) < 1) continue;
+      if (Math.abs(prev.z - high) > 1) wires.push({ id: placed[0]!.device.id, circuit, a: prev.p, b: prev.p, za: prev.z, zb: high });
+      wires.push({ id: placed[0]!.device.id, circuit, a: prev.p, b: next.p, za: high, zb: high });
+      if (Math.abs(next.z - high) > 1) wires.push({ id: placed[0]!.device.id, circuit, a: next.p, b: next.p, za: high, zb: next.z });
     }
   }
   return wires;

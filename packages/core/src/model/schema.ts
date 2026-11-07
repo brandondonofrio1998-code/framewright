@@ -492,6 +492,8 @@ export const TextSchema = z.object({
   text: z.string().trim().min(1).max(250),
   /** Letter height, inches. */
   size: z.number().min(1).max(120),
+  /** Rotation in the plan, radians. Absent means the note reads to the right. */
+  rot: z.number().min(-Math.PI).max(Math.PI).optional(),
 });
 export type TextNote = z.infer<typeof TextSchema>;
 

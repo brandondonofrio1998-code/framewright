@@ -67,6 +67,45 @@ export const setClearance = defineCommand<{ id: Id; clearance: number }, Id>({
   },
 });
 
+export interface FoundationRecipe {
+  levelId: Id;
+  thickness: number;
+  footingWidth: number;
+  footingDepth: number;
+  stemRise?: number;
+  clearance?: number;
+}
+
+/** Settings to rebuild a foundation after the walls move. */
+export function foundationRecipes(doc: PlanDocument): FoundationRecipe[] {
+  const seen = new Set<string>();
+  const recipes: FoundationRecipe[] = [];
+  for (const el of Object.values(doc.elements)) {
+    if (el.kind !== 'foundation' || seen.has(el.levelId)) continue;
+    seen.add(el.levelId);
+    const recipe: FoundationRecipe = { levelId: el.levelId, thickness: el.thickness, footingWidth: el.footingWidth, footingDepth: el.footingDepth };
+    if (el.stemRise !== undefined) recipe.stemRise = el.stemRise;
+    if (el.clearance !== undefined) recipe.clearance = el.clearance;
+    recipes.push(recipe);
+  }
+  return recipes;
+}
+
+/** Rebuild each saved foundation on the walls as they are now. A level that no longer closes is left as it was. */
+export function applyFoundationRecipes(doc: Draft<PlanDocument>, recipes: readonly FoundationRecipe[], ctx: CommandContext): void {
+  for (const recipe of recipes) {
+    const built = slabOnLevel(doc, recipe.levelId, recipe.thickness, recipe.footingWidth, recipe.footingDepth);
+    if (!built.ok) continue;
+    const ids = place(doc, recipe.levelId, built.slabs, concreteId(doc, ctx), ctx);
+    for (const id of ids) {
+      const el = doc.elements[id];
+      if (el?.kind !== 'foundation') continue;
+      if (recipe.stemRise !== undefined) el.stemRise = recipe.stemRise;
+      if (recipe.clearance !== undefined) el.clearance = recipe.clearance;
+    }
+  }
+}
+
 export const foundationCommands = {
   'foundation.build': buildFoundation,
   'foundation.setRise': setStemRise,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BALUSTER_GAP, BALUSTER_SIZE, POST_SIZE, buildLevelMeshes, deckBalusters, deckJoists, deckOpenEdges, deckPosts, distance, dot, materialsList, normalize, placeDeck, pointInsideMesh, sub } from '../../src';
+import { BALUSTER_GAP, BALUSTER_SIZE, POST_SIZE, buildLevelMeshes, deckBalusters, deckJoists, deckOpenEdges, deckPosts, deckStair, distance, dot, materialsList, normalize, placeDeck, pointInsideMesh, sub } from '../../src';
 import { testHistory } from '../helpers';
 
 describe('decks', () => {
@@ -27,6 +27,32 @@ describe('decks', () => {
     expect(pointInsideMesh(deckParts, [spindle.x, spindle.y, 16])).toBe(true);
     expect(pointInsideMesh(deckParts, [72, -64, -0.4])).toBe(true);
     expect(() => placeDeck({ x: 0, y: 0 }, { x: 1, y: 0 }, -1, { x: 80, y: 40 })).toThrow(/outside/);
+  });
+
+  it('steps down to a lot that sits below the floor', () => {
+    const { history, baseLevelId } = testHistory();
+    const lot = history.dispatch('site.lot', {
+      levelId: baseLevelId,
+      points: [
+        { x: -20, y: 20 },
+        { x: 200, y: 20 },
+        { x: 200, y: -200 },
+        { x: -20, y: -200 },
+      ],
+    });
+    if (!lot.ok) throw new Error(lot.error);
+    const graded = history.dispatch('site.grade', { id: lot.value, grade: -48 });
+    if (!graded.ok) throw new Error(graded.error);
+    const shape = placeDeck({ x: 0, y: -4 }, { x: 1, y: 0 }, -1, { x: 144, y: -124 });
+    const created = history.dispatch('deck.create', { levelId: baseLevelId, ...shape });
+    if (!created.ok) throw new Error(created.error);
+    const flight = deckStair(shape, 48);
+    if (!flight) throw new Error('missing stair');
+    expect(flight.risers).toBeGreaterThan(5);
+    expect(flight.riser).toBeLessThanOrEqual(7.75);
+    const parts = buildLevelMeshes(history.doc, baseLevelId).filter((part) => part.elementId === created.value);
+    const tread = { x: flight.start.x + flight.dir.x * flight.tread * 0.5, y: flight.start.y + flight.dir.y * flight.tread * 0.5 };
+    expect(pointInsideMesh(parts, [tread.x, tread.y + 4, flight.rise0 + flight.riser - 0.4])).toBe(true);
   });
 });
 

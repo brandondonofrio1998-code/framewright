@@ -22,6 +22,7 @@ export * from './commands/cameras';
 export * from './materials/textures';
 export * from './view/walk';
 export * from './view/obstacles';
+export * from './view/footing';
 export * from './geometry/vec2';
 export * from './geometry/polygon';
 export * from './mesh/meshes';

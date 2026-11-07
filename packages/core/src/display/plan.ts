@@ -3,14 +3,14 @@ import { objectPrims } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
-import { balusterFoot, deckBalusters, deckJoists, deckOpenEdges, deckPolygon, decksOnLevel } from '../decks/deck';
+import { balusterFoot, deckBalusters, deckGuardedEdges, deckJoists, deckPolygon, deckStair, deckStairDrop, decksOnLevel } from '../decks/deck';
+import { handrails, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { circuitWires, electricalItem, electricalOnLevel } from '../electrical/devices';
 import { plumbingItem, plumbingOnLevel } from '../plumbing/fixtures';
 import { siteItem, siteOnLevel } from '../site/marks';
 import { plantItem, plantsOnLevel } from '../plants/tree';
 import { pipeItem, pipesOnLevel } from '../pipes/pipe';
 import { roadItem, roadsOnLevel } from '../roads/drive';
-import { handrail, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
 import { roofsOnLevel } from '../roofs/gable';
 import type { Cad, Dimension, DimensionEnd, Id, Opening, PlanDocument, Room, Vec2, WallLayer } from '../model/schema';
 import { openingsOnLevel } from '../openings/openings';
@@ -140,8 +140,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     for (const flight of placedFlights(stair)) {
       prims.push({ t: 'polyline', pts: stairCorners(flight), closed: true, pen: 'stair' });
       prims.push(...stairTreadLines(flight).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'stair' })));
-      const rail = handrail(flight, flight.rise0);
-      if (rail) prims.push({ t: 'line', a: { x: rail.a.x, y: rail.a.y }, b: { x: rail.b.x, y: rail.b.y }, pen: 'stair' });
+      for (const rail of handrails(flight, flight.rise0)) prims.push({ t: 'line', a: { x: rail.a.x, y: rail.a.y }, b: { x: rail.b.x, y: rail.b.y }, pen: 'stair' });
     }
     const landing = landingPolygon(stair);
     if (landing) prims.push({ t: 'polyline', pts: landing, closed: true, pen: 'stair' });
@@ -156,19 +155,24 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
   }
   for (const deck of decksOnLevel(doc, levelId)) {
     const outline = deckPolygon(deck);
-    items.push({
-      elementId: deck.id,
-      layer: 'deck',
-      prims: [
-        { t: 'polyline', pts: outline, closed: true, pen: 'deck' },
-        ...deckJoists(deck).map((joist): Prim => ({ t: 'polyline', pts: joist, closed: true, pen: 'deck' })),
-        ...deckOpenEdges(deck).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'deck' })),
-        ...deckBalusters(deck).map((spindle): Prim => ({ t: 'polyline', pts: balusterFoot(spindle), closed: true, pen: 'deck' })),
-      ],
-    });
+    const flight = deckStair(deck, deckStairDrop(doc, deck));
+    const gap = flight ? flight.width : 0;
+    const prims: Prim[] = [
+      { t: 'polyline', pts: outline, closed: true, pen: 'deck' },
+      ...deckJoists(deck).map((joist): Prim => ({ t: 'polyline', pts: joist, closed: true, pen: 'deck' })),
+      ...deckGuardedEdges(deck, gap).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'deck' })),
+      ...deckBalusters(deck, gap).map((spindle): Prim => ({ t: 'polyline', pts: balusterFoot(spindle), closed: true, pen: 'deck' })),
+    ];
+    if (flight) {
+      prims.push({ t: 'polyline', pts: stairCorners(flight), closed: true, pen: 'stair' });
+      prims.push(...stairTreadLines(flight).map(([a, b]): Prim => ({ t: 'line', a, b, pen: 'stair' })));
+      for (const rail of handrails(flight, flight.rise0)) prims.push({ t: 'line', a: { x: rail.a.x, y: rail.a.y }, b: { x: rail.b.x, y: rail.b.y }, pen: 'stair' });
+    }
+    items.push({ elementId: deck.id, layer: 'deck', prims });
   }
   for (const device of electricalOnLevel(doc, levelId)) items.push(electricalItem(doc, device));
   for (const wire of circuitWires(doc, levelId)) {
+    if (Math.hypot(wire.b.x - wire.a.x, wire.b.y - wire.a.y) < 1) continue;
     items.push({ elementId: wire.id, layer: 'electrical', prims: [{ t: 'line', a: wire.a, b: wire.b, pen: 'electrical' }] });
   }
   for (const fixture of plumbingOnLevel(doc, levelId)) items.push(plumbingItem(doc, fixture));
@@ -186,7 +190,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
   }
   for (const el of Object.values(doc.elements)) {
     if (el.kind !== 'text' || el.levelId !== levelId) continue;
-    items.push({ elementId: el.id, layer: 'text', prims: [{ t: 'text', p: el.p, s: el.text, size: el.size, rot: 0, align: 'left' }] });
+    items.push({ elementId: el.id, layer: 'text', prims: [{ t: 'text', p: el.p, s: el.text, size: el.size, rot: el.rot ?? 0, align: 'left' }] });
   }
 
   const format = doc.settings.lengthFormat;

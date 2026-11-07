@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState, type FormEvent, type Re
 import {
   BufferGeometry,
   DirectionalLight,
+  CanvasTexture,
   DoubleSide,
   Float32BufferAttribute,
   NoColorSpace,
@@ -22,6 +23,7 @@ import {
   clipWalk,
   walkObstacles,
   eyeZ,
+  footRise,
   meshBounds,
   partTexture,
   poseFromLook,
@@ -298,7 +300,7 @@ function isTyping(event: KeyboardEvent): boolean {
   return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 }
 
-function WalkControls({ elevation, recall, liveRef, barriers }: { elevation: number; recall: Recall | null; liveRef: RefObject<LiveView>; barriers: readonly WalkBarrier[] }) {
+function WalkControls({ doc, levelId, elevation, recall, liveRef, barriers }: { doc: PlanDocument; levelId: string; elevation: number; recall: Recall | null; liveRef: RefObject<LiveView>; barriers: readonly WalkBarrier[] }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const pose = useRef<WalkPose | null>(null);
@@ -376,9 +378,9 @@ function WalkControls({ elevation, recall, liveRef, barriers }: { elevation: num
       const speed = (held.shift ? WALK_FAST : WALK_SPEED) * Math.min(dt, 0.05);
       const next = stepWalk(pose.current, { forward: (forward / mag) * speed, strafe: (strafe / mag) * speed, yaw: 0, pitch: 0, elevation });
       const clipped = clipWalk(pose.current, next, barriers);
-      pose.current = { ...next, x: clipped.x, y: clipped.y };
+      pose.current = { ...next, x: clipped.x, y: clipped.y, z: eyeZ(elevation) + footRise(doc, levelId, clipped) };
     } else {
-      pose.current = { ...pose.current, z: eyeZ(elevation) };
+      pose.current = { ...pose.current, z: eyeZ(elevation) + footRise(doc, levelId, pose.current) };
     }
     const now = pose.current;
     camera.up.set(0, 0, 1);
@@ -443,8 +445,47 @@ function Sun({ parts }: { parts: MeshPart[] }) {
   return <directionalLight ref={light} intensity={1.15} castShadow shadow-mapSize={[2048, 2048]} />;
 }
 
+function PlanNotes({ doc, levelId, elevation }: { doc: PlanDocument; levelId: string; elevation: number }) {
+  const notes = Object.values(doc.elements).filter((el): el is Extract<typeof el, { kind: 'text' }> => el.kind === 'text' && el.levelId === levelId);
+  return (
+    <>
+      {notes.map((note) => (
+        <PlanNote key={note.id} text={note.text} x={note.p.x} y={note.p.y} size={note.size} rot={note.rot ?? 0} elevation={elevation} />
+      ))}
+    </>
+  );
+}
+
+function PlanNote({ text, x, y, size, rot, elevation }: { text: string; x: number; y: number; size: number; rot: number; elevation: number }) {
+  const map = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 128;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.clearRect(0, 0, 512, 128);
+    context.fillStyle = '#1f2328';
+    context.font = '64px sans-serif';
+    context.textBaseline = 'middle';
+    context.fillText(text.slice(0, 40), 8, 64);
+    const texture = new CanvasTexture(canvas);
+    texture.colorSpace = SRGBColorSpace;
+    return texture;
+  }, [text]);
+  useEffect(() => () => map?.dispose(), [map]);
+  if (!map) return null;
+  const width = Math.max(size, text.length * size * 0.55);
+  return (
+    <mesh position={[x + Math.cos(rot) * width * 0.5, y + Math.sin(rot) * width * 0.5, elevation + size * 0.5]} rotation={[Math.PI / 2, rot, 0]}>
+      <planeGeometry args={[width, size]} />
+      <meshBasicMaterial map={map} transparent side={DoubleSide} />
+    </mesh>
+  );
+}
+
 function Scene({
   doc,
+  levelId,
   parts,
   elevation,
   mode,
@@ -459,6 +500,7 @@ function Scene({
   barriers,
 }: {
   doc: PlanDocument;
+  levelId: string;
   parts: MeshPart[];
   elevation: number;
   mode: 'orbit' | 'walk';
@@ -508,7 +550,8 @@ function Scene({
       {groups.textured.map((group) => (
         <TexturedGroup key={`${group.texture.id}:${group.texture.tile.join(',')}`} texture={group.texture} items={group.items} />
       ))}
-      {mode === 'walk' ? <WalkControls elevation={elevation} recall={recall} liveRef={liveRef} barriers={barriers} /> : <FrameScene parts={parts} placedRef={placedRef} liveRef={liveRef} recall={recall} />}
+      {mode === 'walk' ? <WalkControls doc={doc} levelId={levelId} elevation={elevation} recall={recall} liveRef={liveRef} barriers={barriers} /> : <FrameScene parts={parts} placedRef={placedRef} liveRef={liveRef} recall={recall} />}
+      <PlanNotes doc={doc} levelId={levelId} elevation={elevation} />
       <EyeProbe rootRef={rootRef} />
       <MarkTextured count={textured} onReady={onTextured} />
     </>
@@ -564,6 +607,7 @@ export function View3D() {
         <Suspense fallback={null}>
           <Scene
             doc={doc}
+            levelId={levelId}
             parts={parts}
             elevation={elevation}
             mode={mode}

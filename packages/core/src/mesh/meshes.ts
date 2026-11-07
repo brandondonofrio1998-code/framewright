@@ -2,15 +2,15 @@ import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
-import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, balusterFoot, deckBalusters, deckJoists, deckOpenEdges, deckPolygon, deckPosts, decksOnLevel, postFoot, railStrip } from '../decks/deck';
+import { DECK_BOARD, DECK_JOIST_DEPTH, RAIL_HEIGHT, RAIL_WIDTH, balusterFoot, deckBalusters, deckGuardedEdges, deckJoists, deckPolygon, deckPosts, deckStair, deckStairDrop, decksOnLevel, postFoot, railStrip } from '../decks/deck';
 import { circuitWires, RECEPTACLE_CENTER, SWITCH_CENTER, electricalOnLevel, electricalPose } from '../electrical/devices';
 import { DRAIN_CENTER, SUPPLY_CENTER, plumbingOnLevel, plumbingPose } from '../plumbing/fixtures';
 import { siteOnLevel } from '../site/marks';
-import { blendedGround } from '../site/ground';
+import { blendedGround, groundElevation } from '../site/ground';
 import { plantRing, plantsOnLevel } from '../plants/tree';
 import { ROAD_THICKNESS, roadPolygon, roadsOnLevel } from '../roads/drive';
 import { pipeCenter, pipePolygon, pipeSize, pipesOnLevel } from '../pipes/pipe';
-import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrail, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
+import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrails, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
 import { roofTriangles, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
@@ -238,20 +238,31 @@ function openingSolids(doc: PlanDocument, geom: WallGeometry, zBase: number, par
     const frame = openingFrame(geom, opening);
     if (opening.kind === 'door' && opening.style !== 'opening') {
       const b = builder();
-      const leaves = opening.style === 'double' ? 2 : 1;
       const gap = 0.25;
       const sA = frame.s0 + gap;
       const sB = frame.s1 - gap;
-      const span = (sB - sA) / leaves;
-      for (let i = 0; i < leaves; i++) {
-        const a = sA + span * i + (i > 0 ? 0.06 : 0);
-        const c = sA + span * (i + 1) - (i < leaves - 1 ? 0.06 : 0);
+      const slab = (a: number, c: number, proud: number) => {
         extrude(
           b,
-          [frame.at(a, -DOOR_THICKNESS / 2), frame.at(c, -DOOR_THICKNESS / 2), frame.at(c, DOOR_THICKNESS / 2), frame.at(a, DOOR_THICKNESS / 2)],
+          [frame.at(a, -proud), frame.at(c, -proud), frame.at(c, proud), frame.at(a, proud)],
           zBase + gap,
           zBase + opening.height - gap,
         );
+      };
+      if (opening.style === 'pocket') slab(frame.s0 - (sB - sA) + 2, frame.s0 + 2, DOOR_THICKNESS / 2);
+      else if (opening.style === 'sliding') {
+        const mid = (sA + sB) / 2;
+        slab(sA, mid, DOOR_THICKNESS / 2);
+        slab(mid, sB + (sB - sA) / 2, DOOR_THICKNESS / 2);
+      } else if (opening.style === 'bifold') slab(sA, sA + (sB - sA) * 0.22, opening.width * 0.2);
+      else {
+        const leaves = opening.style === 'double' ? 2 : 1;
+        const span = (sB - sA) / leaves;
+        for (let i = 0; i < leaves; i++) {
+          const a = sA + span * i + (i > 0 ? 0.06 : 0);
+          const c = sA + span * (i + 1) - (i < leaves - 1 ? 0.06 : 0);
+          slab(a, c, DOOR_THICKNESS / 2);
+        }
       }
       push(parts, finish(b, opening.id, null, 'panel'));
     }
@@ -306,8 +317,7 @@ function stairSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: M
         extrude(b, runRect(flight.start, flight.dir, flight.width, s, s + RISER_THICKNESS), base + (k - 1) * flight.riser, base + k * flight.riser);
         push(parts, finish(b, stair.id, lumber, 'solid'));
       }
-      const rail = handrail(flight, base);
-      if (rail) {
+      for (const rail of handrails(flight, base)) {
         const b = builder();
         addRail(b, rail.a, rail.b, perp(flight.dir), HANDRAIL_SIZE);
         push(parts, finish(b, stair.id, lumber, 'solid'));
@@ -373,21 +383,37 @@ function deckSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: Me
       extrude(piece, joist, top - DECK_BOARD - DECK_JOIST_DEPTH, top - DECK_BOARD);
       push(parts, finish(piece, deck.id, lumber, 'solid'));
     }
-    for (const [a, b] of deckOpenEdges(deck)) {
+    const flight = deckStair(deck, deckStairDrop(doc, deck));
+    const gap = flight ? flight.width : 0;
+    for (const [a, b] of deckGuardedEdges(deck, gap)) {
       const rail = builder();
       extrude(rail, railStrip(a, b), top + RAIL_HEIGHT - RAIL_WIDTH, top + RAIL_HEIGHT);
       push(parts, finish(rail, deck.id, lumber, 'solid'));
     }
-    for (const post of deckPosts(deck)) {
+    for (const post of deckPosts(deck, gap)) {
       const piece = builder();
       extrude(piece, postFoot(post), top, top + RAIL_HEIGHT);
       push(parts, finish(piece, deck.id, lumber, 'solid'));
     }
     const spindles = builder();
-    for (const spindle of deckBalusters(deck)) {
+    for (const spindle of deckBalusters(deck, gap)) {
       extrude(spindles, balusterFoot(spindle), top, top + RAIL_HEIGHT - RAIL_WIDTH);
     }
     push(parts, finish(spindles, deck.id, lumber, 'solid'));
+    if (flight) {
+      const base = top + flight.rise0;
+      const treads = flight.risers - 1;
+      for (let k = 1; k <= treads; k++) {
+        const piece = builder();
+        extrude(piece, runRect(flight.start, flight.dir, flight.width, (k - 1) * flight.tread, k * flight.tread), base + k * flight.riser - 1, base + k * flight.riser);
+        push(parts, finish(piece, deck.id, lumber, 'solid'));
+      }
+      for (const rail of handrails(flight, base)) {
+        const piece = builder();
+        addRail(piece, rail.a, rail.b, perp(flight.dir), 1.5);
+        push(parts, finish(piece, deck.id, lumber, 'solid'));
+      }
+    }
   }
 }
 
@@ -575,12 +601,26 @@ function pipeSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: Me
 function roadSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: MeshPart[]): void {
   for (const road of roadsOnLevel(doc, levelId)) {
     const pad = builder();
-    const fall = road.fall ?? 0;
     const poly = roadPolygon(road);
-    if (Math.abs(fall) < 1e-6) extrude(pad, poly, elevation - ROAD_THICKNESS, elevation);
-    else ramp(pad, poly, elevation, elevation - fall);
+    const [topA, topB] = roadTops(doc, levelId, road.a, road.b, road.fall, elevation);
+    if (Math.abs(topA - topB) < 1e-3) extrude(pad, poly, topA - ROAD_THICKNESS, topA);
+    else ramp(pad, poly, topA, topB);
     push(parts, finish(pad, road.id, null, 'solid'));
   }
+}
+
+function roadTops(doc: PlanDocument, levelId: Id, a: Vec2, b: Vec2, fall: number | undefined, elevation: number): [number, number] {
+  if (fall !== undefined) return [elevation, elevation - fall];
+  for (const mark of siteOnLevel(doc, levelId)) {
+    if (mark.role !== 'lot' || !mark.points || mark.grade === undefined) continue;
+    const contours = siteOnLevel(doc, levelId)
+      .filter((other) => other.role === 'contour' && other.points && other.grade !== undefined)
+      .map((other) => ({ points: other.points!, grade: other.grade! }));
+    const start = groundElevation(a, mark.points, mark.grade, contours);
+    const end = groundElevation(b, mark.points, mark.grade, contours);
+    if (start !== null && end !== null) return [elevation + start, elevation + end];
+  }
+  return [elevation, elevation];
 }
 
 /** A 4 inch slab whose top runs from `topA` at the first edge to `topB` at the far edge. */

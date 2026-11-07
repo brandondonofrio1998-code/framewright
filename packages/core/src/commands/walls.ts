@@ -1,6 +1,7 @@
 import { add, distance, normalize, POINT_EPS, projectOnSegment, scale, sub } from '../geometry/vec2';
 import type { Dimension, DimensionEnd, Id, PlanDocument, Vec2, Wall } from '../model/schema';
 import { reconcileObjects, snapshotObjects, type ObjectAnchor } from '../catalog/host';
+import { applyFoundationRecipes, foundationRecipes, type FoundationRecipe } from './foundations';
 import { applyRoofRecipes } from './roofs';
 import { roofRecipes, type RoofRecipe } from '../roofs/follow';
 import { openingSpan, openingsOnWall, reconcileOpenings, snapshotOpenings, type OpeningAnchor } from '../openings/openings';
@@ -13,11 +14,12 @@ interface LayoutBefore {
   objects: Map<Id, ObjectAnchor>;
   rooms: Map<Id, Vec2[]>;
   roofs: RoofRecipe[];
+  foundations: FoundationRecipe[];
 }
 
 /** Captured at the start of a wall command, so openings, objects and rooms can be matched afterwards. */
 function snapshotLayout(doc: PlanDocument): LayoutBefore {
-  return { openings: snapshotOpenings(doc), objects: snapshotObjects(doc), rooms: snapshotRoomPolygons(doc), roofs: roofRecipes(doc) };
+  return { openings: snapshotOpenings(doc), objects: snapshotObjects(doc), rooms: snapshotRoomPolygons(doc), roofs: roofRecipes(doc), foundations: foundationRecipes(doc) };
 }
 
 /** Every command that changes the wall graph ends here, so nodes, dimensions, openings, objects and rooms stay consistent. */
@@ -27,6 +29,7 @@ function finishWallEdit(doc: PlanDocument, before: LayoutBefore, ctx: CommandCon
   reconcileObjects(doc, before.objects);
   reconcileRooms(doc, before.rooms, ctx);
   applyRoofRecipes(doc, before.roofs, ctx);
+  applyFoundationRecipes(doc, before.foundations, ctx);
 }
 
 const MAX_COORD = 1_000_000;

@@ -1,6 +1,9 @@
 import { objectFootprint } from '../catalog/symbols';
+import { circuitWires } from '../electrical/devices';
+import { deckPosts, deckStair, deckStairDrop, decksOnLevel, postFoot } from '../decks/deck';
 import { openingsOnWall, wallLength } from '../openings/openings';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
+import { pipeSize, pipesOnLevel } from '../pipes/pipe';
 import { landingPolygon, placedFlights, stairCorners, stairsOnLevel } from '../stairs/straight';
 import { computeWallGeometry } from '../walls/joins';
 import type { WalkBarrier } from './walk';
@@ -25,6 +28,14 @@ export function walkObstacles(doc: PlanDocument, levelId: Id): WalkBarrier[] {
     for (const flight of placedFlights(stair)) pushLoop(barriers, stairCorners(flight));
     const landing = landingPolygon(stair);
     if (landing) pushLoop(barriers, landing);
+  }
+  for (const deck of decksOnLevel(doc, levelId)) {
+    const gap = deckStair(deck, deckStairDrop(doc, deck))?.width ?? 0;
+    for (const post of deckPosts(deck, gap)) pushLoop(barriers, postFoot(post));
+  }
+  for (const pipe of pipesOnLevel(doc, levelId)) barriers.push({ a: pipe.a, b: pipe.b, half: pipeSize(pipe) / 2 });
+  for (const wire of circuitWires(doc, levelId)) {
+    if (Math.hypot(wire.b.x - wire.a.x, wire.b.y - wire.a.y) > 1) barriers.push({ a: wire.a, b: wire.b, half: 0.25 });
   }
   return barriers;
 }

@@ -420,7 +420,7 @@ export function PropertiesPanel() {
             <span className="field-readonly">{formatLength(only.depth, format)}</span>
           </dd>
         </dl>
-        <p className="panel-hint">2x8 joists span the short side. Posts, a top rail, and balusters run the three open sides. The deck stays where it was built.</p>
+        <p className="panel-hint">2x8 joists span the short side. Posts, a top rail, and balusters run the open sides. A lot below the floor gets a stair down the middle of the outer edge. The deck stays where it was built.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>
@@ -668,7 +668,7 @@ export function PropertiesPanel() {
             <LengthInput label="Drop" value={only.fall ?? 0} format={format} onCommit={(fall) => errorOf(dispatch('road.fall', { id: only.id, fall }))} />
           </dd>
         </dl>
-        <p className="panel-hint">The near end stays at the floor. Drop is how far the far end sits below that. Zero keeps the driveway level. The slab is 4 inches thick.</p>
+        <p className="panel-hint">Leave Drop at zero and a graded lot sets the height of each end. A number drops or lifts the far end by up to 8 feet. The slab is 4 inches thick.</p>
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>
@@ -688,6 +688,18 @@ export function PropertiesPanel() {
           <dt>Height</dt>
           <dd>
             <LengthInput label="Text height" value={only.size} format={format} onCommit={(size) => errorOf(dispatch('text.update', { id: only.id, size }))} />
+          </dd>
+          <dt>Angle</dt>
+          <dd>
+            <TextInput
+              label="Angle"
+              value={String(Math.round((((only.rot ?? 0) * 180) / Math.PI) * 10) / 10)}
+              onCommit={(raw) => {
+                const degrees = Number(raw);
+                if (!Number.isFinite(degrees)) return 'Enter the angle in degrees.';
+                return errorOf(dispatch('text.update', { id: only.id, rot: (degrees * Math.PI) / 180 }));
+              }}
+            />
           </dd>
         </dl>
         <div className="panel-actions">

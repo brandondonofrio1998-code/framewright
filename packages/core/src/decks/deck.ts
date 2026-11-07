@@ -2,6 +2,8 @@ import { studCenters } from '../framing/members';
 import { add, distance, dot, length, normalize, perp, samePoint, scale, sub } from '../geometry/vec2';
 import type { Deck, PlanDocument, Vec2 } from '../model/schema';
 import { CommandError } from '../commands/history';
+import { groundElevation } from '../site/ground';
+import { siteOnLevel } from '../site/marks';
 
 export const DECK_BOARD = 1;
 export const DECK_JOIST_DEPTH = 7.25;
@@ -51,10 +53,10 @@ export function deckOpenEdges(deck: DeckShape): [Vec2, Vec2][] {
   ];
 }
 
-/** Post centers on the open edges, at most 6 feet apart, including the corners. */
-export function deckPosts(deck: DeckShape): Vec2[] {
+/** Post centers on the guarded edges, at most 6 feet apart, including the corners. */
+export function deckPosts(deck: DeckShape, gap = 0): Vec2[] {
   const points: Vec2[] = [];
-  for (const [a, b] of deckOpenEdges(deck)) {
+  for (const [a, b] of deckGuardedEdges(deck, gap)) {
     for (const p of postsOnEdge(a, b)) {
       if (!points.some((q) => samePoint(q, p, 0.5))) points.push(p);
     }
@@ -66,9 +68,9 @@ export function deckPosts(deck: DeckShape): Vec2[] {
  * Baluster centers on the open edges. Each bay between posts is filled so the
  * clear opening is at most 4 inches, which keeps a 4 inch sphere from passing.
  */
-export function deckBalusters(deck: DeckShape): Vec2[] {
+export function deckBalusters(deck: DeckShape, gap = 0): Vec2[] {
   const points: Vec2[] = [];
-  for (const [a, b] of deckOpenEdges(deck)) {
+  for (const [a, b] of deckGuardedEdges(deck, gap)) {
     const posts = postsOnEdge(a, b);
     for (let i = 0; i < posts.length - 1; i++) {
       const p = posts[i]!;
@@ -98,8 +100,8 @@ function postsOnEdge(a: Vec2, b: Vec2): Vec2[] {
   return points;
 }
 
-export function deckRailLength(deck: DeckShape): number {
-  return deckOpenEdges(deck).reduce((sum, [a, b]) => sum + distance(a, b), 0);
+export function deckRailLength(deck: DeckShape, gap = 0): number {
+  return deckGuardedEdges(deck, gap).reduce((sum, [a, b]) => sum + distance(a, b), 0);
 }
 
 /** A strip centered on an edge, for the top rail. */
@@ -152,6 +154,78 @@ export function placeDeck(origin: Vec2, axis: Vec2, side: 1 | -1, corner: Vec2):
   if (along < MIN_DECK || across < MIN_DECK) throw new CommandError('A deck has to be at least 3 feet wide and 3 feet deep.');
   if (along > MAX_WIDTH || across > MAX_DEPTH) throw new CommandError('A deck can be at most 40 feet along the wall and 20 feet out.');
   return { ledger, dir, width: along, depth: across, side: signed };
+}
+
+export const DECK_STAIR_WIDTH = 36;
+const MAX_STAIR_DROP = 151;
+
+export interface DeckStair {
+  start: Vec2;
+  dir: Vec2;
+  run: number;
+  width: number;
+  risers: number;
+  riser: number;
+  tread: number;
+  /** Height of the bottom of the stair above the floor. Negative when the lot is below. */
+  rise0: number;
+}
+
+/** How far the ground under the outer edge sits below the floor. */
+export function deckStairDrop(doc: PlanDocument, deck: Deck): number {
+  const mid = outerMid(deck);
+  for (const mark of siteOnLevel(doc, deck.levelId)) {
+    if (mark.role !== 'lot' || !mark.points || mark.grade === undefined) continue;
+    const contours = siteOnLevel(doc, deck.levelId)
+      .filter((other) => other.role === 'contour' && other.points && other.grade !== undefined)
+      .map((other) => ({ points: other.points!, grade: other.grade! }));
+    const height = groundElevation(mid, mark.points, mark.grade, contours);
+    if (height !== null && height < -7.75) return -height;
+  }
+  return 0;
+}
+
+/** A stair from the lot up to the middle of the outer edge. Null when the drop is too small or too tall. */
+export function deckStair(deck: DeckShape, drop: number): DeckStair | null {
+  if (!(drop >= 7.75) || drop > MAX_STAIR_DROP) return null;
+  const risers = Math.ceil((drop - 1e-6) / 7.75);
+  const riser = drop / risers;
+  const tread = 10;
+  const run = (risers - 1) * tread;
+  const width = Math.min(DECK_STAIR_WIDTH, deck.width);
+  const mid = outerMid(deck);
+  const out = normalize(scale(perp(deck.dir), deck.side));
+  return { start: add(mid, scale(out, run)), dir: scale(out, -1), run, width, risers, riser, tread, rise0: -drop };
+}
+
+/** Open edges that still get a rail. The stair takes a gap out of the outer edge. */
+export function deckGuardedEdges(deck: DeckShape, gap: number): [Vec2, Vec2][] {
+  const edges = deckOpenEdges(deck);
+  if (!(gap > 1)) return edges;
+  const outer = edges[1];
+  if (!outer) return edges;
+  return [edges[0]!, ...splitEdge(outer[0], outer[1], gap), edges[2]!].filter((edge): edge is [Vec2, Vec2] => edge !== undefined);
+}
+
+function outerMid(deck: DeckShape): Vec2 {
+  const poly = deckPolygon(deck);
+  const c = poly[2]!;
+  const d = poly[3]!;
+  return { x: (c.x + d.x) / 2, y: (c.y + d.y) / 2 };
+}
+
+function splitEdge(a: Vec2, b: Vec2, gap: number): [Vec2, Vec2][] {
+  const len = distance(a, b);
+  if (gap >= len - 1) return [];
+  const u = normalize(sub(b, a));
+  const mid = add(a, scale(u, len / 2));
+  const half = gap / 2;
+  const left = add(mid, scale(u, -half));
+  const right = add(mid, scale(u, half));
+  const parts: [Vec2, Vec2][] = [];
+  if (distance(a, left) > 1) parts.push([a, left]);
+  if (distance(right, b) > 1) parts.push([right, b]);
+  return parts;
 }
 
 export function decksOnLevel(doc: PlanDocument, levelId: string): Deck[] {
