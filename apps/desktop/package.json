@@ -1,7 +1,7 @@
 {
   "name": "@framewright/desktop",
   "productName": "Framewright",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Offline residential design",
   "author": "Framewright contributors",
   "license": "MIT",

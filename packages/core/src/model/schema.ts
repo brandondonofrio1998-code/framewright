@@ -125,6 +125,8 @@ export const WallSchema = z.object({
   /** null → derived from the level. */
   height: PositiveLength.nullable(),
   baseOffset: Length,
+  studSpacing: z.union([z.literal(16), z.literal(24)]).optional(),
+  insulationId: IdSchema.optional(),
   /** Rise per 12 inches of run. Omitted means the roof command's pitch. */
   roofPitch: z.number().gt(0).lte(24).optional(),
   /** The roof runs into this wall instead of sloping up from it. */
@@ -146,7 +148,7 @@ export const DimensionSchema = z.object({
 });
 export type Dimension = z.infer<typeof DimensionSchema>;
 
-export const DOOR_STYLES = ['hinged', 'double', 'pocket', 'sliding', 'bifold', 'opening'] as const;
+export const DOOR_STYLES = ['hinged', 'double', 'pocket', 'sliding', 'bifold', 'garage', 'opening'] as const;
 export const WINDOW_STYLES = ['double-hung', 'casement', 'slider', 'awning', 'fixed'] as const;
 export type DoorStyle = (typeof DOOR_STYLES)[number];
 export type WindowStyle = (typeof WINDOW_STYLES)[number];

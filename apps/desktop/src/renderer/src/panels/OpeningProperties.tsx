@@ -20,6 +20,7 @@ export const DOOR_STYLE_LABELS: Record<DoorStyle, string> = {
   pocket: 'Pocket',
   sliding: 'Sliding',
   bifold: 'Bifold',
+  garage: 'Garage (overhead)',
   opening: 'Cased opening',
 };
 
@@ -53,11 +54,12 @@ export function OpeningProperties({ doc, opening, deleteButton }: { doc: PlanDoc
   const update = (changes: OpeningChanges) => errorOf(dispatch('opening.update', { ids, changes }));
   const noun = opening.kind === 'door' ? 'Door' : 'Window';
   const head = opening.kind === 'window' ? opening.sill + opening.height : opening.height;
-  const hinged = opening.kind === 'door' ? opening.style !== 'opening' && opening.style !== 'sliding' : opening.style === 'casement';
+  const hinged = opening.kind === 'door' ? opening.style !== 'opening' && opening.style !== 'sliding' && opening.style !== 'garage' : opening.style === 'casement';
 
   return (
     <>
       <h3 className="panel-heading">{noun}</h3>
+      <p className="panel-hint">Enter a custom width and height below (for example, 36 or 3 feet). Press Enter to apply.</p>
       <dl className="level-fields">
         <dt>Style</dt>
         <dd>
@@ -136,7 +138,8 @@ export function OpeningToolDefaults({ kind, doc }: { kind: Opening['kind']; doc:
 
   return (
     <>
-      <h3 className="panel-heading">{noun}s tool</h3>
+      <h3 className="panel-heading">{noun}s tool — size before placing</h3>
+      <p className="panel-hint">Enter a custom width and height below (for example, 36 or 3 feet). Press Enter to apply.</p>
       <dl className="level-fields">
         <dt>Style</dt>
         <dd>
@@ -144,7 +147,7 @@ export function OpeningToolDefaults({ kind, doc }: { kind: Opening['kind']; doc:
             kind={kind}
             label={`${noun} style to place`}
             value={values.style}
-            onChange={(style) => (kind === 'door' ? setDoor({ style: style as DoorStyle }) : setWindow({ style: style as WindowStyle }))}
+            onChange={(style) => (kind === 'door' ? setDoor({ style: style as DoorStyle, ...(style === 'garage' ? { width: 108, height: 84 } : {}) }) : setWindow({ style: style as WindowStyle }))}
           />
         </dd>
         <dt>Width</dt>

@@ -28,6 +28,7 @@ import { toggleCameras, useView3d } from '../view3d/view-state';
 
 type ToolButton =
   | { id: ToolId; icon: LucideIcon }
+  | { id: 'garage'; label: string; icon: LucideIcon }
   | { id: 'camera'; label: string; icon: LucideIcon }
   | { id: 'roof'; label: string; icon: LucideIcon }
   | { id: 'hip'; label: string; icon: LucideIcon }
@@ -39,6 +40,7 @@ const TOOL_GROUPS: ToolButton[][] = [
     { id: 'walls', icon: BrickWall },
     { id: 'break', icon: Scissors },
     { id: 'doors', icon: DoorOpen },
+    { id: 'garage', label: 'Garage Door', icon: House },
     { id: 'windows', icon: AppWindow },
   ],
   [
@@ -71,6 +73,10 @@ export function Toolbar() {
         <div className="toolbar-group" key={index}>
           {group.map((button) => {
             const Icon = button.icon;
+            if (button.id === 'garage') return <button key={button.id} type="button" className="tool-button" aria-label="Garage Door" title="Garage door - set width and height in Properties" onClick={() => {
+              useEditor.setState({ doorDefaults: { ...useEditor.getState().doorDefaults, style: 'garage', width: 108, height: 84 } });
+              setTool('doors');
+            }}><Icon size={18} strokeWidth={1.75} aria-hidden /></button>;
             if (button.id === 'camera') {
               return (
                 <button key={button.id} type="button" className="tool-button" aria-label={button.label} aria-pressed={camerasOpen} title={button.label} onClick={() => toggleCameras()}>
@@ -80,7 +86,7 @@ export function Toolbar() {
             }
             if (button.id === 'roof') {
               return (
-                <button key={button.id} type="button" className="tool-button" aria-label={button.label} title="Build a gable roof" onClick={() => buildGable()}>
+                <button key={button.id} type="button" className="tool-button" aria-label={button.label} title="Build Roof: gable on a rectangle; hip on other closed outlines" onClick={() => buildGable()}>
                   <Icon size={18} strokeWidth={1.75} aria-hidden />
                 </button>
               );

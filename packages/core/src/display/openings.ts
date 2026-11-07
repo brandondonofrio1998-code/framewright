@@ -173,6 +173,11 @@ function doorPrims(f: OpeningFrame, door: Door): Prim[] {
       };
       return [...fold(f.s0, 1), ...fold(f.s1, -1)];
     }
+    case 'garage':
+      return [
+        { t: 'polyline', pts: [f.at(f.s0, -1), f.at(f.s1, -1), f.at(f.s1, 1), f.at(f.s0, 1)], closed: true, pen: 'opening' },
+        { t: 'polyline', pts: [f.at(f.s0, -width / 2), f.at(f.s0, 0), f.at(f.s1, 0), f.at(f.s1, -width / 2)], closed: false, pen: 'opening.hidden' },
+      ];
     case 'opening':
       return [];
   }

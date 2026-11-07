@@ -1,3 +1,4 @@
+import { insulationCavities } from '../framing/insulation';
 import { objectFootprint, objectSize } from '../catalog/symbols';
 import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
@@ -249,7 +250,12 @@ function openingSolids(doc: PlanDocument, geom: WallGeometry, zBase: number, par
           zBase + opening.height - gap,
         );
       };
-      if (opening.style === 'pocket') slab(frame.s0 - (sB - sA) + 2, frame.s0 + 2, DOOR_THICKNESS / 2);
+      if (opening.style === 'garage') {
+        const rows = Math.max(3, Math.ceil(opening.height / 24));
+        for (let i = 0; i < rows; i++) extrude(b,
+          [frame.at(sA, -1), frame.at(sB, -1), frame.at(sB, 1), frame.at(sA, 1)],
+          zBase + i * opening.height / rows + gap, zBase + (i + 1) * opening.height / rows - gap);
+      } else if (opening.style === 'pocket') slab(frame.s0 - (sB - sA) + 2, frame.s0 + 2, DOOR_THICKNESS / 2);
       else if (opening.style === 'sliding') {
         const mid = (sA + sB) / 2;
         slab(sA, mid, DOOR_THICKNESS / 2);
@@ -264,7 +270,7 @@ function openingSolids(doc: PlanDocument, geom: WallGeometry, zBase: number, par
           slab(a, c, DOOR_THICKNESS / 2);
         }
       }
-      push(parts, finish(b, opening.id, null, 'panel'));
+      push(parts, finish(b, opening.id, null, opening.style === 'garage' ? 'solid' : 'panel'));
     }
     if (opening.kind === 'window') {
       const b = builder();
@@ -829,6 +835,13 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
         extrude(b, memberQuad(geom.a, geom.b, framed.off0, framed.off1, member.s0, member.s1), member.z0, member.z1);
       }
       push(parts, finish(b, geom.wallId, framed.materialId, 'solid'));
+      if (wall.insulationId) {
+        const insulation = builder();
+        for (const cavity of insulationCavities(framed, openingsOnWall(doc, wall.id), z0)) {
+          extrude(insulation, memberQuad(geom.a, geom.b, framed.off0, framed.off1, cavity.s0, cavity.s1), cavity.z0, cavity.z1);
+        }
+        push(parts, finish(insulation, wall.id, wall.insulationId, 'solid'));
+      }
     }
     openingSolids(doc, geom, z0, parts);
   }

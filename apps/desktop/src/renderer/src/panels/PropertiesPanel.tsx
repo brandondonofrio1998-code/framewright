@@ -1,3 +1,4 @@
+import { WallMaterials } from './WallMaterials';
 import { Trash2 } from 'lucide-react';
 import {
   angleOf,
@@ -37,7 +38,7 @@ function WallTypeSelect({ value, onChange, label }: { value: Id; onChange(id: Id
     <select className="field-input" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
       {Object.values(types).map((t) => (
         <option key={t.id} value={t.id}>
-          {t.name} ({formatLength(wallThickness(t), { system: 'imperial', style: 'in', denominator: 16 })})
+          {t.name} (overall {formatLength(wallThickness(t), { system: 'imperial', style: 'in', denominator: 16 })})
         </option>
       ))}
     </select>
@@ -186,7 +187,7 @@ function SingleWall({ doc, wall }: { doc: PlanDocument; wall: Wall }) {
         <dd>
           <LengthInput label="Wall length" value={length} format={format} onCommit={(v) => errorOf(dispatch('wall.setLength', { wallId: wall.id, length: v }))} />
         </dd>
-        <dt>Thickness</dt>
+        <dt>Overall thickness</dt>
         <dd>
           <span className="field-readonly">{formatLength(wallThickness(type), format)}</span>
         </dd>
@@ -214,7 +215,7 @@ function SingleWall({ doc, wall }: { doc: PlanDocument; wall: Wall }) {
         <dd>
           <LengthInput label="Base offset" value={wall.baseOffset} format={format} onCommit={(v) => errorOf(dispatch('wall.update', { wallIds: [wall.id], changes: { baseOffset: v } }))} />
         </dd>
-        <dt>Roof</dt>
+        <dt>Roof pitch / 12</dt>
         <dd className="field-stack">
           <label className="field-check">
             <input
@@ -223,7 +224,7 @@ function SingleWall({ doc, wall }: { doc: PlanDocument; wall: Wall }) {
               checked={wall.gableEnd === true}
               onChange={(e) => notify(errorOf(dispatch('wall.update', { wallIds: [wall.id], changes: { gableEnd: e.target.checked } })))}
             />
-            Gable end
+            Gable end (vertical end wall)
           </label>
           <input
             className="field-input"
@@ -233,6 +234,7 @@ function SingleWall({ doc, wall }: { doc: PlanDocument; wall: Wall }) {
             max={24}
             step={0.5}
             disabled={wall.gableEnd === true}
+            title="Roof pitch: inches of rise per 12 inches of run"
             placeholder="6"
             key={`${wall.roofPitch ?? ''}:${wall.gableEnd === true}`}
             defaultValue={wall.roofPitch ?? ''}
@@ -255,6 +257,7 @@ function SingleWall({ doc, wall }: { doc: PlanDocument; wall: Wall }) {
       <div className="panel-actions">
         <DeleteButton ids={[wall.id]} />
       </div>
+      <WallMaterials doc={doc} wall={wall} />
     </>
   );
 }

@@ -1,3 +1,4 @@
+import { materialCommands } from './materials';
 import { cadCommands } from './cad';
 import { cameraCommands } from './cameras';
 import { catalogCommands } from './catalog';
@@ -19,6 +20,7 @@ import { wallCommands } from './walls';
 
 export const planCommands = {
   ...documentCommands,
+  ...materialCommands,
   ...wallCommands,
   ...openingCommands,
   ...catalogCommands,

@@ -809,6 +809,7 @@ test('status bar shows the cursor position and snap toggles', async ({ window })
 
 test('builds a deck outside the room', async ({ electronApp, window, userData, consoleErrors }) => {
   await drawRoom(electronApp, window);
+  await showModel(electronApp, window, { x: -156, y: -220 }, { x: 156, y: 102 });
   await window.getByRole('button', { name: 'Deck', exact: true }).click();
   await expect(window.getByTestId('status-tool')).toHaveText('Deck');
   await clickAt(window, { x: -40, y: -90 });
@@ -950,5 +951,49 @@ test('a layer set is saved with the plan', async ({ electronApp, window, userDat
   await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toBe('');
   await clickMenu(electronApp, ['File', 'Open Recent', 'layers']);
   await expect.poll(() => window.evaluate(() => document.documentElement.dataset.hidden ?? '')).toContain('walls');
+  expect(consoleErrors).toEqual([]);
+});
+
+
+test('garage sizing, window defaults, wall materials and framing inspection', async ({ electronApp, window, consoleErrors }) => {
+  await showModel(electronApp, window, { x: -48, y: -48 }, { x: 360, y: 120 });
+  await window.getByRole('button', { name: 'Walls', exact: true }).click();
+  await clickAt(window, { x: 0, y: 0 });
+  await typeLength(window, "24'", '0');
+  await window.getByLabel('Plan view').press('Escape');
+  await window.getByRole('button', { name: 'Garage Door', exact: true }).click();
+  await expect(window.getByLabel('Door style to place')).toHaveValue('garage');
+  const width = window.getByLabel('Door width to place');
+  await width.fill("16'");
+  await width.press('Enter');
+  await clickAt(window, { x: 144, y: 0 });
+  await window.getByRole('button', { name: 'Select Objects', exact: true }).click();
+  await clickAt(window, { x: 144, y: 0 });
+  await expect(window.getByLabel('Door style', { exact: true })).toHaveValue('garage');
+  await expect(window.getByLabel('Door width', { exact: true })).toHaveValue(/16/);
+  await window.getByRole('button', { name: 'Windows', exact: true }).click();
+  const winWidth = window.getByLabel('Window width to place');
+  await expect(winWidth).toBeVisible();
+  await winWidth.fill('42');
+  await winWidth.press('Enter');
+  await expect(winWidth).toHaveValue(/6/);
+  await window.getByRole('button', { name: 'Select Objects', exact: true }).click();
+  await clickAt(window, { x: 24, y: 0 });
+  await expect(window.getByLabel('Stud spacing')).toBeVisible();
+  await window.getByLabel('Stud spacing').selectOption('24');
+  await window.getByRole('button', { name: 'Add insulation & material choices' }).click();
+  await window.getByLabel('Cavity insulation', { exact: true }).selectOption({ label: 'Fiberglass batts' });
+  await window.getByRole('button', { name: 'Flip material sides' }).click();
+  await expect(window.getByLabel('Layer 1 material', { exact: true }).locator('option:checked')).toHaveText('Gypsum board 1/2"');
+  await window.locator('.dv-default-tab-content', { hasText: '3D' }).click();
+  const view = window.getByTestId('view-3d');
+  await expect(view).toHaveAttribute('data-mesh-count', /[1-9]/);
+  const allCount = Number(await view.getAttribute('data-mesh-count'));
+  await window.getByLabel('3D wall display').selectOption('framing');
+  await expect.poll(async () => Number(await view.getAttribute('data-mesh-count'))).toBeLessThan(allCount);
+  await window.getByLabel('3D wall display').selectOption('insulated');
+  await window.getByLabel('Roof sheathing', { exact: true }).uncheck();
+  await window.getByLabel('Ceilings', { exact: true }).uncheck();
+  await window.screenshot({ path: 'test-results/materials-framing.png' });
   expect(consoleErrors).toEqual([]);
 });

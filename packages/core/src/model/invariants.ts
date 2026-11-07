@@ -64,6 +64,7 @@ export function checkInvariants(doc: PlanDocument): string[] {
     if (el.a === el.b) problems.push(`wall ${el.id} starts and ends at the same node`);
     else if (wallLength(a, b) <= LENGTH_EPS) problems.push(`wall ${el.id} has zero length`);
     if (a.levelId !== el.levelId || b.levelId !== el.levelId) problems.push(`wall ${el.id} uses nodes from another level`);
+    if (el.insulationId && doc.materials[el.insulationId]?.category !== 'insulation') problems.push(`wall ${el.id} has invalid insulation`);
     if (!doc.wallTypes[el.typeId]) problems.push(`wall ${el.id} has missing wall type`);
   }
   for (const el of Object.values(doc.elements)) {

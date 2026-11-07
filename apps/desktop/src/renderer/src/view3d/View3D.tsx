@@ -124,7 +124,7 @@ function usePrepared(id: TextureId, tile: [number, number]) {
   return maps;
 }
 
-function PartMesh({ part, color, maps }: { part: MeshPart; color: string; maps?: { color: Texture; normal: Texture; roughness: Texture } }) {
+function PartMesh({ part, color, maps }: { part: MeshPart; color: string; maps?: { color: Texture; normal?: Texture; roughness?: Texture } }) {
   const geometry = useMemo(() => {
     const g = new BufferGeometry();
     g.setAttribute('position', new Float32BufferAttribute(part.positions, 3));
@@ -138,7 +138,7 @@ function PartMesh({ part, color, maps }: { part: MeshPart; color: string; maps?:
   return (
     <mesh geometry={geometry} castShadow={!glass} receiveShadow={!glass}>
       <meshStandardMaterial
-        color={maps ? '#ffffff' : color}
+        color={color}
         map={maps?.color ?? null}
         normalMap={maps?.normal ?? null}
         roughnessMap={maps?.roughness ?? null}
@@ -150,6 +150,34 @@ function PartMesh({ part, color, maps }: { part: MeshPart; color: string; maps?:
       />
     </mesh>
   );
+}
+
+/** Original deterministic wood flakes; no downloaded assets or network dependency. */
+function OsbMesh({ part, color }: { part: MeshPart; color: string }) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#d3b789';
+    ctx.fillRect(0, 0, 256, 256);
+    let seed = 7321;
+    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    for (let i = 0; i < 950; i++) {
+      ctx.save();
+      ctx.translate(random() * 256, random() * 256);
+      ctx.rotate(random() * Math.PI);
+      ctx.fillStyle = ['#ead2a5', '#b4905d', '#d4b780', '#f0dcba'][i % 4]!;
+      ctx.fillRect(-10, -2, 8 + random() * 26, 2 + random() * 5);
+      ctx.restore();
+    }
+    const map = new CanvasTexture(canvas);
+    map.colorSpace = SRGBColorSpace;
+    map.wrapS = map.wrapT = RepeatWrapping;
+    map.repeat.set(1 / 24, 1 / 24);
+    return map;
+  }, []);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return <PartMesh part={part} color={color} maps={{ color: texture }} />;
 }
 
 function TexturedGroup({ texture, items }: { texture: PartTexture; items: { part: MeshPart; color: string }[] }) {
@@ -545,7 +573,9 @@ function Scene({
       <Sun parts={parts} />
       <gridHelper args={[720, 30, '#d4d0ca', '#eceae6']} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, elevation]} />
       {groups.flat.map((item, i) => (
-        <PartMesh key={`${item.part.elementId}:flat:${i}`} part={item.part} color={item.color} />
+        item.part.materialId && doc.materials[item.part.materialId]?.category === 'sheathing' && /\bOSB\b/i.test(doc.materials[item.part.materialId]!.name)
+          ? <OsbMesh key={`${item.part.elementId}:flat:${i}`} part={item.part} color={item.color} />
+          : <PartMesh key={`${item.part.elementId}:flat:${i}`} part={item.part} color={item.color} />
       ))}
       {groups.textured.map((group) => (
         <TexturedGroup key={`${group.texture.id}:${group.texture.tile.join(',')}`} texture={group.texture} items={group.items} />
@@ -574,7 +604,18 @@ export function View3D() {
   const liveRef = useRef<LiveView>({ eye: { x: 0, y: -10, z: 66 }, target: { x: 0, y: 0, z: 66 }, zoom: 0 });
   const [name, setName] = useState('');
   const [shownTextures, setShownTextures] = useState(0);
-  const parts = useMemo(() => buildPlanMeshes(doc), [doc]);
+  const [wallDisplay, setWallDisplay] = useState('finished');
+  const [showRoof, setShowRoof] = useState(true);
+  const [showCeilings, setShowCeilings] = useState(true);
+  const allParts = useMemo(() => buildPlanMeshes(doc), [doc]);
+  const parts = useMemo(() => allParts.filter((part) => {
+    const element = doc.elements[part.elementId];
+    if (!showRoof && element?.kind === 'roofPlane') return false;
+    if (!showCeilings && part.role === 'ceiling') return false;
+    if (element?.kind !== 'wall' || wallDisplay === 'finished') return true;
+    const category = part.materialId ? doc.materials[part.materialId]?.category : null;
+    return category === 'framing' || (wallDisplay === 'insulated' && category === 'insulation');
+  }), [allParts, doc, wallDisplay, showRoof, showCeilings]);
   const cameras = useMemo(() => camerasIn(doc), [doc]);
   const textured = useMemo(() => parts.filter((part) => partTexture(doc, part)).length, [doc, parts]);
   const elevation = doc.levels[levelId]?.elevation ?? doc.levels[doc.levelOrder[0] ?? '']?.elevation ?? 0;
@@ -624,6 +665,13 @@ export function View3D() {
         </Suspense>
       </Canvas>
       {parts.length === 0 && <p className="view-3d-empty">Draw walls in the plan to see them here.</p>}
+      <div className="view-3d-inspect">
+        <label>Walls <select aria-label="3D wall display" value={wallDisplay} onChange={(e) => setWallDisplay(e.target.value)}>
+          <option value="finished">All materials</option><option value="framing">Framing & utilities</option><option value="insulated">Framing & insulation</option>
+        </select></label>
+        <label><input type="checkbox" checked={showRoof} onChange={(e) => setShowRoof(e.target.checked)} /> Roof sheathing</label>
+        <label><input type="checkbox" checked={showCeilings} onChange={(e) => setShowCeilings(e.target.checked)} /> Ceilings</label>
+      </div>
       <div className="view-3d-bar">
         <div className="view-3d-modes" role="group" aria-label="Camera mode">
           <button type="button" aria-pressed={mode === 'orbit' && projection === 'perspective'} onClick={() => setOrbit('perspective')}>

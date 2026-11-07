@@ -1,3 +1,4 @@
+import { insulationCavities } from '../framing/insulation';
 import { distance, polygonArea } from '../geometry/vec2';
 import { subtractConvex } from '../geometry/polygon';
 import { frameLevel } from '../framing/members';
@@ -71,6 +72,13 @@ export function materialsList(doc: PlanDocument): TakeoffLine[] {
     let headers = 0;
     let extras = 0;
     for (const wall of framed) {
+      const element = doc.elements[wall.wallId];
+      if (element?.kind === 'wall' && element.insulationId) {
+        const material = doc.materials[element.insulationId];
+        const cavities = insulationCavities(wall, openingsOnWall(doc, element.id), level.elevation + element.baseOffset);
+        const area = cavities.reduce((sum, c) => sum + (c.s1 - c.s0) * (c.z1 - c.z0), 0);
+        if (material) add('Walls', material.name, area / 144, 'sq ft');
+      }
       for (const member of wall.members) {
         const length = Math.abs(member.s1 - member.s0);
         if (member.kind === 'stud' || member.kind === 'king') studs += 1;

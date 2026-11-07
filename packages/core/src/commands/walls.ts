@@ -144,6 +144,8 @@ export const splitWallAt = defineCommand<{ wallId: Id; at: Vec2 }, Id>({
 export type WallChanges = Partial<Pick<Wall, 'typeId' | 'height' | 'baseOffset'>> & {
   roofPitch?: number | null;
   gableEnd?: boolean | null;
+  studSpacing?: 16 | 24;
+  insulationId?: Id | null;
 };
 
 export const updateWalls = defineCommand<{ wallIds: Id[]; changes: WallChanges }>({
@@ -158,10 +160,15 @@ export const updateWalls = defineCommand<{ wallIds: Id[]; changes: WallChanges }
     if (changes.roofPitch !== undefined && changes.roofPitch !== null && (!(changes.roofPitch > 0) || changes.roofPitch > 24)) {
       throw new CommandError('Pitch must be greater than 0 and at most 24 in 12.');
     }
+    if (changes.studSpacing !== undefined && changes.studSpacing !== 16 && changes.studSpacing !== 24) throw new CommandError('Choose 16 or 24 inches on center.');
+    if (changes.insulationId != null && doc.materials[changes.insulationId]?.category !== 'insulation') throw new CommandError('Choose an insulation material.');
     const roofs = roofRecipes(doc);
     for (const id of wallIds) {
       const wall = getWall(doc, id);
       if (changes.typeId !== undefined) wall.typeId = changes.typeId;
+      if (changes.studSpacing !== undefined) wall.studSpacing = changes.studSpacing;
+      if (changes.insulationId === null) delete wall.insulationId;
+      else if (changes.insulationId !== undefined) wall.insulationId = changes.insulationId;
       if (height !== undefined) wall.height = height;
       if (changes.baseOffset !== undefined) wall.baseOffset = changes.baseOffset;
       if (changes.roofPitch === null) delete wall.roofPitch;

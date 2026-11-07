@@ -51,12 +51,12 @@ export function jackCount(clearWidth: number): number {
 }
 
 /** Stud centers from one end to the other, 16" apart, with a stud flush at each end. */
-export function studCenters(length: number): number[] {
+export function studCenters(length: number, spacing = STUD_SPACING): number[] {
   if (length < PLATE + 1e-3) return length > 1 ? [length / 2] : [];
   const inset = PLATE / 2;
   const last = length - inset;
   const centers: number[] = [];
-  for (let s = inset; s < last - inset; s += STUD_SPACING) centers.push(s);
+  for (let s = inset; s < last - inset; s += spacing) centers.push(s);
   centers.push(last);
   return centers;
 }
@@ -84,7 +84,7 @@ function subtractSpan(spans: [number, number][], cut0: number, cut1: number): [n
   return out;
 }
 
-function frameOne(geom: WallGeometry, openings: readonly Opening[], z0: number, z1: number): WallFraming | null {
+function frameOne(geom: WallGeometry, openings: readonly Opening[], z0: number, z1: number, spacing = STUD_SPACING): WallFraming | null {
   const structure = geom.layers.find((layer) => layer.fn === 'structure');
   if (!structure) return null;
   const length = distance(geom.a, geom.b);
@@ -124,7 +124,7 @@ function frameOne(geom: WallGeometry, openings: readonly Opening[], z0: number, 
     put(members, 'king', clear1 + jacks * PLATE, clear1 + side, studBottom, studTop, length);
     put(members, 'header', headerS0, headerS1, head, head + depth, length);
     if (studTop - (head + depth) >= 0.5) {
-      for (const center of studCenters(headerS1 - headerS0)) {
+      for (const center of studCenters(headerS1 - headerS0, spacing)) {
         const s = headerS0 + center;
         put(members, 'cripple', s - PLATE / 2, s + PLATE / 2, head + depth, studTop, length);
       }
@@ -132,14 +132,14 @@ function frameOne(geom: WallGeometry, openings: readonly Opening[], z0: number, 
     if (opening.kind === 'window') {
       const sillTop = z0 + opening.sill;
       put(members, 'sill', clear0, clear1, sillTop - PLATE, sillTop, length);
-      for (const center of studCenters(clear1 - clear0)) {
+      for (const center of studCenters(clear1 - clear0, spacing)) {
         const s = clear0 + center;
         put(members, 'cripple', s - PLATE / 2, s + PLATE / 2, studBottom, sillTop - PLATE, length);
       }
     }
   }
 
-  for (const center of studCenters(length)) {
+  for (const center of studCenters(length, spacing)) {
     if (geom.endKinds[0] === 'joined' && center <= PLATE) continue;
     if (geom.endKinds[1] === 'joined' && center >= length - PLATE) continue;
     const s0 = center - PLATE / 2;
@@ -173,7 +173,7 @@ export function frameLevel(doc: PlanDocument, levelId: Id, geometry: ReadonlyMap
     if (!geom) continue;
     const z0 = level.elevation + wall.baseOffset;
     const z1 = z0 + (wall.height ?? height);
-    const one = frameOne(geom, openingsOnWall(doc, wall.id), z0, z1);
+    const one = frameOne(geom, openingsOnWall(doc, wall.id), z0, z1, wall.studSpacing ?? STUD_SPACING);
     if (one && one.members.length > 0) framed.push(one);
   }
   return framed;

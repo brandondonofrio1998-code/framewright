@@ -1,3 +1,4 @@
+import { useEditor } from '../editor/store';
 import { useCallback, useEffect, useRef } from 'react';
 import {
   DockviewReact,
@@ -153,6 +154,10 @@ export function Workspace() {
       if (state.camerasOpen && !prev.camerasOpen && apiRef.current) showPerspective(apiRef.current);
     });
   }, []);
+
+  useEffect(() => useEditor.subscribe((state, prev) => {
+    if (state.tool !== prev.tool || state.selection !== prev.selection) apiRef.current?.getPanel('properties')?.api.setActive();
+  }), []);
 
   useEffect(
     () =>

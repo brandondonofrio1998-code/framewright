@@ -54,7 +54,7 @@ export const TOOL_LABELS: Record<ToolId, string> = {
 };
 
 export function setTool(tool: ToolId): void {
-  useEditor.setState({ tool, notice: null });
+  useEditor.setState({ tool, notice: null, selection: [] });
 }
 
 export function setSelection(selection: Id[]): void {

@@ -57,3 +57,6 @@ export * from './display/plan';
 export * from './display/openings';
 export * from './snap/snap';
 export * from './select/pick';
+
+export * from './commands/materials';
+export * from './framing/insulation';

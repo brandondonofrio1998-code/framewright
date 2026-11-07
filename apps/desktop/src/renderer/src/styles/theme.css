@@ -717,3 +717,9 @@ body {
   gap: 6px;
   color: var(--fw-ink-muted);
 }
+
+.wall-materials { margin-top: 16px; border-top: 1px solid var(--fw-border); padding-top: 12px; }
+.wall-layer-editor { display: grid; gap: 8px; margin: 10px 0; padding: 10px; border: 1px solid var(--fw-border); border-radius: 6px; }
+.wall-materials > .field-stack { margin: 12px 0; }
+
+.view-3d-inspect { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; flex-wrap: wrap; gap: 12px; padding: 8px; border-radius: 6px; background: var(--fw-chrome-raised); color: var(--fw-ink); font-size: 12px; }
