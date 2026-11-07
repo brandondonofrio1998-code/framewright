@@ -1,4 +1,4 @@
-import { clipHalfPlane, triangulate } from '../geometry/polygon';
+import { clipHalfPlane, subtractConvex, triangulate } from '../geometry/polygon';
 import { add, dot, length, lineIntersection, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
 import { wallTop } from './outline';
@@ -14,14 +14,22 @@ export interface RoofEdge {
   /** Unit normal pointing into the building. */
   inward: Vec2;
   plate: number;
+  /** Rise per 12. */
+  pitch: number;
+  /** The roof stops at this wall instead of sloping up from it. */
+  gable: boolean;
   wallIds: Id[];
+}
+
+export function levelHasRoofChoices(doc: PlanDocument, levelId: Id): boolean {
+  return Object.values(doc.elements).some((el) => el.kind === 'wall' && el.levelId === levelId && (el.gableEnd === true || el.roofPitch !== undefined));
 }
 
 /**
  * Outside face of each closed shell. Consecutive pieces of one straight wall are one edge.
  * The walk is clockwise, so the inside of the building is to the right.
  */
-export function roofEdges(doc: PlanDocument, levelId: Id): RoofEdge[][] {
+export function roofEdges(doc: PlanDocument, levelId: Id, fallbackPitch = 6): RoofEdge[][] {
   const { shells } = analyzeLevel(doc, levelId);
   const geometry = computeWallGeometry(doc, levelId);
   const loops: RoofEdge[][] = [];
@@ -42,6 +50,8 @@ export function roofEdges(doc: PlanDocument, levelId: Id): RoofEdge[][] {
         origin: add(mid, scale(outward, geom.thickness / 2)),
         inward: scale(outward, -1),
         plate: wallTop(doc, wall),
+        pitch: wall.roofPitch ?? fallbackPitch,
+        gable: wall.gableEnd === true,
         wallIds: [step.wallId],
       });
     }
@@ -68,62 +78,71 @@ function sameLine(a: RoofEdge, b: RoofEdge): boolean {
 
 function absorb(into: RoofEdge, edge: RoofEdge): void {
   into.plate = Math.min(into.plate, edge.plate);
+  into.pitch = Math.max(into.pitch, edge.pitch);
+  into.gable = into.gable || edge.gable;
   into.wallIds.push(...edge.wallIds);
   into.origin = { x: (into.origin.x + edge.origin.x) / 2, y: (into.origin.y + edge.origin.y) / 2 };
 }
 
 /**
- * A hip over every closed outline on the level. Each outside wall is an eave. The slope
- * rises toward the inside, and the lower plane wins, so an L grows a valley at the notch.
- * A rectangle keeps the dedicated hip in `hip.ts`.
+ * A hip over every closed outline on the level. Each outside wall is an eave unless that wall
+ * is a gable end, in which case the roof runs into it. A steeper eave reaches the ridge sooner.
  */
 export function hipOverOutlines(doc: PlanDocument, levelId: Id, pitch: number, overhang: number): { ok: true; roof: GableRoof } | { ok: false; error: string } {
-  const loops = roofEdges(doc, levelId);
+  const loops = roofEdges(doc, levelId, pitch);
   if (loops.length === 0) return { ok: false, error: 'Draw a closed room before building a roof.' };
-  const planes = loops.flatMap((loop) => hipLoop(loop, pitch, overhang));
-  if (planes.length < 3) return { ok: false, error: 'Draw a closed room before building a roof.' };
+  const planes = loops.flatMap((loop) => hipLoop(loop, overhang));
+  if (planes.length < 1) return { ok: false, error: 'A roof needs an eave. Leave at least one wall sloping.' };
   const plateZ = Math.min(...loops.flatMap((loop) => loop.map((edge) => edge.plate)));
   return { ok: true, roof: { plateZ, planes } };
 }
 
-function hipLoop(edges: RoofEdge[], pitch: number, overhang: number): GableSlope[] {
+function hipLoop(edges: RoofEdge[], overhang: number): GableSlope[] {
   const fascia = offsetLoop(edges, overhang);
   if (fascia.length < 3 || Math.abs(polygonArea(fascia)) < 1) return [];
   const triangles = triangulate(fascia);
   if (triangles.length < 3) return [];
-  const slope = pitch / 12;
   const planes: GableSlope[] = [];
   for (let i = 0; i < edges.length; i++) {
     const edge = edges[i]!;
-    let cell = boundsPolygon(fascia, overhang + 24);
+    if (edge.gable) continue;
+    const bounds = boundsPolygon(fascia, overhang + 24);
     const fasciaOrigin = add(edge.origin, scale(edge.inward, -overhang));
-    cell = clipHalfPlane(cell, fasciaOrigin, edge.inward, 0);
+    let pieces: Vec2[][] = [clipHalfPlane(bounds, fasciaOrigin, edge.inward, 0)].filter((piece) => piece.length >= 3);
     for (let j = 0; j < edges.length; j++) {
       if (j === i) continue;
-      cell = clipBelow(cell, edge, edges[j]!, slope);
-      if (cell.length < 3) break;
-    }
-    if (cell.length < 3) continue;
-    for (let t = 0; t < triangles.length; t += 3) {
-      const tri = [fascia[triangles[t]!]!, fascia[triangles[t + 1]!]!, fascia[triangles[t + 2]!]!];
-      let piece = cell;
-      for (let k = 0; k < 3; k++) {
-        const a = tri[k]!;
-        const b = tri[(k + 1) % 3]!;
-        const inside = perp(sub(b, a));
-        if (length(inside) < 1e-8) continue;
-        piece = clipHalfPlane(piece, a, normalize(inside), 0);
+      const other = edges[j]!;
+      if (other.gable) {
+        pieces = pieces.map((piece) => clipHalfPlane(piece, other.origin, other.inward, 0)).filter((piece) => piece.length >= 3);
+        continue;
       }
-      if (piece.length < 3 || Math.abs(polygonArea(piece)) < 1) continue;
-      const polygon = polygonArea(piece) < 0 ? [...piece].reverse() : piece;
-      planes.push({
-        polygon,
-        pitch,
-        up: edge.inward,
-        eave: fasciaOrigin,
-        eaveZ: edge.plate - overhang * slope,
-        generatedFrom: edge.wallIds,
-      });
+      const lose = whereOtherWins(bounds, edge, other);
+      if (lose.length < 3 || Math.abs(polygonArea(lose)) < 1) continue;
+      pieces = pieces.flatMap((piece) => subtractConvex(piece, lose));
+    }
+    const slope = edge.pitch / 12;
+    for (const cell of pieces) {
+      for (let t = 0; t < triangles.length; t += 3) {
+        const tri = [fascia[triangles[t]!]!, fascia[triangles[t + 1]!]!, fascia[triangles[t + 2]!]!];
+        let piece = cell;
+        for (let k = 0; k < 3; k++) {
+          const a = tri[k]!;
+          const b = tri[(k + 1) % 3]!;
+          const inside = perp(sub(b, a));
+          if (length(inside) < 1e-8) continue;
+          piece = clipHalfPlane(piece, a, normalize(inside), 0);
+        }
+        if (piece.length < 3 || Math.abs(polygonArea(piece)) < 1) continue;
+        const polygon = polygonArea(piece) < 0 ? [...piece].reverse() : piece;
+        planes.push({
+          polygon,
+          pitch: edge.pitch,
+          up: edge.inward,
+          eave: fasciaOrigin,
+          eaveZ: edge.plate - overhang * slope,
+          generatedFrom: edge.wallIds,
+        });
+      }
     }
   }
   return planes;
@@ -146,16 +165,15 @@ function offsetLoop(edges: RoofEdge[], dist: number): Vec2[] {
   return points;
 }
 
-/** Keeps the region where `edge` is no higher than `other`. */
-function clipBelow(poly: Vec2[], edge: RoofEdge, other: RoofEdge, slope: number): Vec2[] {
-  const dir = sub(edge.inward, other.inward);
-  const limit = (other.plate - edge.plate) / slope + dot(edge.origin, edge.inward) - dot(other.origin, other.inward);
-  if (length(dir) < 0.02) {
-    const edgeAt = edge.plate + slope * dot(edge.origin, edge.inward);
-    const otherAt = other.plate + slope * dot(other.origin, other.inward);
-    return edgeAt <= otherAt + 1e-6 ? poly : [];
-  }
-  return clipHalfPlane(poly, { x: 0, y: 0 }, scale(dir, -1), -limit);
+/** The part of the footprint where `other` is inward and lower than `edge`. */
+function whereOtherWins(bounds: Vec2[], edge: RoofEdge, other: RoofEdge): Vec2[] {
+  const region = clipHalfPlane(bounds, other.origin, other.inward, 0);
+  const slopeEdge = edge.pitch / 12;
+  const slopeOther = other.pitch / 12;
+  const dir = sub(scale(edge.inward, slopeEdge), scale(other.inward, slopeOther));
+  const limit = other.plate - edge.plate + slopeEdge * dot(edge.origin, edge.inward) - slopeOther * dot(other.origin, other.inward);
+  if (length(dir) < 1e-4) return edge.plate > other.plate ? region : [];
+  return clipHalfPlane(region, { x: 0, y: 0 }, dir, limit);
 }
 
 function boundsPolygon(points: readonly Vec2[], pad: number): Vec2[] {

@@ -33,8 +33,7 @@ export function roofRecipes(doc: PlanDocument): RoofRecipe[] {
 
 /** A hip that follows a wing, a notch, or an angled wall. */
 function shapeRecipe(doc: PlanDocument, levelId: Id, planes: RoofPlane[]): RoofRecipe | null {
-  const pitch = planes[0]?.pitch;
-  if (pitch === undefined || planes.some((plane) => Math.abs(plane.pitch - pitch) > 0.05)) return null;
+  const pitch = planes[0]?.pitch ?? 6;
   const edges = roofEdges(doc, levelId).flat();
   const hangs: number[] = [];
   for (const plane of planes) {

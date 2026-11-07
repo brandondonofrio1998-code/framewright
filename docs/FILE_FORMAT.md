@@ -37,7 +37,7 @@ Every element has `id`, `kind` and `levelId`, plus optional `name` and `locked`.
 | Kind | Fields |
 | --- | --- |
 | `wallNode` | `p`: a point where walls meet. Walls that join share a node |
-| `wall` | `a`, `b`: node ids (the wall's centerline runs a → b); `typeId`; `height` (`null` = from the level); `baseOffset` |
+| `wall` | `a`, `b`: node ids (the wall's centerline runs a → b); `typeId`; `height` (`null` = from the level); `baseOffset`. Optional `roofPitch` (rise per 12) and `gableEnd` (`true` when the roof runs into that wall) |
 | `dimension` | `a`, `b`: ends `{ p, nodeId? }` (an end with `nodeId` follows that wall node; `p` is its last position); `offset`: distance of the dimension line, positive to the left of a → b |
 | `door` | `wallId`; `t`: distance along the wall from node a to the door's center; `width`; `height`; `side` (`left`/`right` of a → b: the swing side); `hinge` (`start` = the jamb nearer node a, or `end`); `style` (`hinged`, `double`, `pocket`, `sliding`, `bifold`, `opening`) |
 | `window` | Same as `door`, plus `sill` (height of the window's bottom above the wall's base). `side` is the exterior side. `style` is `double-hung`, `casement`, `slider`, `awning` or `fixed` |
@@ -68,7 +68,7 @@ Loading validates the whole file against the schema. A file that fails validatio
 
 ## Versioning
 
-- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, the `stair` kind, the `cad` kind, the `text` kind, the `deck` kind, the `electrical` kind, the `plumbing` kind, the `site` kind, the `plant` kind, the `road` kind, the `pipe` kind, the optional material `texture`, the optional `layerSets` list, and the optional camera `projection`, the optional electrical `circuit`, and the optional text `rot`, the optional stair `landing.winders`, and the later catalog generators were added at version 2 for that reason.
+- `schemaVersion` increases whenever the format changes incompatibly. Adding an element kind does not, because older apps never have to read a key they require. Adding a required top-level key does. The `camera` kind, the `roofPlane` kind, the `foundation` kind, the `stair` kind, the `cad` kind, the `text` kind, the `deck` kind, the `electrical` kind, the `plumbing` kind, the `site` kind, the `plant` kind, the `road` kind, the `pipe` kind, the optional material `texture`, the optional `layerSets` list, and the optional camera `projection`, the optional electrical `circuit`, and the optional text `rot`, the optional stair `landing.winders`, and the optional wall `roofPitch` and `gableEnd` were added at version 2 for that reason.
 - Version 1 files upgrade to version 2 by adding `catalogDefs: {}`. The frozen fixture is `packages/core/test/fixtures/v1/two-levels.fwplan`.
 - Older files are upgraded on load, and open with unsaved changes, by a chain of migrations, one per version step (`MIGRATIONS` in `packages/core/src/file/format.ts`). Each migration has a frozen fixture file under `packages/core/test/fixtures/v<N>/`.
 - A file from a newer version of Framewright is not opened. The message tells the user to update rather than risk losing data the older app doesn't understand.

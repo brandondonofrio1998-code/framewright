@@ -214,6 +214,39 @@ function SingleWall({ doc, wall }: { doc: PlanDocument; wall: Wall }) {
         <dd>
           <LengthInput label="Base offset" value={wall.baseOffset} format={format} onCommit={(v) => errorOf(dispatch('wall.update', { wallIds: [wall.id], changes: { baseOffset: v } }))} />
         </dd>
+        <dt>Roof</dt>
+        <dd className="field-stack">
+          <label className="field-check">
+            <input
+              type="checkbox"
+              aria-label="Gable end"
+              checked={wall.gableEnd === true}
+              onChange={(e) => notify(errorOf(dispatch('wall.update', { wallIds: [wall.id], changes: { gableEnd: e.target.checked } })))}
+            />
+            Gable end
+          </label>
+          <input
+            className="field-input"
+            aria-label="Roof pitch"
+            type="number"
+            min={0.5}
+            max={24}
+            step={0.5}
+            disabled={wall.gableEnd === true}
+            placeholder="6"
+            key={`${wall.roofPitch ?? ''}:${wall.gableEnd === true}`}
+            defaultValue={wall.roofPitch ?? ''}
+            onBlur={(e) => {
+              const text = e.target.value.trim();
+              const pitch = text === '' ? null : Number(text);
+              if (pitch === wall.roofPitch || (pitch === null && wall.roofPitch === undefined)) return;
+              notify(errorOf(dispatch('wall.update', { wallIds: [wall.id], changes: { roofPitch: pitch } })));
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur();
+            }}
+          />
+        </dd>
         <dt>Angle</dt>
         <dd>
           <span className="field-readonly">{angle.toFixed(1)}°</span>

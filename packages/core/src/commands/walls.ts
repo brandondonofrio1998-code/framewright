@@ -141,7 +141,10 @@ export const splitWallAt = defineCommand<{ wallId: Id; at: Vec2 }, Id>({
   },
 });
 
-export type WallChanges = Partial<Pick<Wall, 'typeId' | 'height' | 'baseOffset'>>;
+export type WallChanges = Partial<Pick<Wall, 'typeId' | 'height' | 'baseOffset'>> & {
+  roofPitch?: number | null;
+  gableEnd?: boolean | null;
+};
 
 export const updateWalls = defineCommand<{ wallIds: Id[]; changes: WallChanges }>({
   label: (p) => plural(p.wallIds.length, 'Edit Wall', 'Edit Walls'),
@@ -152,12 +155,19 @@ export const updateWalls = defineCommand<{ wallIds: Id[]; changes: WallChanges }
     if (changes.baseOffset !== undefined && (!Number.isFinite(changes.baseOffset) || Math.abs(changes.baseOffset) > MAX_LENGTH)) {
       throw new CommandError('Base offset is out of range.');
     }
+    if (changes.roofPitch !== undefined && changes.roofPitch !== null && (!(changes.roofPitch > 0) || changes.roofPitch > 24)) {
+      throw new CommandError('Pitch must be greater than 0 and at most 24 in 12.');
+    }
     const roofs = roofRecipes(doc);
     for (const id of wallIds) {
       const wall = getWall(doc, id);
       if (changes.typeId !== undefined) wall.typeId = changes.typeId;
       if (height !== undefined) wall.height = height;
       if (changes.baseOffset !== undefined) wall.baseOffset = changes.baseOffset;
+      if (changes.roofPitch === null) delete wall.roofPitch;
+      else if (changes.roofPitch !== undefined) wall.roofPitch = changes.roofPitch;
+      if (changes.gableEnd === true) wall.gableEnd = true;
+      else if (changes.gableEnd === false || changes.gableEnd === null) delete wall.gableEnd;
     }
     applyRoofRecipes(doc, roofs, ctx);
   },

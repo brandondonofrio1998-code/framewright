@@ -1,6 +1,6 @@
 import type { Id, PlanDocument, RoofPlane, Vec2 } from '../model/schema';
 import { outlineError, rectangularOutline } from './outline';
-import { hipOverOutlines } from './shape';
+import { hipOverOutlines, levelHasRoofChoices } from './shape';
 
 /** 6 in 12, a common house pitch. */
 export const DEFAULT_PITCH = 6;
@@ -42,6 +42,7 @@ export function gableOnLevel(doc: PlanDocument, levelId: Id, pitch = DEFAULT_PIT
     if (outline.reason === 'small') return { ok: false, error: outlineError(outline.reason, 'gable') };
     return hipOverOutlines(doc, levelId, pitch, overhang);
   }
+  if (levelHasRoofChoices(doc, levelId)) return hipOverOutlines(doc, levelId, pitch, overhang);
   const { x0, x1, y0, y1, plateX0, plateX1, plateY0, plateY1, generatedFrom } = outline.rect;
   const alongX = x1 - x0 >= y1 - y0;
   const plateZ = alongX ? Math.min(plateY0, plateY1) : Math.min(plateX0, plateX1);

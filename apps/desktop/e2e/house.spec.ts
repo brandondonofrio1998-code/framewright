@@ -141,3 +141,25 @@ test('roofs an L-shaped wing', async ({ electronApp, window, userData, consoleEr
   await expect.poll(async () => Number(await window.getByTestId('view-3d').getAttribute('data-mesh-count'))).toBeGreaterThan(4);
   expect(consoleErrors).toEqual([]);
 });
+
+test('a selected wall can be a gable end at its own pitch', async ({ electronApp, window, userData, consoleErrors }) => {
+  await showModel(electronApp, window, { x: -36, y: -36 }, { x: 280, y: 180 });
+  await window.getByRole('button', { name: 'Walls', exact: true }).click();
+  await clickAt(window, { x: 0, y: 0 });
+  await typeLength(window, "20'", '0');
+  await typeLength(window, "12'", '90');
+  await typeLength(window, "20'", '180');
+  await typeLength(window, "12'", '270');
+  await window.getByLabel('Plan view').press('Escape');
+  await window.getByRole('button', { name: 'Select Objects' }).click();
+  await clickAt(window, { x: 120, y: 0 });
+  await window.getByLabel('Roof pitch').fill('9');
+  await window.getByLabel('Roof pitch').press('Tab');
+  await window.getByLabel('Gable end').check();
+  await window.getByRole('button', { name: 'Roof', exact: true }).click();
+  const plan = await savePlan(electronApp, userData, 'gable-end');
+  const walls = Object.values(plan.elements).filter((el) => el.kind === 'wall') as { gableEnd?: boolean; roofPitch?: number }[];
+  expect(walls.some((wall) => wall.gableEnd === true && wall.roofPitch === 9)).toBe(true);
+  expect(Object.values(plan.elements).filter((el) => el.kind === 'roofPlane').length).toBeGreaterThanOrEqual(3);
+  expect(consoleErrors).toEqual([]);
+});

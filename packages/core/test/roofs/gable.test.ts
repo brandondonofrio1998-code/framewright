@@ -55,6 +55,7 @@ describe('gable roofs', () => {
     const planes = roofsOnLevel(ctx.history.doc, ctx.baseLevelId);
     expect(planes.length).toBeGreaterThanOrEqual(6);
     expect(covers(planes, { x: 40, y: 40 })).toBe(true);
+    expect(covers(planes, { x: 40, y: 140 })).toBe(true);
     expect(covers(planes, { x: 180, y: 150 })).toBe(false);
     const plate = defaultWallHeight(ctx.history.doc.levels, ctx.history.doc.levelOrder, ctx.baseLevelId);
     const under = Math.min(...planes.filter((plane) => covers([plane], { x: 40, y: 40 })).map((plane) => roofZ(plane, { x: 40, y: 40 })));

@@ -125,6 +125,10 @@ export const WallSchema = z.object({
   /** null → derived from the level. */
   height: PositiveLength.nullable(),
   baseOffset: Length,
+  /** Rise per 12 inches of run. Omitted means the roof command's pitch. */
+  roofPitch: z.number().gt(0).lte(24).optional(),
+  /** The roof runs into this wall instead of sloping up from it. */
+  gableEnd: z.literal(true).optional(),
 });
 export type Wall = z.infer<typeof WallSchema>;
 
