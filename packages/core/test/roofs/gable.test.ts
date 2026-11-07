@@ -27,6 +27,29 @@ describe('gable roofs', () => {
     expect(built.ok).toBe(false);
   });
 
+  it('roofs a rectangle that an interior wall splits', () => {
+    const ctx = room();
+    const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Interior 2x4')!.id;
+    const drawn = ctx.history.dispatch('wall.draw', { levelId: ctx.baseLevelId, typeId, points: [p(120, 0), p(120, 144)] });
+    if (!drawn.ok) throw new Error(drawn.error);
+    const built = gableOnLevel(ctx.history.doc, ctx.baseLevelId);
+    expect(built.ok).toBe(true);
+  });
+
+  it('refuses an L-shaped outline', () => {
+    const ctx = testHistory();
+    const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
+    const drawn = ctx.history.dispatch('wall.draw', {
+      levelId: ctx.baseLevelId,
+      typeId,
+      points: [p(0, 0), p(200, 0), p(200, 80), p(80, 80), p(80, 160), p(0, 160)],
+      closed: true,
+    });
+    if (!drawn.ok) throw new Error(drawn.error);
+    const built = gableOnLevel(ctx.history.doc, ctx.baseLevelId);
+    expect(built.ok).toBe(false);
+  });
+
   it('puts two slopes on a rectangle, bearing on the eave walls and rising to a shared ridge', () => {
     const ctx = room();
     const built = gableOnLevel(ctx.history.doc, ctx.baseLevelId);
