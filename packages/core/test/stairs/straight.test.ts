@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, handrail, handrails, landingPolygon, layoutFlight, placedFlights, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, HANDRAIL_HEIGHT, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
+import { buildLevelMeshes, handrail, handrails, landingPolygon, layoutFlight, placedFlights, pointInPolygon, pointInsideMesh, stairCorners, stairsOnLevel, winderTreads, HANDRAIL_HEIGHT, IRC_MAX_RISER, IRC_MIN_TREAD } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -133,6 +133,9 @@ describe('straight stairs', () => {
     expect(stair.riser * (stair.risers + stair.landing!.risers)).toBeCloseTo(upper.elevation - lower.elevation, 5);
     expect(stair.tread).toBeGreaterThanOrEqual(IRC_MIN_TREAD);
     expect(stair.landing!.tread).toBeGreaterThanOrEqual(IRC_MIN_TREAD);
+    const winders = ctx.history.dispatch('stair.winders', { id: stair.id, winders: true });
+    if (!winders.ok) throw new Error(winders.error);
+    expect(winderTreads(stairsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!)).toHaveLength(3);
     const landing = landingPolygon(stair);
     if (!landing) throw new Error('missing landing');
     expect(Math.hypot(landing[1]!.x - landing[0]!.x, landing[1]!.y - landing[0]!.y)).toBeCloseTo(36, 3);

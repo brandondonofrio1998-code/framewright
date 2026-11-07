@@ -4,7 +4,7 @@ import { frameLevel, memberQuad } from '../framing/members';
 import { floorJoists } from '../foundations/joists';
 import { FLOOR_FINISH, foundationsOnLevel } from '../foundations/slab';
 import { balusterFoot, deckBalusters, deckGuardedEdges, deckJoists, deckPolygon, deckStair, deckStairDrop, decksOnLevel } from '../decks/deck';
-import { handrails, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel } from '../stairs/straight';
+import { handrails, landingPolygon, placedFlights, stairCorners, stairTreadLines, stairsOnLevel, winderTreads } from '../stairs/straight';
 import { circuitWires, electricalItem, electricalOnLevel } from '../electrical/devices';
 import { plumbingItem, plumbingOnLevel } from '../plumbing/fixtures';
 import { siteItem, siteOnLevel } from '../site/marks';
@@ -144,6 +144,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     }
     const landing = landingPolygon(stair);
     if (landing) prims.push({ t: 'polyline', pts: landing, closed: true, pen: 'stair' });
+    for (const wedge of winderTreads(stair)) prims.push({ t: 'polyline', pts: wedge, closed: true, pen: 'stair' });
     items.push({ elementId: stair.id, layer: 'stairs', prims });
   }
   for (const el of Object.values(doc.elements)) {
@@ -151,6 +152,7 @@ export function buildPlanDisplayList(doc: PlanDocument, levelId: Id, options: Pl
     const prims: Prim[] = placedFlights(el).map((flight) => ({ t: 'polyline' as const, pts: stairCorners(flight), closed: true, pen: 'stair' as const }));
     const landing = landingPolygon(el);
     if (landing) prims.push({ t: 'polyline', pts: landing, closed: true, pen: 'stair' });
+    for (const wedge of winderTreads(el)) prims.push({ t: 'polyline', pts: wedge, closed: true, pen: 'stair' });
     items.push({ elementId: el.id, layer: 'stairs', prims });
   }
   for (const deck of decksOnLevel(doc, levelId)) {

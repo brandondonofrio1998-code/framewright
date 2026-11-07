@@ -1,4 +1,5 @@
 import { buildPlanMeshes, type MeshPart, type MeshRole } from '../mesh/meshes';
+import { partTexture } from '../materials/textures';
 import type { PlanDocument } from '../model/schema';
 
 /** Inches to meters. glTF viewers treat a unit as one meter. */
@@ -16,21 +17,26 @@ interface Bucket {
   name: string;
   color: [number, number, number, number];
   blend: boolean;
+  textureId: string | null;
   positions: number[];
   normals: number[];
+  uvs: number[];
   indices: number[];
 }
 
 /**
  * Binary glTF of the whole model. Coordinates are meters, Y up.
- * Materials are the plan colors. Texture images are not embedded.
+ * Pass the bundled color images to embed them. Without images the materials stay flat colors.
  */
-export function planGlb(doc: PlanDocument): Uint8Array {
+export function planGlb(doc: PlanDocument, images: ReadonlyMap<string, Uint8Array> = new Map()): Uint8Array {
   const buckets = new Map<string, Bucket>();
   for (const part of buildPlanMeshes(doc)) {
     if (part.indices.length < 3 || part.positions.length < 9) continue;
-    const bucket = bucketFor(doc, part, buckets);
+    const texture = partTexture(doc, part);
+    const bucket = bucketFor(doc, part, buckets, texture?.id ?? null);
     const base = bucket.positions.length / 3;
+    const tileU = texture?.tile[0] || 1;
+    const tileV = texture?.tile[1] || 1;
     for (let i = 0; i < part.positions.length; i += 3) {
       const x = part.positions[i]!;
       const y = part.positions[i + 1]!;
@@ -40,15 +46,17 @@ export function planGlb(doc: PlanDocument): Uint8Array {
       const ny = part.normals[i + 1] ?? 0;
       const nz = part.normals[i + 2] ?? 0;
       bucket.normals.push(nx, nz, -ny);
+      const vertex = i / 3;
+      bucket.uvs.push((part.uvs[vertex * 2] ?? 0) / tileU, (part.uvs[vertex * 2 + 1] ?? 0) / tileV);
     }
     for (const index of part.indices) bucket.indices.push(base + index);
   }
-  return encodeGlb([...buckets.values()].filter((bucket) => bucket.indices.length >= 3));
+  return encodeGlb([...buckets.values()].filter((bucket) => bucket.indices.length >= 3), images);
 }
 
-function bucketFor(doc: PlanDocument, part: MeshPart, buckets: Map<string, Bucket>): Bucket {
+function bucketFor(doc: PlanDocument, part: MeshPart, buckets: Map<string, Bucket>, textureId: string | null): Bucket {
   const material = part.materialId ? doc.materials[part.materialId] : undefined;
-  const key = `${part.materialId ?? part.role}:${part.role === 'glass' ? 'glass' : 'solid'}`;
+  const key = `${part.materialId ?? part.role}:${textureId ?? ''}:${part.role === 'glass' ? 'glass' : 'solid'}`;
   const existing = buckets.get(key);
   if (existing) return existing;
   const rgb = material ? hex(material.color) : ROLE_COLOR[part.role];
@@ -57,26 +65,20 @@ function bucketFor(doc: PlanDocument, part: MeshPart, buckets: Map<string, Bucke
     name: material?.name ?? part.role,
     color: [rgb[0], rgb[1], rgb[2], glass ? 0.35 : 1],
     blend: glass,
+    textureId,
     positions: [],
     normals: [],
+    uvs: [],
     indices: [],
   };
   buckets.set(key, bucket);
   return bucket;
 }
 
-function encodeGlb(buckets: Bucket[]): Uint8Array {
+function encodeGlb(buckets: Bucket[], images: ReadonlyMap<string, Uint8Array>): Uint8Array {
   const bin: number[] = [];
-  const bufferViews: { buffer: number; byteOffset: number; byteLength: number; target: number }[] = [];
+  const bufferViews: { buffer: number; byteOffset: number; byteLength: number; target?: number }[] = [];
   const accessors: { bufferView: number; componentType: number; count: number; type: string; min?: number[]; max?: number[] }[] = [];
-  const primitives: { attributes: { POSITION: number; NORMAL: number }; indices: number; material: number }[] = [];
-  const materials = buckets.map((bucket) => ({
-    name: bucket.name,
-    doubleSided: true,
-    alphaMode: bucket.blend ? 'BLEND' : 'OPAQUE',
-    pbrMetallicRoughness: { baseColorFactor: bucket.color, metallicFactor: 0, roughnessFactor: bucket.blend ? 0.05 : 0.82 },
-  }));
-
   const align = () => {
     while (bin.length % 4 !== 0) bin.push(0);
   };
@@ -103,11 +105,25 @@ function encodeGlb(buckets: Bucket[]): Uint8Array {
       view.setFloat32(0, x, true);
       view.setFloat32(4, y, true);
       view.setFloat32(8, z, true);
-      bin.push(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3), view.getUint8(4), view.getUint8(5), view.getUint8(6), view.getUint8(7), view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
+      for (let b = 0; b < 12; b++) bin.push(view.getUint8(b));
     }
     const viewIndex = bufferViews.length;
     bufferViews.push({ buffer: 0, byteOffset, byteLength: values.length * 4, target });
     accessors.push({ bufferView: viewIndex, componentType: 5126, count: values.length / 3, type: 'VEC3', min: [min0, min1, min2], max: [max0, max1, max2] });
+    return accessors.length - 1;
+  };
+  const pushVec2 = (values: number[]): number => {
+    align();
+    const byteOffset = bin.length;
+    for (let i = 0; i < values.length; i += 2) {
+      const view = new DataView(new ArrayBuffer(8));
+      view.setFloat32(0, values[i] ?? 0, true);
+      view.setFloat32(4, values[i + 1] ?? 0, true);
+      for (let b = 0; b < 8; b++) bin.push(view.getUint8(b));
+    }
+    const viewIndex = bufferViews.length;
+    bufferViews.push({ buffer: 0, byteOffset, byteLength: values.length * 4, target: 34962 });
+    accessors.push({ bufferView: viewIndex, componentType: 5126, count: values.length / 2, type: 'VEC2' });
     return accessors.length - 1;
   };
   const pushIndices = (values: number[]): number => {
@@ -116,7 +132,7 @@ function encodeGlb(buckets: Bucket[]): Uint8Array {
     for (const index of values) {
       const view = new DataView(new ArrayBuffer(4));
       view.setUint32(0, index, true);
-      bin.push(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+      for (let b = 0; b < 4; b++) bin.push(view.getUint8(b));
     }
     const viewIndex = bufferViews.length;
     bufferViews.push({ buffer: 0, byteOffset, byteLength: values.length * 4, target: 34963 });
@@ -124,11 +140,41 @@ function encodeGlb(buckets: Bucket[]): Uint8Array {
     return accessors.length - 1;
   };
 
+  const textureIndex = new Map<string, number>();
+  const imageList: { bufferView: number; mimeType: string }[] = [];
+  const textureList: { sampler: number; source: number }[] = [];
+  const primitives: { attributes: { POSITION: number; NORMAL: number; TEXCOORD_0: number }; indices: number; material: number }[] = [];
   buckets.forEach((bucket, material) => {
     const position = pushFloats(bucket.positions, 34962);
     const normal = pushFloats(bucket.normals, 34962);
+    const uv = pushVec2(bucket.uvs);
     const indices = pushIndices(bucket.indices);
-    primitives.push({ attributes: { POSITION: position, NORMAL: normal }, indices, material });
+    primitives.push({ attributes: { POSITION: position, NORMAL: normal, TEXCOORD_0: uv }, indices, material });
+    const bytes = bucket.textureId ? images.get(bucket.textureId) : undefined;
+    if (bucket.textureId && bytes && bytes.length > 0 && !textureIndex.has(bucket.textureId)) {
+      align();
+      const byteOffset = bin.length;
+      for (const byte of bytes) bin.push(byte);
+      const viewIndex = bufferViews.length;
+      bufferViews.push({ buffer: 0, byteOffset, byteLength: bytes.length });
+      imageList.push({ bufferView: viewIndex, mimeType: 'image/jpeg' });
+      textureList.push({ sampler: 0, source: imageList.length - 1 });
+      textureIndex.set(bucket.textureId, textureList.length - 1);
+    }
+  });
+  const materials = buckets.map((bucket) => {
+    const textured = bucket.textureId ? textureIndex.get(bucket.textureId) : undefined;
+    return {
+      name: bucket.name,
+      doubleSided: true,
+      alphaMode: bucket.blend ? 'BLEND' : 'OPAQUE',
+      pbrMetallicRoughness: {
+        baseColorFactor: bucket.color,
+        metallicFactor: 0,
+        roughnessFactor: bucket.blend ? 0.05 : 0.82,
+        ...(textured !== undefined ? { baseColorTexture: { index: textured } } : {}),
+      },
+    };
   });
 
   const json: Record<string, unknown> = {
@@ -143,6 +189,11 @@ function encodeGlb(buckets: Bucket[]): Uint8Array {
     json.accessors = accessors;
     json.bufferViews = bufferViews;
     json.buffers = [{ byteLength: bin.length }];
+    if (textureList.length > 0) {
+      json.samplers = [{ wrapS: 10497, wrapT: 10497 }];
+      json.images = imageList;
+      json.textures = textureList;
+    }
   }
   return packGlb(JSON.stringify(json), primitives.length > 0 ? new Uint8Array(bin) : null);
 }

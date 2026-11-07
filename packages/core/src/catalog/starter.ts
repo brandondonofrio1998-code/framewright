@@ -11,7 +11,7 @@ const item = (sourceId: string, name: string, category: string[], generator: Cat
   params,
   paramSchema: [
     size('width', 'Width', 9, 120),
-    size('depth', 'Depth', 6, 48),
+    size('depth', 'Depth', 6, 96),
     size('height', 'Height', 6, 120),
   ],
   hostsToWall,
@@ -33,6 +33,14 @@ export const STARTER_CATALOG: readonly CatalogDef[] = [
   item('starter.sink', 'Kitchen Sink', ['Fixtures'], 'fixture.sink', { width: 33, depth: 22, height: 8, elevation: 0 }),
   item('starter.lavatory', 'Lavatory', ['Fixtures'], 'fixture.sink', { width: 24, depth: 19, height: 31, elevation: 0 }),
   item('starter.tub-60', 'Bathtub 60', ['Fixtures'], 'fixture.tub', { width: 60, depth: 30, height: 16, elevation: 0 }),
+  item('starter.bed', 'Bed 75', ['Bedroom'], 'furniture.bed', { width: 75, depth: 39, height: 24, elevation: 0 }),
+  item('starter.nightstand', 'Nightstand', ['Bedroom'], 'furniture.desk', { width: 22, depth: 16, height: 24, elevation: 0 }),
+  item('starter.dresser', 'Dresser 60', ['Bedroom'], 'furniture.desk', { width: 60, depth: 18, height: 36, elevation: 0 }),
+  item('starter.sofa', 'Sofa 84', ['Living'], 'furniture.sofa', { width: 84, depth: 36, height: 30, elevation: 0 }),
+  item('starter.desk', 'Desk 48', ['Living'], 'furniture.desk', { width: 48, depth: 24, height: 30, elevation: 0 }),
+  item('starter.washer', 'Washer 27', ['Appliances'], 'appliance.laundry', { width: 27, depth: 27, height: 36, elevation: 0 }),
+  item('starter.dryer', 'Dryer 27', ['Appliances'], 'appliance.laundry', { width: 27, depth: 27, height: 36, elevation: 0 }),
+  item('starter.shower', 'Shower 36', ['Fixtures'], 'fixture.shower', { width: 36, depth: 36, height: 80, elevation: 0 }),
 ];
 
 export function starterById(sourceId: string): CatalogDef | undefined {

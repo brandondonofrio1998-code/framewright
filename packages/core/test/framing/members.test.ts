@@ -103,4 +103,17 @@ describe('wall framing', () => {
     expect(sill!.z1 - sill!.z0).toBeCloseTo(1.5, 3);
     expect(wall.members.some((member) => member.kind === 'cripple' && member.z1 <= 32)).toBe(true);
   });
+
+  it('drops the butting stud where two walls meet', () => {
+    const ctx = testHistory();
+    const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
+    const drawn = ctx.history.dispatch('wall.draw', { levelId: ctx.baseLevelId, typeId, points: [p(0, 0), p(96, 0), p(96, 96)] });
+    if (!drawn.ok) throw new Error(drawn.error);
+    const framed = frameLevel(ctx.history.doc, ctx.baseLevelId, computeWallGeometry(ctx.history.doc, ctx.baseLevelId));
+    const endStuds = framed.flatMap((wall) => wall.members.filter((member) => member.kind === 'stud' && (member.s0 < 2 || member.s1 > 94)));
+    const straight = studCenters(96).length * 2;
+    const actual = framed.reduce((sum, wall) => sum + wall.members.filter((member) => member.kind === 'stud').length, 0);
+    expect(actual).toBeLessThan(straight);
+    expect(endStuds.length).toBeGreaterThan(0);
+  });
 });

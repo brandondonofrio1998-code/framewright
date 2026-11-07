@@ -1,5 +1,6 @@
 import { loadDocument, materialsCsv, materialsList, parseDxf, planDxf, planGlb, serializeDocument, sheetPdf } from '@framewright/core';
 import type { FileHandle, FileRef, IpcResult, OpenedFile } from '../../../shared/ipc';
+import { TEXTURE_URLS } from '../view3d/textures';
 import { blankDocument, documentTitle, getAppVersion, history, markSaved, replaceDocument, useDocument } from './store';
 
 let saving: Promise<boolean> | null = null;
@@ -81,7 +82,14 @@ export async function importDxf(): Promise<void> {
 /** Writes the 3D model. The plan file and its saved state stay as they are. */
 export async function exportGlb(): Promise<void> {
   const state = useDocument.getState();
-  const result = await window.fw.file.exportGlb(`${documentTitle(state)} model`, planGlb(state.doc));
+  const images = new Map<string, Uint8Array>();
+  await Promise.all(
+    Object.entries(TEXTURE_URLS).map(async ([id, urls]) => {
+      const response = await fetch(urls.color);
+      if (response.ok) images.set(id, new Uint8Array(await response.arrayBuffer()));
+    }),
+  );
+  const result = await window.fw.file.exportGlb(`${documentTitle(state)} model`, planGlb(state.doc, images));
   if (result === null) return;
   if (!result.ok) await window.fw.app.showMessage({ type: 'error', message: 'The model could not be saved.', detail: result.error });
 }

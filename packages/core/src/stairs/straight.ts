@@ -1,4 +1,4 @@
-import { add, dot, normalize, perp, scale, sub } from '../geometry/vec2';
+import { add, distance, dot, normalize, perp, scale, sub } from '../geometry/vec2';
 import type { PlanDocument, Stair, Vec2, Vec3 } from '../model/schema';
 
 /** IRC 2021 R311.7.5.1, maximum riser. */
@@ -179,11 +179,66 @@ export function landingPolygon(stair: Stair): Vec2[] | null {
   return [add(center, add(scale(along, -1), scale(across, -1))), add(center, add(along, scale(across, -1))), add(center, add(along, across)), add(center, add(scale(along, -1), across))];
 }
 
-/** Footprints to cut out of the ceiling and the floor above: each flight, and the landing. */
+/** Footprints to cut out of the ceiling and the floor above. Each flight is longer than its treads so 6'8" of headroom clears the floor edge. */
+export const HEADROOM = 80;
+
 export function stairOpenings(stair: Stair): Vec2[][] {
-  const flights = placedFlights(stair).map((flight) => stairCorners(flight));
+  const flights = placedFlights(stair).map((flight) => wellFootprint(flight));
   const landing = landingPolygon(stair);
   return landing ? [...flights, landing] : flights;
+}
+
+function wellFootprint(flight: PlacedFlight): Vec2[] {
+  const needed = (HEADROOM * flight.tread) / Math.max(flight.riser, 1);
+  const extra = Math.min(120, Math.max(flight.tread, needed - flight.run));
+  return stairCorners({ start: flight.start, dir: flight.dir, run: flight.run + extra, width: flight.width });
+}
+
+/** Three wedge treads in an L landing, walked from the first flight toward the second. */
+export function winderTreads(stair: Stair): Vec2[][] {
+  if (!stair.landing?.winders || stair.landing.side) return [];
+  const landing = landingPolygon(stair);
+  if (!landing || landing.length < 4) return [];
+  const flights = placedFlights(stair);
+  const end = add(stair.start, scale(stair.dir, stair.run));
+  const next = flights[1]?.start ?? end;
+  let inside = landing[0]!;
+  let best = Infinity;
+  for (const corner of landing) {
+    const score = distance(corner, end) + distance(corner, next);
+    if (score < best) {
+      best = score;
+      inside = corner;
+    }
+  }
+  const index = landing.findIndex((corner) => corner === inside);
+  const outer = [1, 2, 3].map((step) => landing[(index + step) % landing.length]!);
+  const path = thirds([outer[0]!, outer[1]!, outer[2]!]);
+  const wedges: Vec2[][] = [];
+  for (let i = 0; i < path.length - 1; i++) wedges.push([inside, path[i]!, path[i + 1]!]);
+  return wedges;
+}
+
+function thirds(points: Vec2[]): Vec2[] {
+  const span: { p: Vec2; d: number }[] = [{ p: points[0]!, d: 0 }];
+  let walked = 0;
+  for (let i = 1; i < points.length; i++) {
+    walked += distance(points[i - 1]!, points[i]!);
+    span.push({ p: points[i]!, d: walked });
+  }
+  const at = (distanceAlong: number): Vec2 => {
+    for (let i = 1; i < span.length; i++) {
+      const prev = span[i - 1]!;
+      const next = span[i]!;
+      if (distanceAlong <= next.d || i === span.length - 1) {
+        const seg = next.d - prev.d || 1;
+        const t = Math.min(1, Math.max(0, (distanceAlong - prev.d) / seg));
+        return { x: prev.p.x + (next.p.x - prev.p.x) * t, y: prev.p.y + (next.p.y - prev.p.y) * t };
+      }
+    }
+    return points[points.length - 1]!;
+  };
+  return [0, 1 / 3, 2 / 3, 1].map((t) => at(walked * t));
 }
 
 export interface TurnLayout {

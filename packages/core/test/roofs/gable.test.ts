@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, buildPlanDisplayList, defaultWallHeight, gableOnLevel, roofZ, roofsOnLevel, DEFAULT_OVERHANG, DEFAULT_PITCH } from '../../src';
+import { buildLevelMeshes, buildPlanDisplayList, defaultWallHeight, gableOnLevel, pointInsideMesh, roofZ, roofsOnLevel, DEFAULT_OVERHANG, DEFAULT_PITCH } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
@@ -74,5 +74,8 @@ describe('gable roofs', () => {
     expect(Math.max(...zs)).toBeGreaterThan(plate + 30);
     const outlines = buildPlanDisplayList(ctx.history.doc, ctx.baseLevelId).filter((item) => item.prims.some((prim) => prim.t === 'polyline' && prim.pen === 'roof'));
     expect(outlines).toHaveLength(2);
+    const parts = buildLevelMeshes(ctx.history.doc, ctx.baseLevelId);
+    expect(pointInsideMesh(parts, [0, 72.5, plate + 18])).toBe(true);
+    expect(pointInsideMesh(parts, [0, 72.5, plate + 50])).toBe(false);
   });
 });

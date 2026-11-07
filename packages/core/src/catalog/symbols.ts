@@ -133,6 +133,16 @@ export function localSymbol(def: CatalogDef, params: Record<string, ParamValue>)
         { t: 'arc', c: { x: w / 2 - inset - 3, y: 0 }, r: 1.5, start: 0, sweep: Math.PI * 2, pen: detail },
       ];
     }
+    case 'furniture.bed':
+      return [box, outline(w * 0.92, d * 0.55, detail), { t: 'line', a: { x: -w * 0.46, y: d * 0.15 }, b: { x: w * 0.46, y: d * 0.15 }, pen: detail }];
+    case 'furniture.sofa':
+      return [box, { t: 'line', a: { x: -w / 2, y: d * 0.15 }, b: { x: w / 2, y: d * 0.15 }, pen: detail }, { t: 'line', a: { x: -w * 0.15, y: front }, b: { x: -w * 0.15, y: d / 2 }, pen: detail }, { t: 'line', a: { x: w * 0.15, y: front }, b: { x: w * 0.15, y: d / 2 }, pen: detail }];
+    case 'furniture.desk':
+      return [box, { t: 'line', a: { x: -w * 0.2, y: front }, b: { x: -w * 0.2, y: d / 2 }, pen: detail }, { t: 'line', a: { x: w * 0.2, y: front }, b: { x: w * 0.2, y: d / 2 }, pen: detail }];
+    case 'appliance.laundry':
+      return [box, { t: 'arc', c: { x: 0, y: 0 }, r: Math.min(w, d) * 0.28, start: 0, sweep: Math.PI * 2, pen: detail }];
+    case 'fixture.shower':
+      return [box, { t: 'line', a: { x: -w / 2, y: front }, b: { x: w / 2, y: front + d * 0.7 }, pen: detail }, { t: 'arc', c: { x: 0, y: d * 0.15 }, r: 1.5, start: 0, sweep: Math.PI * 2, pen: detail }];
   }
 }
 

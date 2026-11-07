@@ -200,6 +200,11 @@ export const GENERATORS = [
   'fixture.toilet',
   'fixture.sink',
   'fixture.tub',
+  'furniture.bed',
+  'furniture.sofa',
+  'furniture.desk',
+  'appliance.laundry',
+  'fixture.shower',
 ] as const;
 export type GeneratorId = (typeof GENERATORS)[number];
 
@@ -344,6 +349,8 @@ export const StairSchema = z.object({
       tread: z.number().min(10).max(120),
       /** Which side the return flight sits on. 1 is left of `dir`. Present only on a U stair. */
       side: z.union([z.literal(1), z.literal(-1)]).optional(),
+      /** An L turn uses three wedge treads instead of a flat landing. */
+      winders: z.boolean().optional(),
     })
     .optional(),
 });

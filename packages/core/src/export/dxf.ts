@@ -24,7 +24,7 @@ const LAYERS: { name: DrawLayer; color: number }[] = [
 
 /**
  * ASCII DXF (AC1015) of one level's plan, in model inches, Y up.
- * Filled wall polygons are written as closed outlines. Hatch patterns are not written.
+ * Filled polygons are solid hatches, with the closed outline kept so a round trip still reads the shape.
  */
 export function planDxf(doc: PlanDocument, levelId: Id): string {
   const out: string[] = [];
@@ -72,8 +72,12 @@ function writePrim(pair: (code: number, value: string | number) => void, layer: 
     point(pair, 11, prim.b);
   } else if (prim.t === 'polyline') {
     polyline(pair, layer, prim.pts, prim.closed);
+    if (prim.closed) hatch(pair, layer, prim.pts);
   } else if (prim.t === 'poly') {
-    for (const ring of prim.rings) polyline(pair, layer, ring, true);
+    for (const ring of prim.rings) {
+      polyline(pair, layer, ring, true);
+      hatch(pair, layer, ring);
+    }
   } else if (prim.t === 'arc') {
     if (!(prim.r > 0) || prim.sweep === 0) return;
     if (Math.abs(prim.sweep) >= Math.PI * 2 - 1e-6) {
@@ -114,6 +118,28 @@ function polyline(pair: (code: number, value: string | number) => void, layer: D
   pair(90, pts.length);
   pair(70, closed ? 1 : 0);
   for (const p of pts) point(pair, 10, p);
+}
+
+/** A solid fill. Import skips hatches, so a round trip still reads the outlines. */
+function hatch(pair: (code: number, value: string | number) => void, layer: DrawLayer, pts: Vec2[]): void {
+  if (pts.length < 3) return;
+  pair(0, 'HATCH');
+  pair(8, layer);
+  pair(2, 'SOLID');
+  pair(70, 1);
+  pair(71, 0);
+  pair(91, 1);
+  pair(92, 7);
+  pair(72, 1);
+  pair(73, 1);
+  pair(93, pts.length);
+  for (const p of pts) point(pair, 10, p);
+  pair(97, 0);
+  pair(75, 1);
+  pair(76, 1);
+  pair(98, 1);
+  pair(10, 0);
+  pair(20, 0);
 }
 
 function point(pair: (code: number, value: string | number) => void, code: number, p: Vec2): void {

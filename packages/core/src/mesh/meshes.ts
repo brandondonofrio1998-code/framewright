@@ -10,8 +10,8 @@ import { blendedGround, groundElevation } from '../site/ground';
 import { plantRing, plantsOnLevel } from '../plants/tree';
 import { ROAD_THICKNESS, roadPolygon, roadsOnLevel } from '../roads/drive';
 import { pipeCenter, pipePolygon, pipeSize, pipesOnLevel } from '../pipes/pipe';
-import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrails, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel } from '../stairs/straight';
-import { roofTriangles, roofsOnLevel } from '../roofs/gable';
+import { RISER_THICKNESS, TREAD_THICKNESS, HANDRAIL_SIZE, handrails, landingPolygon, placedFlights, runRect, stairOpenings, stairsOnLevel, winderTreads } from '../stairs/straight';
+import { roofTriangles, roofZ, roofsOnLevel } from '../roofs/gable';
 import { clipToSlab, subtractConvex, triangulate } from '../geometry/polygon';
 import { add, dot, normalize, perp, polygonArea, scale, sub } from '../geometry/vec2';
 import type { Id, Opening, PlanDocument, Stair, Vec2, Vec3 } from '../model/schema';
@@ -324,7 +324,16 @@ function stairSolids(doc: PlanDocument, levelId: Id, elevation: number, parts: M
       }
     }
     const landing = landingPolygon(stair);
-    if (landing) {
+    const wedges = winderTreads(stair);
+    if (wedges.length > 0) {
+      const base = elevation + stair.risers * stair.riser;
+      wedges.forEach((wedge, index) => {
+        const top = base + (index - 1) * stair.riser;
+        const piece = builder();
+        extrude(piece, wedge, top - TREAD_THICKNESS, top);
+        push(parts, finish(piece, stair.id, lumber, 'solid'));
+      });
+    } else if (landing) {
       const top = elevation + stair.risers * stair.riser;
       const b = builder();
       extrude(b, landing, top - TREAD_THICKNESS, top);
@@ -734,6 +743,60 @@ function openingPieces(polygon: Vec2[], stairs: readonly Stair[]): Vec2[][] {
   return pieces;
 }
 
+/** The gable-end wall rises from the plate to the rake. Eave walls stay at the plate. */
+function addRake(doc: PlanDocument, levelId: Id, geom: WallGeometry, zPlate: number, parts: MeshPart[]): void {
+  const planes = roofsOnLevel(doc, levelId);
+  if (planes.length < 2) return;
+  const length = Math.hypot(geom.b.x - geom.a.x, geom.b.y - geom.a.y);
+  if (length < 12) return;
+  const u = normalize(sub(geom.b, geom.a));
+  const up = planes[0]!.up;
+  if (Math.abs(u.x * up.x + u.y * up.y) < 0.85) return;
+  const zAt = (s: number) => {
+    const p = { x: geom.a.x + u.x * s, y: geom.a.y + u.y * s };
+    let height = Infinity;
+    for (const plane of planes) height = Math.min(height, roofZ(plane, p));
+    return height;
+  };
+  if (zAt(length / 2) < zPlate + 6) return;
+  const n = perp(u);
+  const half = 1.75;
+  const b = builder();
+  const steps = Math.max(2, Math.ceil(length / 12));
+  for (let i = 0; i < steps; i++) {
+    const s0 = (length * i) / steps;
+    const s1 = (length * (i + 1)) / steps;
+    const h0 = Math.max(zPlate, zAt(s0));
+    const h1 = Math.max(zPlate, zAt(s1));
+    if (h0 - zPlate < 0.5 && h1 - zPlate < 0.5) continue;
+    const p0 = { x: geom.a.x + u.x * s0, y: geom.a.y + u.y * s0 };
+    const p1 = { x: geom.a.x + u.x * s1, y: geom.a.y + u.y * s1 };
+    const at = (p: Vec2, off: number, z: number) => ({ x: p.x + n.x * off, y: p.y + n.y * off, z });
+    const top0 = at(p0, -half, h0);
+    const top1 = at(p1, -half, h1);
+    const top2 = at(p1, half, h1);
+    const top3 = at(p0, half, h0);
+    const bot0 = at(p0, -half, zPlate);
+    const bot1 = at(p1, -half, zPlate);
+    const bot2 = at(p1, half, zPlate);
+    const bot3 = at(p0, half, zPlate);
+    const quad = (pts: { x: number; y: number; z: number }[]) => {
+      const base = b.positions.length / 3;
+      for (const point of pts) {
+        b.positions.push(point.x, point.y, point.z);
+        b.normals.push(0, 0, 1);
+        b.uvs.push(point.x, point.y);
+      }
+      b.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    };
+    quad([top0, top1, top2, top3]);
+    quad([bot0, bot3, bot2, bot1]);
+    quad([bot0, bot1, top1, top0]);
+    quad([bot2, bot3, top3, top2]);
+  }
+  push(parts, finish(b, geom.wallId, null, 'solid'));
+}
+
 /** Solids for one level: wall layers with opening holes, floors, doors, glass, and catalog boxes. */
 export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
   const level = doc.levels[levelId];
@@ -749,6 +812,7 @@ export function buildLevelMeshes(doc: PlanDocument, levelId: Id): MeshPart[] {
     const z1 = z0 + (wall.height ?? height);
     if (z1 - z0 < MIN_BAND) continue;
     wallSolids(doc, geom, z0, z1, parts);
+    addRake(doc, levelId, geom, z1, parts);
     const framed = framing.get(geom.wallId);
     if (framed) {
       const b = builder();

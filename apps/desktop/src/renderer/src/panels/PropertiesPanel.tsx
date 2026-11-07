@@ -398,7 +398,17 @@ export function PropertiesPanel() {
             <span className="field-readonly">{upstairs}</span>
           </dd>
         </dl>
-        <p className="panel-hint">A straight flight under IRC 2021. The floor above is not opened yet.</p>
+        <p className="panel-hint">Risers and treads follow IRC 2021. The floor and ceiling open along the flight, and the opening runs past the top for headroom.</p>
+        {only.landing && !only.landing.side ? (
+          <label className="section-cut">
+            <input
+              type="checkbox"
+              checked={only.landing.winders === true}
+              onChange={(event) => notify(errorOf(dispatch('stair.winders', { id: only.id, winders: event.target.checked })))}
+            />
+            Winders
+          </label>
+        ) : null}
         <div className="panel-actions">
           <DeleteButton ids={[only.id]} />
         </div>

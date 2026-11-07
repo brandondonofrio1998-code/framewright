@@ -52,6 +52,7 @@ describe('plan DXF', () => {
     expect(Math.max(...xs)).toBeGreaterThan(240);
     const labels = drawnEntities.filter((entity) => entity.layer === 'rooms' && entity.type === 'TEXT');
     expect(labels.length).toBeGreaterThan(0);
+    expect(planDxf(ctx.history.doc, ctx.baseLevelId)).toContain('HATCH');
     expect(planDxf(ctx.history.doc, ctx.baseLevelId)).toContain('Room 1');
     expect(planDxf(ctx.history.doc, ctx.baseLevelId)).toContain('sq ft');
   });

@@ -85,7 +85,19 @@ export const createStair = defineCommand<CreateStair, Id>({
   },
 });
 
+export const setWinders = defineCommand<{ id: Id; winders: boolean }>({
+  label: () => 'Winders',
+  run: (doc, { id, winders }) => {
+    const el = doc.elements[id];
+    if (el?.kind !== 'stair' || !el.landing) throw new CommandError('Winders need a turn.');
+    if (el.landing.side) throw new CommandError('A U stair keeps its landing.');
+    if (winders) el.landing.winders = true;
+    else delete el.landing.winders;
+  },
+});
+
 export const stairCommands = {
   'stair.create': createStair,
+  'stair.winders': setWinders,
 };
 export type StairCommands = typeof stairCommands;

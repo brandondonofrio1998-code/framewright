@@ -140,6 +140,8 @@ function frameOne(geom: WallGeometry, openings: readonly Opening[], z0: number, 
   }
 
   for (const center of studCenters(length)) {
+    if (geom.endKinds[0] === 'joined' && center <= PLATE) continue;
+    if (geom.endKinds[1] === 'joined' && center >= length - PLATE) continue;
     const s0 = center - PLATE / 2;
     const s1 = center + PLATE / 2;
     if (blocked.some(([a, b]) => overlaps(s0, s1, a, b))) continue;

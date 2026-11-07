@@ -44,5 +44,7 @@ describe('plan glTF', () => {
     expect(span.width).toBeGreaterThan(6);
     expect(span.width).toBeLessThan(8);
     expect(span.maxY - span.minY).toBeGreaterThan(2);
+    const textured = gltfJson(planGlb(ctx.history.doc, new Map([['smooth-wall', Uint8Array.from([0xff, 0xd8, 0xff, 0xd9])]])));
+    expect((textured as { images?: unknown[] }).images?.length ?? 0).toBeGreaterThan(0);
   });
 });
