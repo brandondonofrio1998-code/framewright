@@ -1,5 +1,6 @@
 import type { Id, PlanDocument, RoofPlane, Vec2 } from '../model/schema';
 import { outlineError, rectangularOutline } from './outline';
+import { hipOverOutlines } from './shape';
 
 /** 6 in 12, a common house pitch. */
 export const DEFAULT_PITCH = 6;
@@ -31,13 +32,16 @@ export function roofZ(plane: Pick<GableSlope, 'eave' | 'eaveZ' | 'up' | 'pitch'>
 /**
  * A gable over a rectangular outline. The ridge runs the long way. The plane passes through
  * the top of the eave walls and continues past them by the overhang, so the fascia sits lower
- * than the plate. Anything that is not an axis-aligned rectangle is refused.
+ * than the plate. Any other closed outline gets a hip that follows those walls.
  */
 export function gableOnLevel(doc: PlanDocument, levelId: Id, pitch = DEFAULT_PITCH, overhang = DEFAULT_OVERHANG): { ok: true; roof: GableRoof } | { ok: false; error: string } {
   if (!(pitch > 0) || pitch > 24) return { ok: false, error: 'Pitch must be greater than 0 and at most 24 in 12.' };
   if (!(overhang >= 0) || overhang > 48) return { ok: false, error: 'Overhang must be from 0 to 4 feet.' };
   const outline = rectangularOutline(doc, levelId);
-  if (!outline.ok) return { ok: false, error: outlineError(outline.reason, 'gable') };
+  if (!outline.ok) {
+    if (outline.reason === 'small') return { ok: false, error: outlineError(outline.reason, 'gable') };
+    return hipOverOutlines(doc, levelId, pitch, overhang);
+  }
   const { x0, x1, y0, y1, plateX0, plateX1, plateY0, plateY1, generatedFrom } = outline.rect;
   const alongX = x1 - x0 >= y1 - y0;
   const plateZ = alongX ? Math.min(plateY0, plateY1) : Math.min(plateX0, plateX1);

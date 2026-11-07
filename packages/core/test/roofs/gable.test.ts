@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildLevelMeshes, buildPlanDisplayList, defaultWallHeight, gableOnLevel, pointInsideMesh, roofZ, roofsOnLevel, DEFAULT_OVERHANG, DEFAULT_PITCH } from '../../src';
+import { buildLevelMeshes, buildPlanDisplayList, defaultWallHeight, gableOnLevel, pointInPolygon, pointInsideMesh, roofZ, roofsOnLevel, DEFAULT_OVERHANG, DEFAULT_PITCH } from '../../src';
 import { testHistory } from '../helpers';
 
 const p = (x: number, y: number) => ({ x, y });
+
+function covers(planes: { polygon: { x: number; y: number }[] }[], point: { x: number; y: number }): boolean {
+  return planes.some((plane) => pointInPolygon(point, plane.polygon));
+}
 
 function room() {
   const ctx = testHistory();
@@ -36,18 +40,36 @@ describe('gable roofs', () => {
     expect(built.ok).toBe(true);
   });
 
-  it('refuses an L-shaped outline', () => {
+  it('roofs an L, a notch, and a wall that is not square to the others', () => {
     const ctx = testHistory();
     const typeId = Object.values(ctx.history.doc.wallTypes).find((t) => t.name === 'Exterior 2x6')!.id;
     const drawn = ctx.history.dispatch('wall.draw', {
       levelId: ctx.baseLevelId,
       typeId,
-      points: [p(0, 0), p(200, 0), p(200, 80), p(80, 80), p(80, 160), p(0, 160)],
+      points: [p(0, 0), p(240, 0), p(240, 96), p(96, 96), p(96, 192), p(0, 192)],
       closed: true,
     });
     if (!drawn.ok) throw new Error(drawn.error);
-    const built = gableOnLevel(ctx.history.doc, ctx.baseLevelId);
-    expect(built.ok).toBe(false);
+    const built = ctx.history.dispatch('roof.build', { levelId: ctx.baseLevelId });
+    if (!built.ok) throw new Error(built.error);
+    const planes = roofsOnLevel(ctx.history.doc, ctx.baseLevelId);
+    expect(planes.length).toBeGreaterThanOrEqual(6);
+    expect(covers(planes, { x: 40, y: 40 })).toBe(true);
+    expect(covers(planes, { x: 180, y: 150 })).toBe(false);
+    const plate = defaultWallHeight(ctx.history.doc.levels, ctx.history.doc.levelOrder, ctx.baseLevelId);
+    const under = Math.min(...planes.filter((plane) => covers([plane], { x: 40, y: 40 })).map((plane) => roofZ(plane, { x: 40, y: 40 })));
+    expect(under).toBeGreaterThan(plate);
+    const angled = ctx.history.dispatch('wall.draw', {
+      levelId: ctx.baseLevelId,
+      typeId,
+      points: [p(400, 0), p(520, 0), p(560, 40), p(520, 80), p(400, 80)],
+      closed: true,
+    });
+    if (!angled.ok) throw new Error(angled.error);
+    const again = ctx.history.dispatch('roof.build', { levelId: ctx.baseLevelId });
+    if (!again.ok) throw new Error(again.error);
+    expect(roofsOnLevel(ctx.history.doc, ctx.baseLevelId).length).toBeGreaterThanOrEqual(10);
+    expect(covers(roofsOnLevel(ctx.history.doc, ctx.baseLevelId), { x: 450, y: 40 })).toBe(true);
   });
 
   it('puts two slopes on a rectangle, bearing on the eave walls and rising to a shared ridge', () => {

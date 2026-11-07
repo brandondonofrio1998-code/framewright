@@ -1,5 +1,7 @@
 import type { Id, PlanDocument, RoofPlane, Vec2 } from '../model/schema';
+import { dot, sub } from '../geometry/vec2';
 import { rectangularOutline, type RectOutline } from './outline';
+import { roofEdges } from './shape';
 
 export interface RoofRecipe {
   levelId: Id;
@@ -11,7 +13,7 @@ export interface RoofRecipe {
 
 type Side = 'x0' | 'x1' | 'y0' | 'y1';
 
-/** The pitch and overhang of each roof that still sits on a rectangle, measured before the walls change. */
+/** The pitch and overhang of each roof, measured before the walls change. */
 export function roofRecipes(doc: PlanDocument): RoofRecipe[] {
   const byLevel = new Map<Id, RoofPlane[]>();
   for (const el of Object.values(doc.elements)) {
@@ -23,11 +25,35 @@ export function roofRecipes(doc: PlanDocument): RoofRecipe[] {
   const recipes: RoofRecipe[] = [];
   for (const [levelId, planes] of byLevel) {
     const outline = rectangularOutline(doc, levelId);
-    if (!outline.ok) continue;
-    const recipe = recipeFor(levelId, planes, outline.rect);
+    const recipe = outline.ok ? recipeFor(levelId, planes, outline.rect) : shapeRecipe(doc, levelId, planes);
     if (recipe) recipes.push(recipe);
   }
   return recipes;
+}
+
+/** A hip that follows a wing, a notch, or an angled wall. */
+function shapeRecipe(doc: PlanDocument, levelId: Id, planes: RoofPlane[]): RoofRecipe | null {
+  const pitch = planes[0]?.pitch;
+  if (pitch === undefined || planes.some((plane) => Math.abs(plane.pitch - pitch) > 0.05)) return null;
+  const edges = roofEdges(doc, levelId).flat();
+  const hangs: number[] = [];
+  for (const plane of planes) {
+    let best = 48;
+    let hang = -1;
+    for (const edge of edges) {
+      if (dot(edge.inward, plane.up) < 0.9) continue;
+      const along = dot(sub(edge.origin, plane.eave), plane.up);
+      if (along < -0.5 || along > 48) continue;
+      const miss = Math.abs(dot(sub(edge.origin, plane.eave), { x: -plane.up.y, y: plane.up.x }));
+      if (miss < best) {
+        best = miss;
+        hang = along;
+      }
+    }
+    if (hang >= 0) hangs.push(hang);
+  }
+  const overhang = hangs.length > 0 ? hangs.reduce((sum, value) => sum + value, 0) / hangs.length : 12;
+  return { levelId, kind: 'hip', pitch, overhang, pitches: { x0: pitch, x1: pitch, y0: pitch, y1: pitch } };
 }
 
 function recipeFor(levelId: Id, planes: RoofPlane[], rect: RectOutline): RoofRecipe | null {

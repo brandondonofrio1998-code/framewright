@@ -22,14 +22,14 @@ export function selectAll(): void {
   );
 }
 
-/** Builds a gable over the rectangular outline on the active level, replacing a roof already there. */
+/** Builds a gable over a rectangle, or a hip that follows any other closed outline. */
 export function buildGable(): void {
   const { activeLevelId } = useDocument.getState();
   const result = history.dispatch('roof.build', { levelId: activeLevelId });
   notify(result.ok ? null : result.error);
 }
 
-/** Builds a hip over the rectangular outline on the active level, replacing a roof already there. */
+/** Builds a hip over the closed outline on the active level, replacing a roof already there. */
 export function buildHip(): void {
   const { activeLevelId } = useDocument.getState();
   const result = history.dispatch('roof.hip', { levelId: activeLevelId });

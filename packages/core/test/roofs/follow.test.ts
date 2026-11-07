@@ -69,7 +69,7 @@ describe('roofs follow wall edits', () => {
     expect(eaves.every((z) => Math.abs(z - 114) < 0.01)).toBe(true);
   });
 
-  it('leaves the roof where it was when a corner makes the outline not a rectangle', () => {
+  it('follows a corner that takes the outline off a rectangle', () => {
     const ctx = room();
     const built = ctx.history.dispatch('roof.build', { levelId: ctx.baseLevelId });
     if (!built.ok) throw new Error(built.error);
@@ -78,6 +78,8 @@ describe('roofs follow wall edits', () => {
     if (corner?.kind !== 'wallNode') throw new Error('missing corner');
     const moved = ctx.history.dispatch('wallNode.move', { nodeId: corner.id, to: { x: 0, y: -30 } });
     if (!moved.ok) throw new Error(moved.error);
-    expect(minY(ctx.history.doc, ctx.baseLevelId)).toBeCloseTo(before, 2);
+    expect(minY(ctx.history.doc, ctx.baseLevelId)).toBeLessThan(before - 24);
+    expect(roofsOnLevel(ctx.history.doc, ctx.baseLevelId).length).toBeGreaterThanOrEqual(4);
+    expect(roofsOnLevel(ctx.history.doc, ctx.baseLevelId)[0]!.pitch).toBe(6);
   });
 });

@@ -89,7 +89,8 @@ export function clipToSlab(poly: readonly Vec2[], origin: Vec2, axis: Vec2, lo: 
   return out.length >= 3 ? out : [];
 }
 
-function clipHalfPlane(poly: readonly Vec2[], origin: Vec2, dir: Vec2, limit: number): Vec2[] {
+/** Sutherland–Hodgman clip to the half-plane `dot(p - origin, dir) >= limit`. `dir` need not be a unit vector. */
+export function clipHalfPlane(poly: readonly Vec2[], origin: Vec2, dir: Vec2, limit: number): Vec2[] {
   const out: Vec2[] = [];
   const value = (p: Vec2) => dot(sub(p, origin), dir) - limit;
   for (let i = 0; i < poly.length; i++) {

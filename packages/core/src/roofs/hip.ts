@@ -2,6 +2,7 @@ import { polygonArea } from '../geometry/vec2';
 import type { Id, PlanDocument, Vec2 } from '../model/schema';
 import { DEFAULT_OVERHANG, DEFAULT_PITCH, type GableRoof, type GableSlope } from './gable';
 import { outlineError, rectangularOutline, type RectOutline } from './outline';
+import { hipOverOutlines } from './shape';
 
 /** Pitch of each side, rise per 12. `x0` is the wall at the smaller X, `y0` the wall at the smaller Y. */
 export interface HipPitches {
@@ -37,7 +38,10 @@ export function hipOnLevel(
   }
   if (!(overhang >= 0) || overhang > 48) return { ok: false, error: 'Overhang must be from 0 to 4 feet.' };
   const outline = rectangularOutline(doc, levelId);
-  if (!outline.ok) return { ok: false, error: outlineError(outline.reason, 'hip') };
+  if (!outline.ok) {
+    if (outline.reason === 'small') return { ok: false, error: outlineError(outline.reason, 'hip') };
+    return hipOverOutlines(doc, levelId, pitch, overhang);
+  }
   return hipOverRect(outline.rect, resolved, overhang);
 }
 

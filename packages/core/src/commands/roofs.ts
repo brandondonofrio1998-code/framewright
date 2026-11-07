@@ -55,7 +55,7 @@ export const roofCommands = {
   'roof.hip': buildHip,
 };
 
-/** Rebuilds roofs captured before a wall edit. A roof whose outline is no longer a rectangle stays as it was. */
+/** Rebuilds roofs captured before a wall edit. An outline that no longer closes leaves the old roof. */
 export function applyRoofRecipes(doc: Draft<PlanDocument>, recipes: readonly RoofRecipe[], ctx: CommandContext): void {
   for (const recipe of recipes) {
     const built =

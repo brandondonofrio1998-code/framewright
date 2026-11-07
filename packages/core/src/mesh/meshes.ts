@@ -750,8 +750,17 @@ function addRake(doc: PlanDocument, levelId: Id, geom: WallGeometry, zPlate: num
   const length = Math.hypot(geom.b.x - geom.a.x, geom.b.y - geom.a.y);
   if (length < 12) return;
   const u = normalize(sub(geom.b, geom.a));
-  const up = planes[0]!.up;
-  if (Math.abs(u.x * up.x + u.y * up.y) < 0.85) return;
+  const mid = { x: geom.a.x + u.x * (length / 2), y: geom.a.y + u.y * (length / 2) };
+  let governing = planes[0]!;
+  let lowest = roofZ(governing, mid);
+  for (const plane of planes) {
+    const height = roofZ(plane, mid);
+    if (height < lowest) {
+      lowest = height;
+      governing = plane;
+    }
+  }
+  if (Math.abs(u.x * governing.up.x + u.y * governing.up.y) < 0.85) return;
   const zAt = (s: number) => {
     const p = { x: geom.a.x + u.x * s, y: geom.a.y + u.y * s };
     let height = Infinity;

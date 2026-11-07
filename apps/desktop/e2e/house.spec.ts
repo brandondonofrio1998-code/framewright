@@ -122,3 +122,22 @@ test('builds a 24 by 16 foot house with a bedroom wall, a roof, and a foundation
   await expect(window.getByLabel('Sheet', { exact: true })).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
+
+test('roofs an L-shaped wing', async ({ electronApp, window, userData, consoleErrors }) => {
+  await showModel(electronApp, window, { x: -36, y: -36 }, { x: 280, y: 230 });
+  await window.getByRole('button', { name: 'Walls', exact: true }).click();
+  await clickAt(window, { x: 0, y: 0 });
+  await typeLength(window, "20'", '0');
+  await typeLength(window, "8'", '90');
+  await typeLength(window, "12'", '180');
+  await typeLength(window, "8'", '90');
+  await typeLength(window, "8'", '180');
+  await typeLength(window, "16'", '270');
+  await window.getByLabel('Plan view').press('Escape');
+  await window.getByRole('button', { name: 'Roof', exact: true }).click();
+  const plan = await savePlan(electronApp, userData, 'wing');
+  expect(Object.values(plan.elements).filter((el) => el.kind === 'roofPlane').length).toBeGreaterThanOrEqual(6);
+  await window.locator('.dv-default-tab-content', { hasText: '3D' }).click();
+  await expect.poll(async () => Number(await window.getByTestId('view-3d').getAttribute('data-mesh-count'))).toBeGreaterThan(4);
+  expect(consoleErrors).toEqual([]);
+});

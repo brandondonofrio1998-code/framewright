@@ -76,39 +76,32 @@ function orthogonal(points: readonly Vec2[]): boolean {
   return true;
 }
 
-/** A rectangle, or the two non-overlapping bays of an L. The shared edge does not lap a stem. */
+/** Rectangular bays of an orthogonal outline. A shared edge does not lap a stem. */
 function baysOf(points: readonly Vec2[], lap: number): Bay[] | null {
   const rect = rectangle(points);
   if (rect) return [{ box: rect, bearing: { minX: lap, maxX: lap, minY: lap, maxY: lap } }];
-  if (points.length !== 6 || !orthogonal(points)) return null;
+  if (!orthogonal(points)) return null;
   const xs = sortedUnique(points.map((p) => p.x));
   const ys = sortedUnique(points.map((p) => p.y));
-  if (xs.length !== 3 || ys.length !== 3) return null;
-  const inside = [0, 1].map((ix) =>
-    [0, 1].map((iy) => pointInPolygon({ x: (xs[ix]! + xs[ix + 1]!) / 2, y: (ys[iy]! + ys[iy + 1]!) / 2 }, points)),
-  );
-  const empty: { ix: number; iy: number }[] = [];
-  for (let ix = 0; ix < 2; ix++) for (let iy = 0; iy < 2; iy++) if (!inside[ix]![iy]) empty.push({ ix, iy });
-  if (empty.length !== 1) return null;
-  const notch = empty[0]!;
-  const row = 1 - notch.iy;
-  const full: Bay = {
-    box: { minX: xs[0]!, maxX: xs[2]!, minY: ys[row]!, maxY: ys[row + 1]! },
-    bearing: { minX: lap, maxX: lap, minY: lap, maxY: lap },
-  };
-  const legX = 1 - notch.ix;
-  const leg: Bay = {
-    box: { minX: xs[legX]!, maxX: xs[legX + 1]!, minY: ys[notch.iy]!, maxY: ys[notch.iy + 1]! },
-    bearing: { minX: lap, maxX: lap, minY: lap, maxY: lap },
-  };
-  if (notch.iy > row) {
-    full.bearing.maxY = 0;
-    leg.bearing.minY = 0;
-  } else {
-    full.bearing.minY = 0;
-    leg.bearing.maxY = 0;
+  if (xs.length < 2 || ys.length < 2) return null;
+  const inside: { ix: number; iy: number }[] = [];
+  for (let ix = 0; ix < xs.length - 1; ix++) {
+    for (let iy = 0; iy < ys.length - 1; iy++) {
+      if (pointInPolygon({ x: (xs[ix]! + xs[ix + 1]!) / 2, y: (ys[iy]! + ys[iy + 1]!) / 2 }, points)) inside.push({ ix, iy });
+    }
   }
-  return [full, leg];
+  if (inside.length === 0) return null;
+  const filled = new Set(inside.map((cell) => `${cell.ix},${cell.iy}`));
+  const has = (ix: number, iy: number) => filled.has(`${ix},${iy}`);
+  return inside.map(({ ix, iy }) => ({
+    box: { minX: xs[ix]!, maxX: xs[ix + 1]!, minY: ys[iy]!, maxY: ys[iy + 1]! },
+    bearing: {
+      minX: has(ix - 1, iy) ? 0 : lap,
+      maxX: has(ix + 1, iy) ? 0 : lap,
+      minY: has(ix, iy - 1) ? 0 : lap,
+      maxY: has(ix, iy + 1) ? 0 : lap,
+    },
+  }));
 }
 
 function joistsIn(bay: Bay, z0: number, z1: number): FloorJoist[] {
@@ -143,8 +136,8 @@ function joistsIn(bay: Bay, z0: number, z1: number): FloorJoist[] {
 /**
  * 2x10 joists at 16 inches on center under a floor that is raised off the slab.
  * They span the short side of each rectangular bay and lap the stem at each end.
- * An L is two bays. The edge where the bays meet does not lap. One joist sits flush
- * at each side. A gap shorter than a 2x10, or an outline that is not a rectangle or an L, gets none.
+ * An orthogonal outline is split into those bays. The edge where two bays meet does not lap.
+ * One joist sits flush at each side. A gap shorter than a 2x10, or a wall that is not square to the others, gets none.
  */
 export function floorJoists(foundation: Foundation, floorBottom: number): FloorJoist[] {
   const gap = foundation.clearance ?? 0;
